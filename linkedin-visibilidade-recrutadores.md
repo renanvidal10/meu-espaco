@@ -159,3 +159,198 @@ Para eu revisar seu perfil e te dar feedback específico (não genérico), preci
 3. Se já tem o "Open to Work" ativado e como está configurado hoje.
 
 Com isso te devolvo uma análise seção por seção com o que ajustar.
+
+---
+
+## 6. Plano de transição: Vendas/Acesso → Product/Brand Manager em Oncologia (Renan)
+
+**Situação real, sem rodeio (visão de hunter):** hoje o perfil lê como "profissional
+de vendas farmacêuticas sênior", full stop. Zero anos formais em Marketing no
+histórico de cargos. O que te salva é que você **tem** lastro de marketing —
+graduação em Marketing pela ESPM e uma passagem como sócio-diretor numa agência
+(Ágora MP) — só que isso está enterrado no fim do perfil, sem nenhum destaque, e
+o Recruiter não vai "adivinhar" que isso é relevante. O trabalho aqui é:
+reposicionar o que já existe, preencher os buracos, e deixar claríssimo (sem
+mentir) que você está em transição ativa para Marketing, com prioridade em
+Oncologia.
+
+**Parâmetros combinados:**
+- Cargo-alvo: Product/Brand Manager, nível Jr-Pleno (entrada em Marketing).
+- Localização: aberto a se mudar para São Paulo (onde ficam a maioria das
+  matrizes de marketing farma — Roche, Novartis, MSD, BMS, AstraZeneca, Bayer,
+  J&J, Janssen Oncology, Amgen, Servier etc. concentram marketing na Grande SP).
+- Narrativa: ESPM + Ágora MP no centro, sem investir em certificação nova por
+  enquanto.
+- Empresas-alvo: rede quente (AstraZeneca, Bayer, J&J, Pfizer) **e** mercado
+  aberto de Oncologia, sem restringir.
+
+### 6.1 Headline — duas opções prontas para usar
+
+**Opção A (neutra, segura para usar mesmo empregado):**
+`Product/Brand Manager | Marketing Farmacêutico & Oncologia | Formação em Marketing (ESPM) + 10 anos de Indústria Farma (Vendas, KAM, Acesso) | Aberto a SP`
+
+**Opção B (transição explícita — mais eficaz para humano, um pouco mais exposta):**
+`Em transição para Marketing Farmacêutico | Formação em Marketing (ESPM) + Agência (Ágora MP) + 10 anos de campo em Oncologia | Buscando Product/Brand Manager | SP`
+
+Recomendo a **Opção A** enquanto você ainda está empregado na AstraZeneca (menos
+exposição), e trocar para algo como a B se/quando ativar "Open to Work" público
+ou estiver aplicando ativamente.
+
+### 6.2 Localização e "Open to Work" — configuração exata
+
+- **Não troque o campo "Localização" do perfil para São Paulo enquanto você
+  mora no Rio.** Isso pode gerar desconfiança se um recrutador tentar marcar
+  algo presencial. Mantenha "Rio de Janeiro" e deixe a abertura para SP
+  explícita no headline/resumo + nas preferências do Open to Work.
+- Ative Open to Work em **"Recrutadores apenas"** (Recursos > Preferências de
+  candidato a emprego):
+  - **Cargos de interesse (use os 5 slots):** Product Manager, Brand Manager,
+    Analista de Marketing Farmacêutico, Coordenador de Marketing, Marketing
+    Manager.
+  - **Localidades:** São Paulo, Grande São Paulo (Barueri/Alphaville/Cotia),
+    Rio de Janeiro, Remoto.
+  - **Tipo de trabalho:** Presencial + Híbrido + Remoto (marcar os três amplia
+    o alcance).
+  - **Data de início:** conforme sua real disponibilidade de aviso prévio.
+
+### 6.3 Resumo ("Sobre") — rascunho pronto para adaptar
+
+> Profissional de Marketing (ESPM) com mais de 10 anos vivendo a linha de
+> frente da indústria farmacêutica — dos dois lados do balcão: comecei em
+> agência de marketing e comunicação (Ágora MP), e nos últimos anos venho
+> construindo experiência sólida em vendas, gestão de contas estratégicas e
+> acesso ao mercado em Oncologia, em empresas como Bayer, Janssen e
+> AstraZeneca.
+>
+> Essa combinação me deu algo que poucos profissionais de marketing têm: visão
+> de rua sobre como mensagens, materiais promocionais e estratégias de
+> lançamento realmente performam com médicos, KOLs e instituições — porque eu
+> estive do lado que executa a estratégia todos os dias, com [nº] contas
+> hospitalares/institucionais e ciclos completos de lançamento de produto em
+> Oncologia.
+>
+> Hoje busco unir essas duas bagagens como Product/Brand Manager, com foco em
+> Oncologia, levando para dentro do time de marketing a leitura de campo que
+> só quem viveu a implementação tem. Aberto a oportunidades em São Paulo.
+>
+> Trilíngue: português (nativo), inglês (fluente/nativo) e espanhol
+> (profissional).
+
+Ajuste os `[nº]` com números reais (quantas contas, quantos lançamentos,
+quantas instituições) — não invente, mas também não subestime: se você geriu
+uma carteira relevante, isso é prova concreta de visão comercial que pesa
+muito para marketing.
+
+### 6.4 Experiências — preencher os 3 maiores buracos
+
+Hoje **AstraZeneca (cargo atual)**, **Bayer – Líder de contas** e **Bayer –
+Oncology Sales Specialist** não têm nenhuma descrição. Isso é o maior buraco
+do perfil inteiro. Para cada uma, escreva 3-5 bullets misturando resultado
+comercial (o que você já tem) com sinais de marketing (o que aproxima você da
+vaga-alvo). Modelo:
+
+**AstraZeneca — Consultor Técnico Oncologia**
+- Responsável pela promoção estratégica de [produto/linha] junto a
+  instituições públicas e privadas no Rio de Janeiro, com foco em [tipo de
+  câncer/indicação].
+- Interface direta com o time de Marketing e Market Access no
+  desenvolvimento/ajuste de mensagens-chave e materiais promocionais para o
+  território, com base em feedback de campo de médicos e KOLs.
+- Apoio em [lançamento/expansão de indicação], incluindo mapeamento de
+  público-alvo, análise de concorrência local e forecast de território.
+
+**Bayer — Líder de Contas**
+- Gestão estratégica de carteira de [nº] contas institucionais/hospitalares
+  em Oncologia, com [resultado real: % de crescimento, retenção, expansão].
+- Planejamento e execução tática de iniciativas de posicionamento de marca em
+  nível local, alinhadas à estratégia nacional de Marketing.
+- Análise periódica de performance e cenário competitivo para apoiar
+  planejamento de ciclo de vida de produto e forecast de mercado.
+
+**Bayer — Oncology Sales Specialist**
+- Promoção estratégica de [produto] para [indicação], com [resultado de
+  atingimento de meta, se tiver o número].
+- Relacionamento contínuo com KOLs e formadores de opinião em Oncologia,
+  gerando input qualitativo para o time de Marketing sobre efetividade de
+  mensagens e materiais.
+
+*(Só inclua o que realmente aconteceu — os bullets acima são modelo de
+estrutura, não fatos. Preencha com a sua realidade.)*
+
+### 6.5 Ágora MP e ESPM — trazer para o centro
+
+- **Ágora MP (Sócio Diretor):** já tem boa descrição, mas reforce palavras-chave
+  de marketing puro: adicione termos como *Planejamento de Campanhas, Gestão de
+  Contas de Agência, Marketing Estratégico, Pesquisa de Mercado, Publicidade,
+  Marketing Político* explicitamente no texto (hoje eles aparecem meio
+  diluídos). Essa é a experiência que mais casa literalmente com "Marketing"
+  em busca booleana — não deixe ela implícita.
+- **ESPM (Bacharel em Marketing):** hoje está sem nenhuma descrição. Adicione
+  2-3 linhas: ênfase em quais matérias/projetos de marketing você levou mais a
+  sério (branding, comunicação, pesquisa de mercado, etc.), e se teve TCC ou
+  projeto aplicado, cite o tema.
+
+### 6.6 Skills — lista para adicionar
+
+Mantenha as 3 atuais fixadas por enquanto (ainda são relevantes como prova de
+mercado farma), mas adicione ao conjunto geral:
+`Marketing Farmacêutico`, `Gestão de Marca (Brand Management)`,
+`Product Management`, `Lançamento de Produtos`, `Marketing Estratégico`,
+`Pesquisa de Mercado`, `Planejamento de Campanhas`, `Relacionamento com KOL`,
+`Ciclo de Vida do Produto`, `Análise Competitiva`, `Forecast`,
+`Oncologia`, `Medicina de Precisão`.
+
+Depois de ganhar tração (3-4 semanas), **troque o pin dos 3 principais** para:
+`Product Management`, `Marketing Farmacêutico`, `Gestão de Marca` — para
+sinalizar claramente a nova direção assim que tiver endossos suficientes
+nessas.
+
+### 6.7 Recomendações — quem pedir
+
+- Um ex-cliente ou sócio da época da Ágora MP, pedindo para falar
+  especificamente sobre seu trabalho de marketing/agência (não sobre vendas).
+- Um gestor da Bayer ou AstraZeneca que possa mencionar sua interface com o
+  time de Marketing, visão estratégica e leitura de mercado — não só
+  "resultado de vendas".
+
+Duas recomendações bem direcionadas valem mais que cinco genéricas.
+
+### 6.8 Destaques (Featured) — prova ativa de intenção
+
+Isso é o que mais separa "perfil maquiado" de "candidato que hunter liga
+primeiro":
+- Se tiver algum material da Ágora MP (peça, campanha, case), suba como
+  destaque.
+- Comece a **comentar e depois postar** sobre marketing farmacêutico e
+  oncologia (tendências, lançamentos, congressos do setor). Isso não é
+  cosmético: constrói um histórico público que prova interesse genuíno na
+  transição — recrutador humano lê isso, e o algoritmo também prioriza perfis
+  ativos.
+
+### 6.9 Rede e caça ativa (o que um hunter faria no seu lugar)
+
+1. Conecte-se com recrutadores/Talent Acquisition das farmacêuticas-alvo
+   (busque "Talent Acquisition" + nome da empresa) com uma nota curta e
+   pessoal explicando a transição em 2-3 linhas — não copie e cole a mesma nota
+   genérica em todos.
+2. Reative contatos de gestores da Bayer/AstraZeneca/J&J/Pfizer com quem você
+   teve boa relação — peça para serem lembrados se souberem de vagas de
+   marketing.
+3. Siga as páginas de empresas-alvo e engaje com posts sobre lançamentos e
+   marketing de Oncologia — aparece mais na timeline de quem trabalha lá.
+4. Crie **buscas salvas** no LinkedIn para "Product Manager farmacêutica",
+   "Brand Manager Oncologia" etc., com alerta — candidaturas nas primeiras 24h
+   de uma vaga aberta têm bem mais chance de serem vistas.
+
+### 6.10 Checklist priorizado (ordem de execução)
+
+1. [ ] Preencher bullets da AstraZeneca, Bayer (2 cargos) — maior gap.
+2. [ ] Reescrever headline (opção A).
+3. [ ] Reescrever Resumo com a narrativa ESPM + Ágora + campo.
+4. [ ] Adicionar descrição na ESPM e reforçar keywords na Ágora MP.
+5. [ ] Ativar/ajustar Open to Work (cargos + SP + Rio + remoto).
+6. [ ] Adicionar skills novas da lista acima.
+7. [ ] Corrigir data do Ensino Médio (1995-2008 está incorreto).
+8. [ ] Pedir 2 recomendações direcionadas.
+9. [ ] Subir algo em Destaques + começar a comentar/postar sobre o tema.
+10. [ ] Conectar com recrutadores-alvo e reativar rede quente.
