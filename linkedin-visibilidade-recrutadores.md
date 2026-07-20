@@ -241,41 +241,59 @@ quantas instituições) — não invente, mas também não subestime: se você g
 uma carteira relevante, isso é prova concreta de visão comercial que pesa
 muito para marketing.
 
-### 6.4 Experiências — preencher os 3 maiores buracos
+### 6.4 Experiências — versão final dos bullets
 
-Hoje **AstraZeneca (cargo atual)**, **Bayer – Líder de contas** e **Bayer –
-Oncology Sales Specialist** não têm nenhuma descrição. Isso é o maior buraco
-do perfil inteiro. Para cada uma, escreva 3-5 bullets misturando resultado
-comercial (o que você já tem) com sinais de marketing (o que aproxima você da
-vaga-alvo). Modelo:
+Território real em todos os cargos recentes: **Rio de Janeiro e Espírito
+Santo (Vitória)** — corrigir o campo de localização na Bayer e na AstraZeneca,
+hoje só consta "Rio de Janeiro".
 
-**AstraZeneca — Consultor Técnico Oncologia**
-- Responsável pela promoção estratégica de [produto/linha] junto a
-  instituições públicas e privadas no Rio de Janeiro, com foco em [tipo de
-  câncer/indicação].
-- Interface direta com o time de Marketing e Market Access no
-  desenvolvimento/ajuste de mensagens-chave e materiais promocionais para o
-  território, com base em feedback de campo de médicos e KOLs.
-- Apoio em [lançamento/expansão de indicação], incluindo mapeamento de
-  público-alvo, análise de concorrência local e forecast de território.
+**AstraZeneca — Consultor Técnico Oncologia (cargo atual)**
+- Idealizei e conduzi, junto ao time de OncoGineco (campo e AstraZeneca) e com
+  apoio de coordenação científica dedicada, o **Year in Review** — evento
+  anual que reúne especialistas para discutir de forma objetiva os principais
+  avanços do ano em Genitourinário, Gastrointestinal e Ginecologia, com
+  participação de empresas parceiras (AbbVie, Bayer). 1ª edição em 2025, 2ª já
+  confirmada para 2026.
+- Identifiquei, junto a médicos de Vitória/ES, uma barreira operacional de
+  tempo que gerava baixa adesão ao teste de biomarcador (BRCA) — essencial
+  para minha linha e outras linhas teste-dependentes da AZ. Em parceria com o
+  time de DXL (patologia), desenhei o fluxo do **"Concierge App Test"** (nome
+  interno, projeto em fase beta, ainda não registrado), conectando paciente,
+  laboratório, solicitação de teste e termo de consentimento em um único
+  processo digital. Resultado: aumento nas solicitações de teste, com impacto
+  positivo em múltiplas linhas de produto da companhia.
+- Reconhecido com **"Maior Crescimento YTD" (52%)** no segmento GYN, na
+  convenção de Destaques 2025 da AstraZeneca — minha primeira convenção na
+  empresa.
 
-**Bayer — Líder de Contas**
-- Gestão estratégica de carteira de [nº] contas institucionais/hospitalares
-  em Oncologia, com [resultado real: % de crescimento, retenção, expansão].
-- Planejamento e execução tática de iniciativas de posicionamento de marca em
-  nível local, alinhadas à estratégia nacional de Marketing.
-- Análise periódica de performance e cenário competitivo para apoiar
-  planejamento de ciclo de vida de produto e forecast de mercado.
+**Bayer — Líder de Contas / Oncology Sales Specialist**
+- Idealizei e liderei, em parceria com a área médica e o MSL do território, o
+  desenvolvimento do **Pharma Check** — ferramenta que cruza dados de bula e
+  bases públicas de interação medicamentosa para demonstrar objetivamente ao
+  médico a menor interação da nossa molécula frente a concorrentes,
+  apoiando a justificativa técnica junto a operadoras de saúde. Busquei e
+  geri o fornecedor de tecnologia terceirizado responsável pelo protótipo.
+  Plataforma ativa até hoje, hospedada no site da **SBRAFH** (Sociedade
+  Brasileira de Farmácia Hospitalar). Reconhecida no setor com o **Prêmio
+  Lupa de Ouro** (Sindusfarma), 2025 *(categoria exata a confirmar antes de
+  publicar)*.
+- Reconhecido com o prêmio interno **"Pharma Champions"** (Bayer, ~2024) por
+  resultados e parceria de equipe.
 
-**Bayer — Oncology Sales Specialist**
-- Promoção estratégica de [produto] para [indicação], com [resultado de
-  atingimento de meta, se tiver o número].
-- Relacionamento contínuo com KOLs e formadores de opinião em Oncologia,
-  gerando input qualitativo para o time de Marketing sobre efetividade de
-  mensagens e materiais.
+**Janssen (Johnson & Johnson) — Consultor de Vendas Pleno/Junior**
+- *(mantém a descrição já existente sobre promoção do produto oral oncológico
+  e atuação em Câncer de Próstata)*
+- Vencedor do prêmio **"1º Lugar Brasil"** da unidade de Oncologia, após cerca
+  de 1 ano e meio na área — dentro de aproximadamente 3 anos de carreira na
+  indústria farmacêutica.
 
-*(Só inclua o que realmente aconteceu — os bullets acima são modelo de
-estrutura, não fatos. Preencha com a sua realidade.)*
+**Pendências antes de publicar:**
+1. Confirmar a categoria exata em que o Pharma Check foi premiado no Lupa de
+   Ouro 2025 (o público disponível mostra a Bayer premiada em "Melhor Projeto
+   de Acesso" com um projeto diferente — de diabetes/oftalmologia — então essa
+   categoria pode não ser a do Pharma Check).
+2. Conseguir o link direto da ferramenta no site da SBRAFH, para usar como
+   prova em Destaques.
 
 ### 6.5 Ágora MP e ESPM — trazer para o centro
 
@@ -317,15 +335,21 @@ Duas recomendações bem direcionadas valem mais que cinco genéricas.
 
 ### 6.8 Destaques (Featured) — prova ativa de intenção
 
-Isso é o que mais separa "perfil maquiado" de "candidato que hunter liga
-primeiro":
-- Se tiver algum material da Ágora MP (peça, campanha, case), suba como
-  destaque.
-- Comece a **comentar e depois postar** sobre marketing farmacêutico e
-  oncologia (tendências, lançamentos, congressos do setor). Isso não é
-  cosmético: constrói um histórico público que prova interesse genuíno na
-  transição — recrutador humano lê isso, e o algoritmo também prioriza perfis
-  ativos.
+Boa notícia: você **já tem** o material pronto, só nunca foi fixado no
+perfil. Vá em cada um destes posts seus e use "Adicionar aos destaques"
+(ou "Fixar no perfil"):
+- O post sobre o **Year in Review 2025** — prova pública do case de evento
+  científico, com nomes reais de parceiros e empresas.
+- O post do **"Maior Crescimento YTD" (52%, GYN)** — prova pública de
+  performance atual na AstraZeneca.
+- O post do prêmio **"Pharma Champions"** (Bayer).
+- O post do **"1º Lugar Brasil"** (Janssen), se quiser mostrar trajetória
+  desde o início de carreira.
+
+Isso é literalmente zero esforço de criação — só curadoria do que você já
+publicou. Depois disso, sim, vale manter o hábito de comentar/postar sobre
+marketing farmacêutico e oncologia para reforçar a narrativa de transição ao
+longo do tempo.
 
 ### 6.9 Rede e caça ativa (o que um hunter faria no seu lugar)
 
@@ -344,13 +368,23 @@ primeiro":
 
 ### 6.10 Checklist priorizado (ordem de execução)
 
-1. [ ] Preencher bullets da AstraZeneca, Bayer (2 cargos) — maior gap.
-2. [ ] Reescrever headline (opção A).
-3. [ ] Reescrever Resumo com a narrativa ESPM + Ágora + campo.
-4. [ ] Adicionar descrição na ESPM e reforçar keywords na Ágora MP.
-5. [ ] Ativar/ajustar Open to Work (cargos + SP + Rio + remoto).
-6. [ ] Adicionar skills novas da lista acima.
-7. [ ] Corrigir data do Ensino Médio (1995-2008 está incorreto).
-8. [ ] Pedir 2 recomendações direcionadas.
-9. [ ] Subir algo em Destaques + começar a comentar/postar sobre o tema.
-10. [ ] Conectar com recrutadores-alvo e reativar rede quente.
+1. [ ] Colar os bullets finais da Seção 6.4 em AstraZeneca, Bayer e Janssen.
+2. [ ] Corrigir localização dos cargos recentes para "Rio de Janeiro e
+   Espírito Santo, Brasil".
+3. [ ] Reescrever headline (opção A).
+4. [ ] Reescrever Resumo com a narrativa ESPM + Ágora + campo.
+5. [ ] Adicionar descrição na ESPM e reforçar keywords na Ágora MP.
+6. [ ] Ativar/ajustar Open to Work (cargos + SP + Rio + remoto).
+7. [ ] Adicionar skills novas da lista da Seção 6.6.
+8. [ ] Corrigir data do Ensino Médio (1995-2008 está incorreto).
+9. [ ] Fixar em Destaques os 4 posts já publicados (Year in Review, YTD 52%,
+   Pharma Champions, 1º Lugar Brasil) — zero esforço de criação.
+10. [ ] Pedir 2 recomendações direcionadas.
+11. [ ] Confirmar categoria exata do Lupa de Ouro e conseguir o link do
+   Pharma Check no site da SBRAFH antes de publicar esse trecho.
+12. [ ] Conectar com recrutadores-alvo e reativar rede quente.
+
+*(Atividade/SSI não entrou como pendência — seus posts já têm bom
+engajamento, ex.: 150 curtidas/23 comentários e ~2.900 impressões. O gap
+nunca foi atividade, foi a estrutura do perfil não capturar o que você já
+faz.)*
