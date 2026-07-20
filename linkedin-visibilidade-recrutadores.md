@@ -268,17 +268,23 @@ hoje só consta "Rio de Janeiro".
 
 **Bayer — Líder de Contas / Oncology Sales Specialist**
 - Idealizei e liderei, em parceria com a área médica e o MSL do território, o
-  desenvolvimento do **Pharma Check** — ferramenta que cruza dados de bula e
-  bases públicas de interação medicamentosa para demonstrar objetivamente ao
-  médico a menor interação da nossa molécula frente a concorrentes,
-  apoiando a justificativa técnica junto a operadoras de saúde. Busquei e
-  geri o fornecedor de tecnologia terceirizado responsável pelo protótipo.
-  Plataforma ativa até hoje, hospedada no site da **SBRAFH** (Sociedade
-  Brasileira de Farmácia Hospitalar). Reconhecida no setor com o **Prêmio
-  Lupa de Ouro** (Sindusfarma), 2025 *(categoria exata a confirmar antes de
-  publicar)*.
+  desenvolvimento do **Farma Check** — ferramenta voltada a pacientes com
+  câncer de próstata que identifica rapidamente interações entre ARPIs
+  (inibidores da via do receptor de andrógeno) e outros medicamentos já
+  utilizados pelo paciente, gerando relatórios detalhados para decisões mais
+  seguras e apoiando a justificativa técnica do médico junto a operadoras de
+  saúde. Busquei e geri o fornecedor de tecnologia terceirizado responsável
+  pelo protótipo. Plataforma ativa até hoje ([farmacheck.com.br](https://farmacheck.com.br)),
+  desenvolvida com farmacêuticos clínicos e hospedada no site da **SBRAFH**
+  (Sociedade Brasileira de Farmácia Hospitalar), em parceria com a Bayer.
+  Reconhecida no setor com o **Prêmio Lupa de Ouro** (Sindusfarma), 2025
+  *(categoria exata a confirmar antes de publicar)*.
 - Reconhecido com o prêmio interno **"Pharma Champions"** (Bayer, ~2024) por
   resultados e parceria de equipe.
+
+> Peça de divulgação oficial do Farma Check (print anexado por Renan) já traz
+> o selo "Parceria Bayer" e o logo da Sbrafh — é candidata perfeita e pronta
+> para os Destaques do LinkedIn, sem precisar criar nada novo.
 
 **Janssen (Johnson & Johnson) — Consultor de Vendas Pleno/Junior**
 - *(mantém a descrição já existente sobre promoção do produto oral oncológico
@@ -287,13 +293,12 @@ hoje só consta "Rio de Janeiro".
   de 1 ano e meio na área — dentro de aproximadamente 3 anos de carreira na
   indústria farmacêutica.
 
-**Pendências antes de publicar:**
-1. Confirmar a categoria exata em que o Pharma Check foi premiado no Lupa de
+**Pendência antes de publicar:**
+1. Confirmar a categoria exata em que o Farma Check foi premiado no Lupa de
    Ouro 2025 (o público disponível mostra a Bayer premiada em "Melhor Projeto
    de Acesso" com um projeto diferente — de diabetes/oftalmologia — então essa
-   categoria pode não ser a do Pharma Check).
-2. Conseguir o link direto da ferramenta no site da SBRAFH, para usar como
-   prova em Destaques.
+   categoria pode não ser a do Farma Check).
+2. ~~Conseguir o link direto da ferramenta~~ — resolvido: farmacheck.com.br.
 
 ### 6.5 Ágora MP e ESPM — trazer para o centro
 
@@ -380,8 +385,8 @@ longo do tempo.
 9. [ ] Fixar em Destaques os 4 posts já publicados (Year in Review, YTD 52%,
    Pharma Champions, 1º Lugar Brasil) — zero esforço de criação.
 10. [ ] Pedir 2 recomendações direcionadas.
-11. [ ] Confirmar categoria exata do Lupa de Ouro e conseguir o link do
-   Pharma Check no site da SBRAFH antes de publicar esse trecho.
+11. [ ] Confirmar categoria exata do Lupa de Ouro antes de publicar esse
+   trecho (link do Farma Check já resolvido: farmacheck.com.br).
 12. [ ] Conectar com recrutadores-alvo e reativar rede quente.
 
 *(Atividade/SSI não entrou como pendência — seus posts já têm bom
