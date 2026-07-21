@@ -183,18 +183,43 @@ Oncologia.
   enquanto.
 - Empresas-alvo: rede quente (AstraZeneca, Bayer, J&J, Pfizer) **e** mercado
   aberto de Oncologia, sem restringir.
+- **Status: empregado na AstraZeneca, bem posicionado, buscando discrição
+  total.** A AstraZeneca não pode perceber que você está em busca ativa — isso
+  muda o que pode ser público e o que precisa ficar só entre você e o
+  recrutador. Ver regra abaixo.
+
+### 6.0 Regra de discrição (vale para toda a Seção 6)
+
+Existem dois canais completamente diferentes, e eles não podem se misturar:
+
+| Canal | Quem vê | Pode sinalizar busca ativa? |
+|---|---|---|
+| Headline, Resumo, Experiências, Skills | **Público** — qualquer um, inclusive colegas e gestores da AstraZeneca | **Não.** Só reforça posicionamento e conquistas, nunca "estou buscando" |
+| Open to Work em "Recrutadores apenas" | Só recrutadores licenciados no LinkedIn Recruiter — a própria LinkedIn confirma que esse modo é ocultado de RH/gestores da empresa atual na grande maioria dos casos | Sim — é o lugar certo pra isso |
+| Nota de conexão/mensagem direta a recrutador | Só o destinatário | Sim — pode explicar a transição abertamente |
+| Posts/comentários no feed | Público | Não diga "buscando vaga"; falar sobre marketing/oncologia como interesse profissional é seguro |
+
+**Nota de segurança sobre o "Recrutadores apenas":** o LinkedIn diz que
+esconde o sinal dos recrutadores da sua própria empresa, mas isso depende de
+detectar corretamente quem é "sua empresa" (funciona pelo campo Experiência
+atual) — não é garantia absoluta a 100%. Se seu apetite ao risco for zero,
+evite ativar publicamente qualquer coisa e concentre o trabalho na
+prospecção direta e discreta (rede quente + recrutadores externos via DM).
 
 ### 6.1 Headline — duas opções prontas para usar
 
 **Opção A (neutra, segura para usar mesmo empregado):**
 `Product/Brand Manager | Marketing Farmacêutico & Oncologia | Formação em Marketing (ESPM) + 10 anos de Indústria Farma (Vendas, KAM, Acesso) | Aberto a SP`
 
-**Opção B (transição explícita — mais eficaz para humano, um pouco mais exposta):**
+**Opção B (transição explícita — só para o dia em que você já tiver saído ou
+estiver com pedido de demissão em andamento):**
 `Em transição para Marketing Farmacêutico | Formação em Marketing (ESPM) + Agência (Ágora MP) + 10 anos de campo em Oncologia | Buscando Product/Brand Manager | SP`
 
-Recomendo a **Opção A** enquanto você ainda está empregado na AstraZeneca (menos
-exposição), e trocar para algo como a B se/quando ativar "Open to Work" público
-ou estiver aplicando ativamente.
+Como você está empregado e bem posicionado na AstraZeneca, **use só a Opção
+A por enquanto** — o headline é público, então "buscando"/"em transição" ali
+é visível para qualquer colega ou gestor seu. A Opção B fica guardada para o
+momento em que você já não precisar mais de discrição (saída anunciada,
+aviso prévio, etc.), não antes disso.
 
 ### 6.2 Localização e "Open to Work" — configuração exata
 
@@ -229,12 +254,22 @@ ou estiver aplicando ativamente.
 > hospitalares/institucionais e ciclos completos de lançamento de produto em
 > Oncologia.
 >
-> Hoje busco unir essas duas bagagens como Product/Brand Manager, com foco em
-> Oncologia, levando para dentro do time de marketing a leitura de campo que
-> só quem viveu a implementação tem. Aberto a oportunidades em São Paulo.
+> Tenho unido essas duas bagagens em iniciativas como o desenvolvimento de
+> ferramentas digitais de apoio à decisão médica e a criação de programas de
+> atualização científica com especialistas — sempre na interseção entre
+> execução de campo e estratégia de marca.
 >
 > Trilíngue: português (nativo), inglês (fluente/nativo) e espanhol
 > (profissional).
+
+**Correção importante:** tirei a frase "Hoje busco unir essas duas bagagens
+como Product/Brand Manager... Aberto a oportunidades em São Paulo" da versão
+anterior. Essa seção é **pública** — visível para qualquer colega ou gestor
+seu na AstraZeneca — e anunciar busca ativa ali é exatamente o tipo de
+exposição que você não quer enquanto está empregado e bem posicionado. O
+Resumo agora só reforça competências e conquistas reais, sem declarar
+intenção de sair. O sinal de "estou buscando" fica só no Open to Work
+(recrutadores) e nas conversas privadas — ver regra na Seção 6.0.
 
 Ajuste os `[nº]` com números reais (quantas contas, quantos lançamentos,
 quantas instituições) — não invente, mas também não subestime: se você geriu
@@ -361,15 +396,27 @@ longo do tempo.
 1. Conecte-se com recrutadores/Talent Acquisition das farmacêuticas-alvo
    (busque "Talent Acquisition" + nome da empresa) com uma nota curta e
    pessoal explicando a transição em 2-3 linhas — não copie e cole a mesma nota
-   genérica em todos.
-2. Reative contatos de gestores da Bayer/AstraZeneca/J&J/Pfizer com quem você
-   teve boa relação — peça para serem lembrados se souberem de vagas de
-   marketing.
+   genérica em todos. Essa nota é privada (só o destinatário vê), então pode
+   ser direta.
+2. Reative contatos de gestores/colegas da **Bayer, J&J e Pfizer** (empresas
+   onde você não trabalha mais) com quem teve boa relação — peça para serem
+   lembrados se souberem de vagas de marketing. **Evite fazer isso com
+   colegas atuais da AstraZeneca**, mesmo os de confiança — informação
+   informal circula, e o risco de chegar à sua gestão não vale a pena
+   enquanto você ainda não decidiu sair.
 3. Siga as páginas de empresas-alvo e engaje com posts sobre lançamentos e
    marketing de Oncologia — aparece mais na timeline de quem trabalha lá.
+   Engajar com conteúdo de marketing/oncologia é seguro mesmo estando na AZ,
+   não sinaliza busca ativa.
 4. Crie **buscas salvas** no LinkedIn para "Product Manager farmacêutica",
    "Brand Manager Oncologia" etc., com alerta — candidaturas nas primeiras 24h
    de uma vaga aberta têm bem mais chance de serem vistas.
+5. **Alternativa a considerar:** se a AstraZeneca tiver vagas internas de
+   Marketing, mobilidade interna costuma ser vista como desenvolvimento de
+   carreira, não como risco — vale avaliar se faz sentido conversar
+   abertamente com seu gestor ou RH sobre isso em algum momento, como
+   caminho paralelo ao externo (decisão sua, não é uma recomendação
+   automática).
 
 ### 6.10 Checklist priorizado (ordem de execução)
 
