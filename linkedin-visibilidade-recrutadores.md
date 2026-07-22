@@ -250,9 +250,11 @@ aviso prévio, etc.), não antes disso.
 > Essa combinação me deu algo que poucos profissionais de marketing têm: visão
 > de rua sobre como mensagens, materiais promocionais e estratégias de
 > lançamento realmente performam com médicos, KOLs e instituições — porque eu
-> estive do lado que executa a estratégia todos os dias, com [nº] contas
-> hospitalares/institucionais e ciclos completos de lançamento de produto em
-> Oncologia.
+> estive do lado que executa a estratégia todos os dias, gerindo contas
+> estratégicas junto aos principais grupos hospitalares e de saúde do Rio de
+> Janeiro, acompanhando de perto as fusões e a verticalização que
+> transformaram o setor, além de dois ciclos completos de lançamento de
+> produtos hoje consolidados como blockbusters em Oncologia.
 >
 > Tenho unido essas duas bagagens em iniciativas como o desenvolvimento de
 > ferramentas digitais de apoio à decisão médica e a criação de programas de
@@ -271,10 +273,12 @@ Resumo agora só reforça competências e conquistas reais, sem declarar
 intenção de sair. O sinal de "estou buscando" fica só no Open to Work
 (recrutadores) e nas conversas privadas — ver regra na Seção 6.0.
 
-Ajuste os `[nº]` com números reais (quantas contas, quantos lançamentos,
-quantas instituições) — não invente, mas também não subestime: se você geriu
-uma carteira relevante, isso é prova concreta de visão comercial que pesa
-muito para marketing.
+Preenchido com o que você confirmou: gestão de conta junto a grandes grupos
+(Rede D'Or, Oncoclínicas, Dasa, Amil — nomes a confirmar, ver pendência 2 da
+seção 6.4) e dois lançamentos de produto hoje blockbuster. Isso é bem mais
+forte para um recrutador do que um número solto de contas — nomes de grupos
+reconhecíveis do setor de saúde brasileiro comunicam escala e sofisticação
+muito melhor do que "[nº] contas" genérico.
 
 ### 6.4 Experiências — versão final dos bullets
 
@@ -302,6 +306,11 @@ hoje só consta "Rio de Janeiro".
   empresa.
 
 **Bayer — Líder de Contas / Oncology Sales Specialist**
+- Gestão estratégica de conta junto aos principais grupos hospitalares e de
+  saúde do Rio de Janeiro — **Rede D'Or, Oncoclínicas, Dasa e Amil** entre
+  eles — acompanhando de perto o processo de fusões e verticalização que
+  redesenhou o setor de saúde no período, com foco em estratégias de redução
+  de custo e ampliação de acesso à Oncologia para operadoras e pacientes.
 - Idealizei e liderei, em parceria com a área médica e o MSL do território, o
   desenvolvimento do **Farma Check** — ferramenta voltada a pacientes com
   câncer de próstata que identifica rapidamente interações entre ARPIs
@@ -312,10 +321,13 @@ hoje só consta "Rio de Janeiro".
   pelo protótipo. Plataforma ativa até hoje ([farmacheck.com.br](https://farmacheck.com.br)),
   desenvolvida com farmacêuticos clínicos e hospedada no site da **SBRAFH**
   (Sociedade Brasileira de Farmácia Hospitalar), em parceria com a Bayer.
-  Reconhecida no setor com o **Prêmio Lupa de Ouro** (Sindusfarma), 2025
-  *(categoria exata a confirmar antes de publicar)*.
+  Reconhecido internamente com prêmio Bayer *(nome exato a confirmar — ver
+  pendência 1 abaixo)*, 2025.
 - Reconhecido com o prêmio interno **"Pharma Champions"** (Bayer, ~2024) por
   resultados e parceria de equipe.
+- Lancei, ao longo da carreira, dois produtos hoje consolidados como
+  blockbusters no mercado de Oncologia, com destaque de vendas, incremento e
+  market share nos territórios em que atuei.
 
 > Peça de divulgação oficial do Farma Check (print anexado por Renan) já traz
 > o selo "Parceria Bayer" e o logo da Sbrafh — é candidata perfeita e pronta
@@ -328,12 +340,22 @@ hoje só consta "Rio de Janeiro".
   de 1 ano e meio na área — dentro de aproximadamente 3 anos de carreira na
   indústria farmacêutica.
 
-**Pendência antes de publicar:**
-1. Confirmar a categoria exata em que o Farma Check foi premiado no Lupa de
-   Ouro 2025 (o público disponível mostra a Bayer premiada em "Melhor Projeto
-   de Acesso" com um projeto diferente — de diabetes/oftalmologia — então essa
-   categoria pode não ser a do Farma Check).
-2. ~~Conseguir o link direto da ferramenta~~ — resolvido: farmacheck.com.br.
+**Pendências antes de publicar:**
+1. **Farma Check NÃO ganhou o Lupa de Ouro 2025** — correção do Renan: talvez
+   tenha ficado em 2º/3º lugar nessa premiação (não confirmado, e ele
+   considerou não relevante confirmar). O prêmio real foi um **reconhecimento
+   interno da Bayer, 2025**, que o Renan citou de viva voz como "Living Best
+   Buyer do ano" — esse nome soa como possível erro de transcrição/ditado
+   (não achei registro público dele; encontrei sim um programa real de
+   reconhecimento interno da Bayer chamado **"Prêmio LIFE"**, que pode ou não
+   ser o mesmo). **Preciso que o Renan confirme o nome oficial exato antes de
+   publicar** — mesmo cuidado que tivemos com "Pharma Check" → "Farma Check".
+2. Confirmar se os nomes dos grupos de saúde estão certos: **"Reddor" → Rede
+   D'Or?**, **"Daza" → Dasa?**, **"A1000" → Amil?** (interpretados a partir de
+   ditado por voz, prováveis mas não confirmados).
+3. Se o Renan quiser, pode informar o nome dos dois produtos
+   "blockbuster" lançados — hoje o bullet ficou genérico de propósito, sem
+   citar marca, por falta de confirmação.
 
 ### 6.5 Ágora MP e ESPM — trazer para o centro
 
@@ -347,6 +369,22 @@ hoje só consta "Rio de Janeiro".
   2-3 linhas: ênfase em quais matérias/projetos de marketing você levou mais a
   sério (branding, comunicação, pesquisa de mercado, etc.), e se teve TCC ou
   projeto aplicado, cite o tema.
+
+**Nova experiência a considerar adicionar — Analista de Pesquisa de Mercado**
+Você mencionou ter trabalhado, ainda na faculdade, para um professor de
+Economia/Estatística, como analista de pesquisa de mercado, subsidiando
+dados para planos de marketing e estratégia — tanto para clientes de campanha
+política (prefeitos) quanto para empresas privadas. Isso é relevante, sim: é
+prova adicional de vivência real em pesquisa de mercado, um dos pilares de
+Product Management, e antecede/reforça a ponte ESPM → Ágora MP → hoje.
+Vale considerar adicionar como um item formal de Experiência no LinkedIn.
+Preciso de mais 3 dados para isso:
+1. Nome da empresa/escritório do professor (ou era projeto informal/freelance
+   sem razão social?).
+2. Período aproximado (ano de início e fim).
+3. Se prefere não citar o nome do professor/empresa por discrição, também
+   podemos generalizar como "Consultoria de Pesquisa de Mercado" sem
+   identificar a pessoa.
 
 ### 6.6 Skills — lista para adicionar
 
@@ -365,13 +403,19 @@ nessas.
 
 ### 6.7 Recomendações — quem pedir
 
-- Um ex-cliente ou sócio da época da Ágora MP, pedindo para falar
-  especificamente sobre seu trabalho de marketing/agência (não sobre vendas).
-- Um gestor da Bayer ou AstraZeneca que possa mencionar sua interface com o
-  time de Marketing, visão estratégica e leitura de mercado — não só
-  "resultado de vendas".
+Confirmado com você: sem necessidade de reativar contatos da Ágora MP; você
+tem abertura para pedir a qualquer gestor da **Pfizer, Janssen ou Bayer**
+(não da AstraZeneca — mantém a discrição enquanto empregado lá, ver Seção
+6.0). Sugestão de priorização:
+- Um gestor da **Bayer**, pedindo para mencionar especificamente sua
+  iniciativa no Farma Check e sua leitura estratégica de mercado/contas
+  (não só "bateu meta") — essa é a recomendação com maior peso para a
+  narrativa de marketing.
+- Um gestor da **Janssen ou Pfizer**, reforçando trajetória consistente e
+  entrega de resultado desde o início de carreira.
 
-Duas recomendações bem direcionadas valem mais que cinco genéricas.
+Duas recomendações bem direcionadas valem mais que cinco genéricas — e, como
+combinado, nenhuma pedida a alguém que hoje trabalha com você na AstraZeneca.
 
 ### 6.8 Destaques (Featured) — prova ativa de intenção
 
