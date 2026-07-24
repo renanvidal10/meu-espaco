@@ -127,6 +127,17 @@ Gera um resumo que o médico pode salvar/exportar:
 - Disclaimer fixo em toda tela de recomendação.
 - Trilha de decisão explicável: a recomendação sempre aponta a regra/diretriz que a gerou (não é "caixa-preta" de IA generativa pura — a IA ajuda a extrair dado, mas a lógica de triagem é regras auditáveis mapeadas a NCCN/ESMO).
 
+### Camada 8 — Geração do documento de solicitação
+Este é o segundo gargalo que você identificou, e é tão importante quanto o primeiro: o médico pode saber exatamente qual teste pedir e ainda assim não pedir, porque não tem staff para preencher o formulário certo do jeito certo para cada laboratório/programa. Esta camada fecha esse hiato — gera o **documento de solicitação já preenchido**, pronto para revisar, assinar e enviar.
+
+- **Entrada isolada de nome real**: até aqui, todo o pipeline (Camadas 2 a 7) trabalha só com o caso pseudonimizado (`A.F.M.-0231`). O nome completo do paciente é pedido **apenas nesta camada**, num campo separado, e é usado só para popular o template do documento — nunca entra no motor de triagem, nunca é enviado a um modelo de IA, nunca fica salvo junto do histórico de casos. É reidentificação pontual e local, controlada pelo médico, no exato momento em que ele precisa do documento final.
+- **Templates por parceiro**: cada laboratório/indústria tem seu próprio formulário de solicitação (campos, layout, texto de justificativa exigido). Assim como a base de programas (Camada 5), esses templates são **dado curado**, mantido e validado por você — não gerado livremente por IA.
+- **Preenchimento automático**: nome do paciente, dados do médico (CRM, instituição), diagnóstico, teste solicitado e a **justificativa clínica já redigida**, citando a diretriz que embasa a indicação (o mesmo texto rastreável da Camada 7).
+- **Múltiplos documentos por caso**: quando a triagem recomenda teste pareado (ex.: HRD tumoral + BRCA germinativo, ver seção 10), a plataforma gera um documento para cada um — cada teste pode ter parceiro, laboratório e formulário diferentes.
+- **Saída**: PDF para download, com aviso de que a responsabilidade pela solicitação final é do médico assistente (a plataforma preenche, não decide nem envia em nome dele).
+
+Ver o passo 5 do mockup (`mockup/oncogyn-flow.html`) para o desenho de tela desta camada.
+
 ---
 
 ## 4. Estrutura de telas (informação, não visual ainda)
@@ -203,25 +214,62 @@ Pontos a resolver antes de desenhar o encaixe técnico:
 
 ---
 
-## 10. Decisões já tomadas (v0.2)
+## 10. Modelo de negócio: os dois gargalos
+
+Você identificou dois gargalos distintos, e é importante mantê-los separados porque cada um tem uma camada técnica própria (acima) e implica uma fonte de receita diferente:
+
+| Gargalo | Medo/barreira do médico | Camada que resolve | Quem tem interesse em financiar |
+|---|---|---|---|
+| **1. Não sabe qual teste pedir** | "Não tenho certeza se esse caso tem indicação, nem de qual exame — HRD? germinativo? os dois?" | Camada 4 (Motor de Triagem) + Camada 4-B (OncoBot) | Indústria farmacêutica (quer mais pacientes elegíveis identificados) e instituições de saúde (querem qualidade assistencial) |
+| **2. Não sabe/não tem staff para pedir** | "Mesmo sabendo qual exame, o formulário é complexo e eu não tenho secretária para preencher" | Camada 8 (Geração do documento de solicitação) + Camada 5 (Programas de acesso) | Indústria farmacêutica (reduz abandono no meio do funil — o mesmo gargalo "Atrito na Solicitação" e "Gargalo Operacional") e laboratórios parceiros (mais pedidos corretamente preenchidos, menos retrabalho) |
+
+### Opções de modelo de receita
+
+1. **Patrocínio por indústria via orçamento de acesso/educação médica (modelo principal recomendado).**
+   A indústria farmacêutica (ex.: quem já mantém programas de teste gratuito, como no exemplo HRD) financia o uso da ferramenta como parte do próprio orçamento de programas de acesso e educação médica — o mesmo tipo de budget que já paga por materiais educacionais e suporte administrativo hoje. A plataforma cobra por **disponibilizar a ferramenta e manter o catálogo/templates atualizados**, não por paciente direcionado nem por teste solicitado — isso evita qualquer aparência de pagamento por indicação (que seria antiético e um risco regulatório sério). É essencial que isso passe por aprovação de Medical/Regulatory (MLR) como ferramenta educacional/de suporte operacional, não promocional.
+
+2. **Assinatura institucional B2B (SaaS).**
+   Clínicas, hospitais ou grupos oncológicos pagam uma assinatura mensal/anual pelo acesso da equipe médica à ferramenta — independe de qual indústria patrocina qual teste. Reduz a dependência de um único patrocinador e fortalece a percepção de neutralidade clínica.
+
+3. **Freemium para o médico individual.**
+   Triagem (Camada 4) gratuita e sempre disponível — é a porta de entrada e o que gera adesão. Funcionalidades de "conforto operacional" (geração de documento pré-preenchido, histórico de casos, integração com Plaud) como camada paga ou patrocinada, para quem "carreira solo" sem staff sente mais esse gargalo.
+
+4. **Métricas agregadas como produto complementar (já previsto na ideia original de dashboard/analytics).**
+   Dados agregados e anonimizados (nunca por paciente) sobre onde o funil de testagem vaza por região/especialidade viram um produto de inteligência para os parceiros da indústria — sem vender dado de paciente, só padrão de uso da ferramenta.
+
+### A regra de ouro para qualquer um desses modelos
+
+**A Camada 4 (motor de triagem clínica) nunca pode ser influenciada por quem patrocina.** A separação estrutural já desenhada — a lógica de indicação vem só de diretriz (NCCN/ESMO/ASCO/...), e a Camada 5/8 (quem oferece o teste de graça e como pedir) é uma camada comercial à parte, sempre exibida *depois* da recomendação clínica, nunca antes — é o que sustenta qualquer um dos modelos acima perante Medical/Regulatory e perante o próprio médico usuário. Se essa linha for borrada, o produto deixa de ser "ferramenta de suporte" e vira material promocional, com toda a régua regulatória que isso implica.
+
+---
+
+## 11. Decisões já tomadas (v0.2)
 
 - **Escopo agora**: mockup navegável (ver `mockup/oncogyn-flow.html`) para validar o fluxo antes de qualquer código de produção.
 - **Vertical piloto**: Ginecológico (câncer de ovário), com expansão posterior para outros subtipos com componente genético relevante.
 - **Plaud**: integração via API é o alvo (Fase 2/3); no MVP o campo "colar transcrição" já cobre o mesmo caso de uso sem depender de disponibilidade de API.
 - **Regra de ouro do GYN**: a triagem nunca recomenda **só** o teste somático. Todo carcinoma epitelial de alto grau de ovário gera recomendação **pareada** — tumoral (HRD + BRCA somático, para elegibilidade a manutenção com inibidor de PARP) **e** germinativo (BRCA1/2 em sangue), porque respondem perguntas diferentes: um orienta o tratamento da paciente, o outro abre a porta para rastreio/prevenção antecipada em parentes de primeiro grau (teste em cascata). Essa lógica está refletida no card "Por que também pedir o germinativo" do mockup — tom acolhedor, sem alarmismo, com um script de exemplo que o médico pode adaptar ao conversar com a paciente.
 - **Fonte das regras de indicação**: diretrizes publicadas e reconhecidas internacionalmente — NCCN, ESMO, ASCO, e demais sociedades validadas (ex.: comparativos como AIOM/BGCS/ESGO/JGSO/NICE quando relevante). Cada regra no motor de triagem carrega a diretriz de origem e a versão/ano, para rastreabilidade. Referência-base usada neste mockup: ESMO recomenda teste germinativo **e** somático de BRCA1/2 para todo carcinoma epitelial de ovário de alto grau, com HRD adicional em doença avançada; NCCN recomenda germinativo + somático (incluindo HRD) ao diagnóstico em doença avançada para elegibilidade a PARP; ASCO tem guideline dedicado a teste germinativo e somático em câncer epitelial de ovário (JCO 2020).
-- **Mapeamento indústria × teste**: fica como dado a validar por você antes de publicar (ver seção 11) — o motor de triagem e a base de programas são desacoplados de propósito, para que a parte clínica (diretriz) nunca dependa da parte comercial (quem patrocina o teste hoje).
+- **Mapeamento indústria × teste**: fica como dado a validar por você antes de publicar (ver seção 12) — o motor de triagem e a base de programas são desacoplados de propósito, para que a parte clínica (diretriz) nunca dependa da parte comercial (quem patrocina o teste hoje).
+- **Segundo gargalo endereçado**: além de "qual teste pedir", a Camada 8 gera o **documento de solicitação já preenchido** (nome do paciente, dados do médico, teste e justificativa citando diretriz) — ver passo 5 do mockup. O nome real do paciente só existe nessa camada, isolado do resto do pipeline pseudonimizado.
 
-## 11. Pendente da sua validação
+---
+
+## 12. Pendente da sua validação
 
 O mockup já mostra a estrutura da tela de programas (AstraZeneca e GSK como exemplo para HRD), mas os dados de **quem oferece o quê, com qual critério de elegibilidade, hoje** precisam ser confirmados por você antes de qualquer publicação — isso inclui:
 - Critérios de elegibilidade atuais de cada programa (podem ser mais restritos que o critério clínico da diretriz).
 - Se há programa de acesso gratuito para o **teste germinativo** em GYN (o mockup mostra esse card como "pendente" propositalmente).
 - Cobertura por região/rede (nem todo programa está disponível em todo lugar).
+- Quais laboratórios/templates de formulário usar para o **documento de solicitação do germinativo** (a tela de programas mostra esse teste como "pendente" de parceiro, mas o documento de solicitação em si pode ser gerado com um template genérico de laboratório enquanto isso).
 
-## 12. Próximas perguntas em aberto
+---
 
-1. Olhando o mockup (`mockup/oncogyn-flow.html`), o fluxo de 4 passos faz sentido, ou falta/sobra alguma etapa?
+## 13. Próximas perguntas em aberto
+
+1. Olhando o mockup (`mockup/oncogyn-flow.html`), o fluxo de 5 passos (incluindo o novo passo de documento de solicitação) faz sentido, ou falta/sobra alguma etapa?
 2. O tom do card "Por que também pedir o germinativo" está no nível certo de acolhimento, ou precisa ajustar (mais direto/mais suave)?
 3. Para a tela de Programas: você já tem a lista real de critérios de elegibilidade AstraZeneca/GSK para HRD que eu possa estruturar, ou isso fica para uma rodada de validação conjunta depois do mockup aprovado?
-4. Depois do GYN, qual subtipo entra em seguida — Mama (você já citou o exemplo TNBC+idade<45 do deck) ou outro?
+4. Depois do GYN, qual subtipo entra em seguida — Mama (exemplo TNBC + idade <45) ou outro?
+5. Sobre o modelo de negócio (seção 10): qual das quatro opções faz mais sentido como ponto de partida — patrocínio direto da indústria, assinatura institucional, freemium individual, ou uma combinação? Isso muda o que priorizamos construir a seguir.
+6. Os templates reais de formulário de solicitação (AstraZeneca para HRD, por exemplo) — você tem acesso a eles hoje para eu estruturar os campos com precisão, ou isso também entra na rodada de validação conjunta?

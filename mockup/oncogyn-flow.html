@@ -603,6 +603,98 @@
   th { color: var(--ink-faint); font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: .04em; }
 
   .foot-nav { display: flex; justify-content: space-between; margin-top: 28px; }
+
+  /* ---- solicitação (documento gerado) ---- */
+  .name-card {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .name-card .field { flex: 1; min-width: 220px; }
+  .name-card input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 11px;
+    font-size: 13.5px;
+    font-family: inherit;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .name-card input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .reident-note {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12px;
+    color: var(--ink-muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+
+  .doc-preview-wrap {
+    margin-top: 16px;
+    border-radius: 12px;
+    padding: 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+  .doc-preview {
+    background: #ffffff;
+    color: #1c1c1c;
+    border: 1px solid #d8d8d8;
+    border-radius: 6px;
+    padding: 28px 30px;
+    font-family: Georgia, "Iowan Old Style", serif;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15), 0 10px 26px -16px rgba(0,0,0,0.35);
+  }
+  .doc-preview .doc-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 2px solid #1c1c1c;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .doc-preview .doc-head .org { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
+  .doc-preview .doc-head .doc-type { font-size: 11px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.06em; }
+  .doc-preview .doc-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12.5px;
+    padding: 6px 0;
+    border-bottom: 1px solid #ececec;
+  }
+  .doc-preview .doc-row .k { color: #6b6b6b; }
+  .doc-preview .doc-row .v { font-weight: 600; text-align: right; }
+  .doc-preview .doc-justif {
+    margin-top: 14px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #2a2a2a;
+  }
+  .doc-preview .doc-justif .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: #6b6b6b; margin-bottom: 4px; }
+  .doc-preview .doc-sign {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid #d8d8d8;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: #6b6b6b;
+  }
+  .doc-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+  }
 </style>
 
 <div class="topbar">
@@ -622,13 +714,14 @@
   <button class="step-btn" data-step="1"><span class="num">2</span>Revisão do caso</button>
   <button class="step-btn" data-step="2"><span class="num">3</span>Resultado da triagem</button>
   <button class="step-btn" data-step="3"><span class="num">4</span>Programas de acesso</button>
+  <button class="step-btn" data-step="4"><span class="num">5</span>Modelo de solicitação</button>
 </div>
 
 <main>
 
   <!-- SCREEN 1 — INGESTÃO -->
   <section class="screen active" id="screen-0">
-    <div class="eyebrow">Ginecológico · passo 1 de 4</div>
+    <div class="eyebrow">Ginecológico · passo 1 de 5</div>
     <h1>Descreva o caso</h1>
     <p class="lede">Use quantas fontes fizer sentido — laudo em PDF, foto, texto livre ou transcrição de consulta — ou converse com o OncoBot se preferir ser guiado por perguntas. Tudo é convertido em iniciais e número de caso antes de qualquer outro processamento.</p>
 
@@ -740,7 +833,7 @@
       <span class="code lock">🔒 Caso <span class="mono">A.F.M.-0231</span></span>
     </div>
 
-    <div class="eyebrow">Ginecológico · passo 2 de 4</div>
+    <div class="eyebrow">Ginecológico · passo 2 de 5</div>
     <h1>Confirme o caso estruturado</h1>
     <p class="lede">Extraímos o que conseguimos identificar. Revise e complete antes de rodar a triagem — o médico sempre valida antes do sistema decidir.</p>
 
@@ -801,7 +894,7 @@
       <span class="code lock">🔒 Caso <span class="mono">A.F.M.-0231</span></span>
     </div>
 
-    <div class="eyebrow">Ginecológico · passo 3 de 4</div>
+    <div class="eyebrow">Ginecológico · passo 3 de 5</div>
     <h1>Resultado da triagem</h1>
 
     <div class="verdict">
@@ -852,7 +945,7 @@
 
   <!-- SCREEN 4 — PROGRAMAS -->
   <section class="screen" id="screen-3">
-    <div class="eyebrow">Ginecológico · passo 4 de 4</div>
+    <div class="eyebrow">Ginecológico · passo 4 de 5</div>
     <h1>Programas de acesso disponíveis</h1>
     <p class="lede">A plataforma direciona ao portal oficial de cada laboratório ou indústria — nunca processa a solicitação. Estes dados precisam ser confirmados por você antes de qualquer publicação.</p>
 
@@ -905,6 +998,91 @@
 
     <div class="foot-nav">
       <button class="ghost" type="button" onclick="goTo(2)">← Voltar</button>
+      <button class="primary" type="button" onclick="goTo(4)">Gerar modelo de solicitação →</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 5 — MODELO DE SOLICITAÇÃO -->
+  <section class="screen" id="screen-4">
+    <div class="eyebrow">Ginecológico · passo 5 de 5</div>
+    <h1>Modelo de solicitação preenchido</h1>
+    <p class="lede">O maior gargalo não é só saber qual exame pedir — é o tempo perdido preenchendo o formulário certo, do jeito certo, para cada laboratório. Informe o nome do paciente para gerar o documento pronto para baixar e assinar.</p>
+
+    <div class="card name-card">
+      <div class="field">
+        <label for="patient-name" style="font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Nome completo do paciente</label>
+        <input id="patient-name" type="text" value="Felipe da Silva" oninput="updateDocs()" />
+      </div>
+      <button class="primary" type="button" onclick="updateDocs()">Atualizar documentos</button>
+    </div>
+    <div class="reident-note">
+      🔒 O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não é enviado ao motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono">A.F.M.-0231</span>) e não sai desta tela.
+    </div>
+
+    <div class="doc-preview-wrap">
+      <div class="card" style="box-shadow:none;border:none;padding:0;background:transparent;">
+        <h3 style="margin-bottom:14px;">1 · Solicitação — HRD + BRCA1/2 tumoral</h3>
+      </div>
+      <div class="doc-preview">
+        <div class="doc-head">
+          <span class="org">Programa de teste HRD — AstraZeneca</span>
+          <span class="doc-type">Formulário de solicitação</span>
+        </div>
+        <div class="doc-row"><span class="k">Paciente</span><span class="v" id="doc-name-1">Felipe da Silva</span></div>
+        <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">Dra. Ana Ferreira — CRM 52-1198</span></div>
+        <div class="doc-row"><span class="k">Diagnóstico</span><span class="v">Carcinoma seroso de alto grau de ovário, estágio IIIC</span></div>
+        <div class="doc-row"><span class="k">Teste solicitado</span><span class="v">HRD (somático) + BRCA1/2 tumoral</span></div>
+        <div class="doc-row"><span class="k">Data</span><span class="v">24/07/2026</span></div>
+        <div class="doc-justif">
+          <div class="label">Justificativa clínica</div>
+          Paciente com carcinoma epitelial de ovário de alto grau, estágio avançado (IIIC), sem teste molecular prévio. Elegível para avaliação de status HRD e BRCA1/2 tumoral para definição de elegibilidade a terapia de manutenção com inibidor de PARP, conforme NCCN Ovarian Cancer Guideline e ESMO Clinical Practice Guideline (2026).
+        </div>
+        <div class="doc-sign">
+          <span>Assinatura e carimbo do médico</span>
+          <span>CRM 52-1198 / RJ</span>
+        </div>
+      </div>
+      <div class="doc-actions">
+        <button class="primary" type="button">Baixar PDF preenchido ↓</button>
+        <button class="ghost" type="button">Editar campos</button>
+      </div>
+    </div>
+
+    <div class="doc-preview-wrap">
+      <div class="card" style="box-shadow:none;border:none;padding:0;background:transparent;">
+        <h3 style="margin-bottom:14px;">2 · Solicitação — Painel germinativo BRCA1/2</h3>
+      </div>
+      <div class="doc-preview">
+        <div class="doc-head">
+          <span class="org">Requisição de exame — laboratório a definir</span>
+          <span class="doc-type">Formulário de solicitação</span>
+        </div>
+        <div class="doc-row"><span class="k">Paciente</span><span class="v" id="doc-name-2">Felipe da Silva</span></div>
+        <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">Dra. Ana Ferreira — CRM 52-1198</span></div>
+        <div class="doc-row"><span class="k">Amostra</span><span class="v">Sangue periférico</span></div>
+        <div class="doc-row"><span class="k">Teste solicitado</span><span class="v">Painel germinativo BRCA1/2</span></div>
+        <div class="doc-row"><span class="k">Data</span><span class="v">24/07/2026</span></div>
+        <div class="doc-justif">
+          <div class="label">Justificativa clínica</div>
+          Todo carcinoma epitelial de ovário de alto grau tem indicação de teste germinativo BRCA1/2 ao diagnóstico, independente de histórico familiar, conforme ASCO (JCO 2020), ESMO (2026) e NCCN. Histórico familiar relatado: mãe com câncer de mama aos 58 anos — reforça encaminhamento para aconselhamento genético.
+        </div>
+        <div class="doc-sign">
+          <span>Assinatura e carimbo do médico</span>
+          <span>CRM 52-1198 / RJ</span>
+        </div>
+      </div>
+      <div class="doc-actions">
+        <button class="primary" type="button">Baixar PDF preenchido ↓</button>
+        <button class="ghost" type="button">Editar campos</button>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      Documento gerado a partir dos dados que você confirmou nesta sessão. Revise sempre antes de assinar e enviar — a plataforma preenche o formulário, mas a responsabilidade pela solicitação é do médico assistente.
+    </div>
+
+    <div class="foot-nav">
+      <button class="ghost" type="button" onclick="goTo(3)">← Voltar</button>
       <button class="primary" type="button" onclick="goTo(0)">Iniciar novo caso</button>
     </div>
   </section>
@@ -919,6 +1097,12 @@
     document.getElementById('mode-btn-bot').classList.toggle('active', mode === 'bot');
     document.getElementById('mode-btn-form').setAttribute('aria-selected', mode === 'form');
     document.getElementById('mode-btn-bot').setAttribute('aria-selected', mode === 'bot');
+  }
+
+  function updateDocs() {
+    const name = document.getElementById('patient-name').value || 'Felipe da Silva';
+    document.getElementById('doc-name-1').textContent = name;
+    document.getElementById('doc-name-2').textContent = name;
   }
 
   function goTo(i) {
