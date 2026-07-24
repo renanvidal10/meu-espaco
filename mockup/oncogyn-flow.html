@@ -471,6 +471,7 @@
     border-radius: 100px;
   }
   .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
 
   /* ---- result screen ---- */
   .verdict {
@@ -1036,13 +1037,14 @@
     <div class="eyebrow">Ginecológico · passo 4 de 5</div>
     <h1>Programas de acesso disponíveis</h1>
     <p class="lede">A plataforma direciona ao portal oficial de cada laboratório ou indústria — nunca processa a solicitação. Estes dados precisam ser confirmados por você antes de qualquer publicação.</p>
+    <p class="hint" id="programs-note" style="display:none; margin: -10px 0 20px;"></p>
 
     <div class="validate-flag">
       ⚠️ Dado de exemplo — critérios de elegibilidade e disponibilidade mudam por programa. Requer sua validação antes de ir ao ar.
     </div>
 
-    <div class="card">
-      <h3>HRD + BRCA1/2 tumoral <span class="pill ok">indicado neste caso</span></h3>
+    <div class="card" id="card-somatico">
+      <h3>HRD + BRCA1/2 tumoral <span class="pill ok" id="pill-somatico">indicado neste caso</span></h3>
       <div class="program-row">
         <div class="who">
           <span class="logo">AZ</span>
@@ -1065,7 +1067,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="card-germinativo">
       <h3>Painel germinativo BRCA1/2 <span class="pill ok">indicado neste caso</span></h3>
       <div class="program-row">
         <div class="who">
@@ -1090,6 +1092,7 @@
     <div class="eyebrow">Ginecológico · passo 5 de 5</div>
     <h1>Modelo de solicitação preenchido</h1>
     <p class="lede">O maior gargalo não é só saber qual exame pedir — é o tempo perdido preenchendo o formulário certo, do jeito certo, para cada laboratório. Informe o nome do paciente para gerar o documento pronto para baixar e assinar.</p>
+    <p class="hint" id="docs-note" style="display:none; margin: -10px 0 20px;"></p>
 
     <div class="card name-card">
       <div class="field">
@@ -1102,9 +1105,9 @@
       🔒 O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não é enviado ao motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono" id="case-code-3">—</span>) e não sai desta tela.
     </div>
 
-    <div class="doc-preview-wrap">
+    <div class="doc-preview-wrap" id="doc-somatico">
       <div class="card" style="box-shadow:none;border:none;padding:0;background:transparent;">
-        <h3 style="margin-bottom:14px;">1 · Solicitação — HRD + BRCA1/2 tumoral</h3>
+        <h3 style="margin-bottom:14px;">Solicitação — HRD + BRCA1/2 tumoral</h3>
       </div>
       <div class="doc-preview">
         <div class="doc-head">
@@ -1131,9 +1134,9 @@
       </div>
     </div>
 
-    <div class="doc-preview-wrap">
+    <div class="doc-preview-wrap" id="doc-germinativo">
       <div class="card" style="box-shadow:none;border:none;padding:0;background:transparent;">
-        <h3 style="margin-bottom:14px;">2 · Solicitação — Painel germinativo BRCA1/2</h3>
+        <h3 style="margin-bottom:14px;">Solicitação — Painel germinativo BRCA1/2</h3>
       </div>
       <div class="doc-preview">
         <div class="doc-head">
@@ -1267,6 +1270,7 @@
     fillField('field-historico', extracted.historico);
     fillField('field-testes', extracted.testes);
 
+    updateGrauEstadioRelevance();
     renderSources();
     goTo(1);
   }
@@ -1282,6 +1286,7 @@
     document.getElementById('sources-grid').innerHTML =
       '<div class="field"><label>Origem</label><div class="value">Conversa com o OncoBot</div></div>';
 
+    updateGrauEstadioRelevance();
     goTo(1);
   }
 
@@ -1309,6 +1314,22 @@
   // endometrioide, alto grau, estágio III/IV). Ver docs/ARQUITETURA.md seção 6.
   const HISTOLOGIAS_EPITELIAIS = ['seroso', 'endometrioide', 'células claras', 'celulas claras', 'mucinoso', 'carcinossarcoma', 'indiferenciado'];
   const HISTOLOGIAS_SOMATICO = ['seroso', 'endometrioide'];
+
+  // Grau e estadiamento só influenciam o resultado quando a histologia é
+  // seroso ou endometrioide (a única com o par somático na regra). Pra
+  // qualquer outra histologia, marcar esses campos de amarelo/obrigatório
+  // seria pedir um dado que não muda nada na resposta.
+  function updateGrauEstadioRelevance() {
+    const h = document.getElementById('field-histologia').value.toLowerCase();
+    const relevante = HISTOLOGIAS_SOMATICO.some((x) => h.includes(x));
+    const grauEl = document.getElementById('field-grau');
+    const estadioEl = document.getElementById('field-estadiamento');
+    [grauEl, estadioEl].forEach((el) => {
+      el.classList.toggle('missing', relevante && !el.value.trim());
+    });
+    grauEl.placeholder = relevante ? 'Ex.: Alto grau' : 'Não influencia a indicação para esta histologia';
+    estadioEl.placeholder = relevante ? 'Ex.: IIIC' : 'Não influencia a indicação para esta histologia';
+  }
 
   function classifyCase(histologia, grau, estadiamento) {
     const h = (histologia || '').toLowerCase();
@@ -1343,6 +1364,40 @@
     // resultado (só histologia é imprescindível): o somático é sugerido como
     // provável, sinalizado para confirmação, não escondido atrás de mais campo obrigatório.
     return { state: 'pareado-provisorio', histologiaEpitelial, grauFaltando: !g, estadioFaltando: !e };
+  }
+
+  // Mostra, nas telas de Programas e Solicitação, só o que a triagem
+  // efetivamente indicou para este caso — nunca teste sem indicação,
+  // pra não confundir o médico com opção que não se aplica.
+  function applyIndicationVisibility(result) {
+    const somaticoIndicado = result.state === 'pareado' || result.state === 'pareado-provisorio';
+    const germinativoIndicado = result.state === 'pareado' || result.state === 'pareado-provisorio' || result.state === 'so-germinativo';
+    const provisorio = result.state === 'pareado-provisorio';
+
+    ['card-somatico', 'doc-somatico'].forEach((id) => {
+      document.getElementById(id).style.display = somaticoIndicado ? '' : 'none';
+    });
+    ['card-germinativo', 'doc-germinativo'].forEach((id) => {
+      document.getElementById(id).style.display = germinativoIndicado ? '' : 'none';
+    });
+
+    const pillSomatico = document.getElementById('pill-somatico');
+    pillSomatico.textContent = provisorio ? 'indicação provável — confirmar' : 'indicado neste caso';
+    pillSomatico.classList.toggle('warn', provisorio);
+    pillSomatico.classList.toggle('ok', !provisorio);
+
+    const programsNote = document.getElementById('programs-note');
+    const docsNote = document.getElementById('docs-note');
+    if (!somaticoIndicado && germinativoIndicado) {
+      const msg = 'Este caso teve indicação apenas para o teste germinativo — o painel somático (HRD+BRCA tumoral) não é mostrado porque não se aplica ao critério NCCN para este perfil.';
+      programsNote.textContent = msg;
+      programsNote.style.display = '';
+      docsNote.textContent = msg.replace('não é mostrado', 'não tem documento de solicitação gerado');
+      docsNote.style.display = '';
+    } else {
+      programsNote.style.display = 'none';
+      docsNote.style.display = 'none';
+    }
   }
 
   function runTriage() {
@@ -1404,6 +1459,7 @@
       nextBtn.onclick = () => goTo(3);
     }
 
+    applyIndicationVisibility(result);
     goTo(2);
   }
 
@@ -1464,6 +1520,9 @@
   document.getElementById('case-text').addEventListener('input', function () {
     document.getElementById('tile-text').classList.toggle('selected', this.value.trim().length > 0);
   });
+  document.getElementById('field-histologia').addEventListener('input', updateGrauEstadioRelevance);
+  document.getElementById('field-grau').addEventListener('input', updateGrauEstadioRelevance);
+  document.getElementById('field-estadiamento').addEventListener('input', updateGrauEstadioRelevance);
   const plaudToggle = document.getElementById('plaud-toggle');
   plaudToggle.addEventListener('click', () => {
     const on = plaudToggle.classList.toggle('on');
