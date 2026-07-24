@@ -147,6 +147,26 @@
     font-size: 11px; font-weight: 600; color: var(--ink-muted);
   }
 
+  /* ---- gate (identificação do médico) ---- */
+  .gate { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px; }
+  body.gate-active .gate { display: flex; }
+  body.gate-active .topbar, body.gate-active .steps, body.gate-active main { display: none; }
+  .gate-card { max-width: 380px; width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 30px; }
+  .gate-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 17px; color: var(--ink); }
+  .gate-brand .mark {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: var(--accent); color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px;
+  }
+  .gate input {
+    width: 100%; box-sizing: border-box;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface-2); color: var(--ink);
+    font-family: inherit; font-size: 13.5px; padding: 10px 12px;
+  }
+  .gate input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
   .steps {
     display: flex;
     gap: 2px;
@@ -853,6 +873,23 @@
   }
 </style>
 
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-brand"><span class="mark">O</span><strong>OncoGenYX</strong></div>
+    <p class="hint" style="margin:4px 0 20px;">Identifique-se para começar - isso preenche automaticamente os documentos de solicitação gerados nesta sessão.</p>
+    <div class="field">
+      <label style="font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Nome do médico</label>
+      <input id="gate-name" type="text" placeholder="Ex.: Dra. Ana Ferreira" />
+    </div>
+    <div class="field" style="margin-top:12px;">
+      <label style="font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">CRM</label>
+      <input id="gate-crm" type="text" placeholder="Ex.: 52-1198 / RJ" />
+    </div>
+    <p class="hint" id="gate-error" style="display:none;color:var(--warn);margin-top:10px;">Preencha os dois campos para entrar.</p>
+    <button class="primary" type="button" onclick="submitGate()" style="margin-top:18px;width:100%;">Entrar</button>
+  </div>
+</div>
+
 <div class="topbar">
   <div class="brand">
     <span class="mark">O</span>
@@ -860,8 +897,8 @@
     <span>· mockup de fluxo, não é produto final</span>
   </div>
   <div class="doctor-chip">
-    <span>Dra. Ana Ferreira · CRM 52-1198</span>
-    <span class="avatar">AF</span>
+    <span id="doctor-chip-text">-</span>
+    <span class="avatar" id="doctor-chip-avatar">--</span>
   </div>
 </div>
 
@@ -1181,7 +1218,7 @@
             <span class="doc-type">Formulário de solicitação</span>
           </div>
           <div class="doc-row"><span class="k">Paciente</span><span class="v" id="doc-name-1">-</span></div>
-          <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">Dra. Ana Ferreira - CRM 52-1198</span></div>
+          <div class="doc-row"><span class="k">Médico solicitante</span><span class="v" id="doc-doctor-1">-</span></div>
           <div class="doc-row"><span class="k">Diagnóstico</span><span class="v" id="doc-diag-1">-</span></div>
           <div class="doc-row"><span class="k">Teste solicitado</span><span class="v">HRD Somático</span></div>
           <div class="doc-row"><span class="k">Data</span><span class="v" id="doc-date-1">-</span></div>
@@ -1191,7 +1228,7 @@
           </div>
           <div class="doc-sign">
             <span>Assinatura e carimbo do médico</span>
-            <span>CRM 52-1198 / RJ</span>
+            <span id="doc-crm-1">-</span>
           </div>
         </div>
         <div class="doc-actions">
@@ -1223,7 +1260,7 @@
             <span class="doc-type">Formulário de solicitação</span>
           </div>
           <div class="doc-row"><span class="k">Paciente</span><span class="v" id="doc-name-2">-</span></div>
-          <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">Dra. Ana Ferreira - CRM 52-1198</span></div>
+          <div class="doc-row"><span class="k">Médico solicitante</span><span class="v" id="doc-doctor-2">-</span></div>
           <div class="doc-row"><span class="k">Amostra</span><span class="v">Sangue periférico</span></div>
           <div class="doc-row"><span class="k">Teste solicitado</span><span class="v">Painel germinativo BRCA1/2</span></div>
           <div class="doc-row"><span class="k">Data</span><span class="v" id="doc-date-2">-</span></div>
@@ -1233,7 +1270,7 @@
           </div>
           <div class="doc-sign">
             <span>Assinatura e carimbo do médico</span>
-            <span>CRM 52-1198 / RJ</span>
+            <span id="doc-crm-2">-</span>
           </div>
         </div>
         <div class="doc-actions">
@@ -1256,6 +1293,52 @@
 </main>
 
 <script>
+  // Identificação do médico: nome + CRM, guardados no navegador (localStorage)
+  // pra não pedir de novo a cada visita. Nunca é enviado pro motor de triagem -
+  // só preenche o cabeçalho e os documentos de solicitação.
+  let doctorName = '';
+  let doctorCRM = '';
+
+  function applyDoctorInfo() {
+    document.getElementById('doctor-chip-text').textContent = `${doctorName} · CRM ${doctorCRM}`;
+    const initials = doctorName.replace(/^Dra?\.\s*/i, '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+    document.getElementById('doctor-chip-avatar').textContent = initials || 'MD';
+    ['doc-doctor-1', 'doc-doctor-2'].forEach((id) => { document.getElementById(id).textContent = `${doctorName} - CRM ${doctorCRM}`; });
+    ['doc-crm-1', 'doc-crm-2'].forEach((id) => { document.getElementById(id).textContent = `CRM ${doctorCRM}`; });
+  }
+
+  function submitGate() {
+    const name = document.getElementById('gate-name').value.trim();
+    const crm = document.getElementById('gate-crm').value.trim();
+    const error = document.getElementById('gate-error');
+    if (!name || !crm) {
+      error.style.display = '';
+      return;
+    }
+    error.style.display = 'none';
+    doctorName = name;
+    doctorCRM = crm;
+    localStorage.setItem('oncogenyx-doctor', JSON.stringify({ name, crm }));
+    applyDoctorInfo();
+    document.body.classList.remove('gate-active');
+  }
+
+  (function initGate() {
+    const saved = localStorage.getItem('oncogenyx-doctor');
+    if (saved) {
+      try {
+        const { name, crm } = JSON.parse(saved);
+        if (name && crm) {
+          doctorName = name;
+          doctorCRM = crm;
+          applyDoctorInfo();
+          return;
+        }
+      } catch (e) { /* dado salvo inválido - pede login de novo */ }
+    }
+    document.body.classList.add('gate-active');
+  })();
+
   // Código do caso: identificador de sessão, não é o nome do paciente.
   const caseCode = 'GYN-' + String(Math.floor(1000 + Math.random() * 9000));
   document.querySelectorAll('#case-code-1, #case-code-2, #case-code-3').forEach((el) => { el.textContent = caseCode; });
@@ -1741,6 +1824,9 @@
   document.getElementById('field-histologia').addEventListener('input', updateGrauEstadioRelevance);
   document.getElementById('field-grau').addEventListener('input', updateGrauEstadioRelevance);
   document.getElementById('field-estadiamento').addEventListener('input', updateGrauEstadioRelevance);
+  ['gate-name', 'gate-crm'].forEach((id) => {
+    document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitGate(); } });
+  });
   setupDropzone();
   const plaudToggle = document.getElementById('plaud-toggle');
   plaudToggle.addEventListener('click', () => {
