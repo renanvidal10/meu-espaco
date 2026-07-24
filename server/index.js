@@ -57,8 +57,12 @@ const CASO_CLINICO_SCHEMA = {
       items: { type: 'string' },
       description: 'Lista curta descrevendo quais fontes (texto, PDF, imagem) contribuíram com dado real para a extração.',
     },
+    nome_paciente: {
+      type: 'string',
+      description: 'Nome completo do paciente, apenas se estiver literalmente escrito no material (ex.: cabeçalho de um laudo em PDF/foto). Vazio se não identificável ou se o médico só descreveu o caso em texto livre sem citar nome. Este campo é usado só para pré-preencher o documento de solicitação ao final — nunca é usado na triagem clínica.',
+    },
   },
-  required: ['histologia', 'grau', 'estadiamento', 'estadiamento_justificativa', 'idade_faixa', 'historico_familiar', 'testes_previos', 'fontes_usadas'],
+  required: ['histologia', 'grau', 'estadiamento', 'estadiamento_justificativa', 'idade_faixa', 'historico_familiar', 'testes_previos', 'fontes_usadas', 'nome_paciente'],
   additionalProperties: false,
 };
 
@@ -70,7 +74,8 @@ Regras importantes:
 - Estadiamento FIGO frequentemente não está escrito por extenso no laudo — precisa ser inferido a partir dos achados cirúrgicos e patológicos (lateralidade do tumor, integridade da cápsula, envolvimento de superfície, contagem de linfonodos positivos/negativos por sítio, achados peritoneais/omentais). Faça essa inferência com o mesmo rigor clínico que um oncologista ginecológico usaria, e sempre explique o raciocínio em estadiamento_justificativa quando inferir.
 - Grau histopatológico e estadiamento são eixos clínicos independentes — nunca deduza um a partir do outro. Só preencha "grau" se estiver de fato relatado ou claramente descrito no material (ex.: "carcinoma de alto grau").
 - O material pode estar em português, com abreviações e jargão médico brasileiro comuns em laudos de anatomopatológico.
-- Não invente dado que não está no material. Campo vazio é melhor que chute.`;
+- Não invente dado que não está no material. Campo vazio é melhor que chute.
+- Extraia nome_paciente somente se estiver literalmente escrito no material (ex.: cabeçalho de um laudo). Nunca infira ou deduza um nome — campo vazio é o padrão seguro.`;
 
 app.post('/api/extract', upload.array('files', 10), async (req, res) => {
   try {
