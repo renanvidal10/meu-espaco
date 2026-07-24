@@ -1,4 +1,4 @@
-<title>OncoGenYX — Mockup: Triagem GYN</title>
+<title>OncoGenYX - Mockup: Triagem GYN</title>
 <style>
   :root {
     --bg: #eef2f0;
@@ -370,8 +370,15 @@
   .intake-tile:hover { border-color: var(--accent-soft-border); background: var(--accent-soft); }
   .intake-tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .intake-tile.selected { border: 1px solid var(--accent); background: var(--accent-soft); }
-  .intake-tile .row { display: flex; align-items: center; gap: 6px; }
-  .intake-tile .icon { font-size: 14px; line-height: 1; }
+  .intake-tile .row { display: flex; align-items: center; gap: 8px; }
+  .intake-tile .icon {
+    font-size: 15px; line-height: 1;
+    width: 26px; height: 26px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .intake-tile.selected .icon { background: var(--accent-soft); border-color: var(--accent-soft-border); }
   .intake-tile .title { font-size: 12px; font-weight: 600; }
   .intake-tile .desc { font-size: 10.5px; color: var(--ink-faint); line-height: 1.35; }
   .intake-tile .file-name { font-size: 10.5px; color: var(--accent); font-weight: 600; margin-top: 1px; }
@@ -556,6 +563,45 @@
   .test-card p { font-size: 12.5px; color: var(--ink-muted); line-height: 1.5; margin: 0 0 10px; }
   .test-card .src { font-size: 11px; color: var(--ink-faint); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
 
+  /* Passos numerados do resultado pareado — deixa claro, de cara, que são
+     2 testes distintos a solicitar, com o HRD (maior taxa de achado) em destaque. */
+  .test-steps { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .test-step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    background: var(--surface);
+  }
+  .test-step.primary { border-color: var(--accent-soft-border); background: var(--accent-soft); }
+  .test-step .step-num {
+    flex-shrink: 0;
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+    background: var(--surface-2); color: var(--ink-muted);
+    border: 1px solid var(--border);
+  }
+  .test-step.primary .step-num { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .test-step .step-body { flex: 1; min-width: 0; }
+  .test-step .order { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  .test-step h4 { font-size: 15.5px; font-weight: 700; margin: 4px 0 8px; }
+  .test-step p { font-size: 12.5px; color: var(--ink-muted); line-height: 1.5; margin: 0 0 10px; }
+  .test-step .stat-badge {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--surface);
+    border: 1px solid var(--accent-soft-border);
+    border-radius: 100px;
+    padding: 4px 11px;
+    margin-bottom: 10px;
+  }
+  .test-step .src { font-size: 11px; color: var(--ink-faint); }
+
   .note-card {
     margin-top: 16px;
     border: 1px solid var(--border);
@@ -671,11 +717,11 @@
   .program-row + .program-row { margin-top: 10px; }
   .program-row .who { display: flex; align-items: center; gap: 12px; }
   .program-row .logo {
-    width: 34px; height: 34px; border-radius: 8px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-soft-border);
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 700; color: var(--ink-muted);
+    font-size: 16px; font-weight: 700; color: var(--accent);
   }
   .program-row .name { font-size: 13.5px; font-weight: 600; }
   .program-row .test { font-size: 11.5px; color: var(--ink-faint); }
@@ -733,55 +779,45 @@
 
   .doc-preview-wrap {
     margin-top: 16px;
-    border-radius: 12px;
-    padding: 18px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
   }
   .doc-preview {
     background: #ffffff;
     color: #1c1c1c;
-    border: 1px solid #d8d8d8;
-    border-radius: 6px;
-    padding: 28px 30px;
+    border-radius: 10px;
+    padding: 26px 28px;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15), 0 10px 26px -16px rgba(0,0,0,0.35);
   }
   .doc-preview .doc-head {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: baseline;
-    border-bottom: 2px solid #1c1c1c;
     padding-bottom: 10px;
     margin-bottom: 16px;
   }
-  .doc-preview .doc-head .org { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
-  .doc-preview .doc-head .doc-type { font-size: 11px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.06em; }
+  .doc-preview .doc-head .doc-type { font-size: 11px; color: #8a8a8a; text-transform: uppercase; letter-spacing: 0.06em; }
   .doc-preview .doc-row {
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    font-size: 12.5px;
-    padding: 6px 0;
-    border-bottom: 1px solid #ececec;
+    font-size: 13px;
+    padding: 8px 0;
   }
-  .doc-preview .doc-row .k { color: #6b6b6b; }
+  .doc-preview .doc-row .k { color: #8a8a8a; }
   .doc-preview .doc-row .v { font-weight: 600; text-align: right; }
   .doc-preview .doc-justif {
-    margin-top: 14px;
-    font-size: 12.5px;
-    line-height: 1.6;
+    margin-top: 16px;
+    font-size: 13px;
+    line-height: 1.65;
     color: #2a2a2a;
   }
-  .doc-preview .doc-justif .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: #6b6b6b; margin-bottom: 4px; }
+  .doc-preview .doc-justif .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: #8a8a8a; margin-bottom: 5px; }
   .doc-preview .doc-sign {
-    margin-top: 22px;
-    padding-top: 14px;
-    border-top: 1px solid #d8d8d8;
+    margin-top: 24px;
+    padding-top: 16px;
     display: flex;
     justify-content: space-between;
     font-size: 11.5px;
-    color: #6b6b6b;
+    color: #8a8a8a;
   }
   .doc-actions {
     display: flex;
@@ -791,8 +827,7 @@
   }
   .doc-preview.editing .doc-row .v,
   .doc-preview.editing .doc-justif span {
-    outline: 1px dashed #b08900;
-    background: #fffbe6;
+    background: #f0f4ff;
     border-radius: 3px;
     cursor: text;
   }
@@ -839,11 +874,11 @@
 
 <main>
 
-  <!-- SCREEN 1 — INGESTÃO -->
+  <!-- SCREEN 1 - INGESTÃO -->
   <section class="screen active" id="screen-0">
     <div class="eyebrow">Ginecológico · passo 1 de 4</div>
     <h1>Descreva o caso</h1>
-    <p class="lede">Use quantas fontes fizer sentido — laudo em PDF, foto, texto livre ou transcrição de consulta — ou converse com o OncoBot se preferir ser guiado por perguntas. Tudo é convertido em iniciais e número de caso antes de qualquer outro processamento.</p>
+    <p class="lede">Use quantas fontes fizer sentido - laudo em PDF, foto, texto livre ou transcrição de consulta - ou converse com o OncoBot se preferir ser guiado por perguntas. Tudo é convertido em iniciais e número de caso antes de qualquer outro processamento.</p>
 
     <div class="mode-switch" role="tablist" aria-label="Como inserir o caso">
       <button class="mode-btn active" id="mode-btn-form" role="tab" aria-selected="true" onclick="setMode('form')">
@@ -886,12 +921,11 @@
         <input type="file" id="input-photo" accept="image/*" multiple style="display:none" onchange="addFiles('photo', this.files)" />
 
         <div class="ocr-disclaimer" id="ocr-disclaimer" style="display:none;">
-          ℹ️ PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto abaixo — tudo é combinado na estruturação do caso.
+          ℹ️ PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto abaixo - tudo é combinado na estruturação do caso.
         </div>
         <div class="ocr-disclaimer" id="extract-error" style="display:none; background:#fde2e2; color:#7a1f1f;"></div>
 
         <textarea id="case-text" placeholder="Descreva o caso com suas palavras, ou cole uma transcrição. Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, mãe com câncer de mama aos 58 anos, sem teste genético prévio..."></textarea>
-        <p class="hint" id="extract-hint" style="margin-top:8px;">Experimente descrever um caso real (ou fictício) com suas palavras, ou anexe o laudo em PDF/foto — histologia, estágio, idade e histórico familiar, se houver.</p>
 
         <div class="voice-panel" id="voice-panel">
           <div class="voice-row">
@@ -901,7 +935,7 @@
             </div>
             <span class="voice-time mono" id="voice-time">00:00</span>
           </div>
-          <p class="hint" style="margin:8px 0 0;">A transcrição é gerada e pseudonimizada antes de qualquer outro processamento — mesma regra da Camada 2.</p>
+          <p class="hint" style="margin:8px 0 0;">A transcrição é gerada e pseudonimizada antes de qualquer outro processamento - mesma regra da Camada 2.</p>
         </div>
 
         <div class="plaud-row">
@@ -909,10 +943,10 @@
             <span class="dot"></span>
             <div>
               <div class="name">Conectar ao Plaud</div>
-              <div class="sub">Sincroniza a transcrição da gravação diretamente — em avaliação de disponibilidade de API</div>
+              <div class="sub">Requer cadastro no Plaud Developer Platform (dev.plaud.ai) - acesso em beta privado, aguardando aprovação</div>
             </div>
           </div>
-          <button class="toggle" id="plaud-toggle" aria-label="Conectar ao Plaud" aria-pressed="false"></button>
+          <button class="toggle" id="plaud-toggle" aria-label="Conectar ao Plaud" aria-pressed="false" disabled style="opacity:.5;cursor:not-allowed;"></button>
         </div>
       </div>
 
@@ -925,66 +959,45 @@
 
     <div class="mode-panel" id="mode-bot">
       <div class="card chat-card">
-        <h3>OncoBot — triagem por conversa</h3>
-        <p class="hint">Mesmo motor de triagem da Camada 4 — o bot só pergunta o que falta para completar o caso. Nunca pede nome, CPF ou dado que identifique a paciente.</p>
+        <h3>OncoBot - triagem por conversa</h3>
+        <p class="hint">Mesmo motor de triagem da Camada 4 - o bot só pergunta o que falta para completar o caso. Nunca pede nome, CPF ou dado que identifique a paciente.</p>
 
         <div class="chat-window" id="chat-window">
           <div class="chat-msg bot">
             <span class="chat-avatar">🧬</span>
-            <div class="chat-bubble">Olá, Dra. Vamos triar um caso ginecológico. Qual a histologia e o estágio ao diagnóstico?</div>
-          </div>
-          <div class="chat-msg doc">
-            <div class="chat-bubble">Carcinoma seroso de alto grau, estágio IIIC.</div>
-          </div>
-          <div class="chat-msg bot">
-            <span class="chat-avatar">🧬</span>
-            <div class="chat-bubble">Entendido. Há histórico familiar de câncer de mama ou ovário em parentes de primeiro grau?</div>
-          </div>
-          <div class="chat-msg doc">
-            <div class="chat-bubble">Mãe teve câncer de mama aos 58 anos.</div>
-          </div>
-          <div class="chat-msg bot">
-            <span class="chat-avatar">🧬</span>
-            <div class="chat-bubble">Última pergunta: a paciente já realizou algum teste genético, somático ou germinativo, antes de hoje?</div>
-          </div>
-          <div class="chat-msg doc">
-            <div class="chat-bubble">Não, nenhum teste prévio.</div>
-          </div>
-          <div class="chat-msg bot">
-            <span class="chat-avatar">🧬</span>
-            <div class="chat-bubble">
-              Caso reunido: histologia, estágio e histórico familiar já cobrem os critérios de triagem para este subtipo.
-              <span class="pill ok" style="margin-top:8px;">pronto para triagem</span>
-            </div>
+            <div class="chat-bubble">Olá, Dra. Vamos triar um caso ginecológico. Descreva a histologia e o estágio ao diagnóstico.</div>
           </div>
         </div>
 
-        <div class="chat-input-row">
-          <input class="chat-input" type="text" placeholder="Digite sua resposta..." disabled />
-          <button class="primary" type="button" onclick="useBotCase()">Revisar caso reunido →</button>
+        <div class="chat-input-row" id="chat-input-row">
+          <input class="chat-input" type="text" id="chat-input" placeholder="Digite sua resposta..." />
+          <button class="primary" type="button" id="chat-send-btn" onclick="sendChatMessage()">Enviar</button>
+        </div>
+        <div class="btn-row" id="chat-finish-row" style="display:none; margin-top:12px;">
+          <button class="primary" type="button" onclick="finishChat()">Estruturar caso reunido com IA →</button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- SCREEN 2 — REVISÃO -->
+  <!-- SCREEN 2 - REVISÃO -->
   <section class="screen" id="screen-1">
     <div class="case-banner">
       <span>Identificação removida automaticamente</span>
-      <span class="code lock">🔒 Caso <span class="mono" id="case-code-1">—</span></span>
+      <span class="code lock">🔒 Caso <span class="mono" id="case-code-1">-</span></span>
     </div>
 
     <div class="eyebrow">Ginecológico · passo 2 de 4</div>
     <h1>Confirme o caso estruturado</h1>
-    <p class="lede">Isto foi extraído do que você descreveu no passo 1. Corrija ou complete os campos abaixo — a triagem do passo 3 usa exatamente o que estiver escrito aqui.</p>
+    <p class="lede">Isto foi extraído do que você descreveu no passo 1. Corrija ou complete os campos abaixo - a triagem do passo 3 usa exatamente o que estiver escrito aqui.</p>
 
     <div class="card">
       <h3>Perfil clínico</h3>
-      <p class="hint">Grau e estadiamento são eixos independentes: estágio (FIGO I–IV) mede a extensão da doença; grau é a leitura patológica do tecido e não é deduzido do estágio — um estágio IIIC pode ser de baixo ou de alto grau. Só a histologia é obrigatória para rodar a triagem; grau e estadiamento refinam o resultado mas não bloqueiam — se faltarem, a triagem sinaliza a indicação mais provável e pede confirmação no laudo.</p>
+      <p class="hint">Grau e estadiamento são eixos independentes: estágio (FIGO I–IV) mede a extensão da doença; grau é a leitura patológica do tecido e não é deduzido do estágio - um estágio IIIC pode ser de baixo ou de alto grau. Só a histologia é obrigatória para rodar a triagem; grau e estadiamento refinam o resultado mas não bloqueiam - se faltarem, a triagem sinaliza a indicação mais provável e pede confirmação no laudo.</p>
       <div class="field-grid">
         <div class="field">
           <label>Subtipo oncológico</label>
-          <input class="value editable" id="field-subtipo" value="Ginecológico — Ovário" />
+          <input class="value editable" id="field-subtipo" value="Ginecológico - Ovário" />
         </div>
         <div class="field">
           <label>Histologia</label>
@@ -1019,7 +1032,7 @@
       <div class="field-grid" id="sources-grid">
         <div class="field">
           <label>Origem</label>
-          <div class="value">—</div>
+          <div class="value">-</div>
         </div>
       </div>
     </div>
@@ -1030,11 +1043,11 @@
     </div>
   </section>
 
-  <!-- SCREEN 3 — RESULTADO -->
+  <!-- SCREEN 3 - RESULTADO -->
   <section class="screen" id="screen-2">
     <div class="case-banner">
-      <span>Triagem baseada em diretrizes — não é indicação terapêutica</span>
-      <span class="code lock">🔒 Caso <span class="mono" id="case-code-2">—</span></span>
+      <span>Triagem baseada em diretrizes - não é indicação terapêutica</span>
+      <span class="code lock">🔒 Caso <span class="mono" id="case-code-2">-</span></span>
     </div>
 
     <div class="eyebrow">Ginecológico · passo 3 de 4</div>
@@ -1044,7 +1057,7 @@
       <span class="glyph" id="verdict-glyph">✓</span>
       <div>
         <h2 id="verdict-title">Este caso tem indicação para testagem molecular</h2>
-        <p id="verdict-text">Carcinoma seroso de alto grau de ovário em estágio avançado — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.</p>
+        <p id="verdict-text">Carcinoma seroso de alto grau de ovário em estágio avançado - perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.</p>
       </div>
     </div>
 
@@ -1054,31 +1067,37 @@
         <h4 id="provisional-caveat-title">Grau e/ou estágio não informados</h4>
         <p id="provisional-caveat-text">Indicação abaixo é a mais provável para este perfil, mas não foi confirmada.</p>
       </div>
-      <div class="test-pair">
-        <div class="test-card">
-          <div class="order">Tumoral · somático</div>
-          <h4>HRD Somático</h4>
-          <p>Avalia o status de deficiência de recombinação homóloga no tecido tumoral (já inclui a análise de BRCA1/2 tumoral como parte do mesmo teste), para orientar elegibilidade a terapia de manutenção com inibidor de PARP.</p>
-          <div class="src">Referência: NCCN Ovarian Cancer Guidelines · SGO — seroso ou endometrioide, alto grau, estágio III/IV</div>
+      <div class="test-steps">
+        <div class="test-step primary">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="order">Tumoral · somático · prioridade</div>
+            <h4>HRD Somático</h4>
+            <div class="stat-badge">~50% dos carcinomas de alto grau são HRD positivo</div>
+            <p>Avalia deficiência de recombinação homóloga no tecido tumoral (já inclui a análise de BRCA1/2 tumoral no mesmo teste) - define elegibilidade a terapia de manutenção com inibidor de PARP.</p>
+            <div class="src">Referência: NCCN Ovarian Cancer Guidelines · SGO - seroso ou endometrioide, alto grau, estágio III/IV</div>
+          </div>
         </div>
-        <div class="test-card">
-          <div class="order">Sangue · germinativo</div>
-          <h4>Painel germinativo BRCA1/2</h4>
-          <p>Investiga mutação hereditária, independente do resultado tumoral — toda histologia epitelial não-borderline tem indicação de teste germinativo ao diagnóstico.</p>
-          <div class="src">Referência: ASCO Guideline (JCO 2020) · SGO</div>
+        <div class="test-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="order">Sangue · germinativo</div>
+            <h4>Painel germinativo BRCA1/2</h4>
+            <p>Investiga mutação hereditária, independente do resultado tumoral - toda histologia epitelial não-borderline tem indicação de teste germinativo ao diagnóstico.</p>
+            <div class="src">Referência: ASCO Guideline (JCO 2020) · SGO</div>
+          </div>
         </div>
       </div>
 
       <div class="note-card">
         <span class="tag">Indicação concomitante</span>
-        <h4>Germinativo — independente do resultado somático</h4>
+        <h4>Germinativo - independente do resultado somático</h4>
         <p>Não altera a conduta terapêutica atual. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
         <div class="stats-line">
           <span><strong>~1/3</strong> dos parentes elegíveis não é informado do risco</span>
           <span><strong>60–70%</strong> risco vitalício de Ca mama em portadoras BRCA</span>
           <span><strong>20–30%</strong> risco vitalício de Ca ovário em portadoras BRCA</span>
         </div>
-        <div class="script-line"><span class="label">Comunicação sugerida:</span> "Exame de sangue avalia se a alteração é hereditária — resultado positivo permite rastreio precoce em familiares diretos."</div>
       </div>
     </div>
 
@@ -1092,14 +1111,14 @@
         </div>
       </div>
       <div class="note-card">
-        <span class="tag">Somático — critério não atendido</span>
+        <span class="tag">Somático - critério não atendido</span>
         <h4>HRD Somático não indicado por esta regra</h4>
         <p id="germline-only-reason">O protocolo de teste somático (HRD) para elegibilidade a PARP é específico para histologia serosa ou endometrioide de alto grau em estágio III/IV (NCCN). Reavalie se grau, histologia ou estágio forem atualizados.</p>
       </div>
     </div>
 
     <div class="disclaimer">
-      Esta triagem indica <strong>qual exame solicitar e por quê</strong>, com base em diretrizes publicadas (NCCN, ESMO, ASCO, SGO e demais sociedades reconhecidas). Não constitui recomendação terapêutica nem substitui aconselhamento genético — casos com critério para síndrome hereditária devem ser encaminhados ao especialista.
+      Esta triagem indica <strong>qual exame solicitar e por quê</strong>, com base em diretrizes publicadas (NCCN, ESMO, ASCO, SGO e demais sociedades reconhecidas). Não constitui recomendação terapêutica nem substitui aconselhamento genético - casos com critério para síndrome hereditária devem ser encaminhados ao especialista.
     </div>
 
     <div class="foot-nav">
@@ -1108,15 +1127,15 @@
     </div>
   </section>
 
-  <!-- SCREEN 4 — PROGRAMAS -->
+  <!-- SCREEN 4 - PROGRAMAS -->
   <section class="screen" id="screen-3">
     <div class="eyebrow">Ginecológico · passo 4 de 4</div>
     <h1>Programas de acesso e modelo de solicitação</h1>
-    <p class="lede">A plataforma direciona ao portal oficial de cada laboratório ou parceiro — nunca processa a solicitação. Informe o nome do paciente para gerar o documento pronto para baixar e assinar.</p>
+    <p class="lede">A plataforma direciona ao portal oficial de cada laboratório ou parceiro - nunca processa a solicitação. Informe o nome do paciente para gerar o documento pronto para baixar e assinar.</p>
     <p class="hint" id="programs-note" style="display:none; margin: -10px 0 20px;"></p>
 
     <div class="validate-flag">
-      ⚠️ Dado de exemplo — critérios de elegibilidade e disponibilidade mudam por programa. Requer sua validação antes de ir ao ar.
+      ⚠️ Dado de exemplo - critérios de elegibilidade e disponibilidade mudam por programa. Requer sua validação antes de ir ao ar.
     </div>
 
     <div class="card name-card">
@@ -1127,7 +1146,7 @@
       <button class="primary" type="button" onclick="updateDocs()">Atualizar documentos</button>
     </div>
     <div class="reident-note">
-      🔒 O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não entra no motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono" id="case-code-3">—</span>) e não sai desta tela. Quando identificável em um PDF/foto anexado, ele já vem preenchido — confira e corrija se preciso.
+      🔒 O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não entra no motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono" id="case-code-3">-</span>) e não sai desta tela. Quando identificável em um PDF/foto anexado, ele já vem preenchido - confira e corrija se preciso.
     </div>
 
     <div class="card" id="card-somatico">
@@ -1136,40 +1155,39 @@
         <div class="who">
           <span class="logo">🧪</span>
           <div>
-            <div class="name">Programa de acesso ao teste — parceiro 1</div>
+            <div class="name">ProgramAID</div>
             <div class="test">Laboratório parceiro · a confirmar critérios atuais</div>
           </div>
         </div>
-        <a class="link" href="#" onclick="return false;">Ver portal oficial ↗</a>
+        <a class="link" href="https://programaid.com.br/" target="_blank" rel="noopener">Ver portal oficial ↗</a>
       </div>
       <div class="program-row">
         <div class="who">
           <span class="logo">🧪</span>
           <div>
-            <div class="name">Programa de acesso ao teste — parceiro 2</div>
-            <div class="test">Laboratório parceiro · a confirmar critérios atuais</div>
+            <div class="name">Myriad myChoice CDx</div>
+            <div class="test">Companion diagnostic parceiro GSK · a confirmar critérios atuais</div>
           </div>
         </div>
-        <a class="link" href="#" onclick="return false;">Ver portal oficial ↗</a>
+        <a class="link" href="https://myriad.com/genetic-tests/mychoicecdx-tumor-test/" target="_blank" rel="noopener">Ver portal oficial ↗</a>
       </div>
 
       <div class="doc-preview-wrap" id="doc-somatico" style="margin-top:22px;">
         <div class="card" style="box-shadow:none;border:none;padding:0;background:transparent;">
-          <h3 style="margin-bottom:14px;">Solicitação — HRD Somático</h3>
+          <h3 style="margin-bottom:14px;">Solicitação - HRD Somático</h3>
         </div>
         <div class="doc-preview">
           <div class="doc-head">
-            <span class="org">Solicitação de teste — laboratório parceiro</span>
             <span class="doc-type">Formulário de solicitação</span>
           </div>
-          <div class="doc-row"><span class="k">Paciente</span><span class="v" id="doc-name-1">—</span></div>
-          <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">Dra. Ana Ferreira — CRM 52-1198</span></div>
-          <div class="doc-row"><span class="k">Diagnóstico</span><span class="v" id="doc-diag-1">—</span></div>
+          <div class="doc-row"><span class="k">Paciente</span><span class="v" id="doc-name-1">-</span></div>
+          <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">Dra. Ana Ferreira - CRM 52-1198</span></div>
+          <div class="doc-row"><span class="k">Diagnóstico</span><span class="v" id="doc-diag-1">-</span></div>
           <div class="doc-row"><span class="k">Teste solicitado</span><span class="v">HRD Somático</span></div>
-          <div class="doc-row"><span class="k">Data</span><span class="v" id="doc-date-1">—</span></div>
+          <div class="doc-row"><span class="k">Data</span><span class="v" id="doc-date-1">-</span></div>
           <div class="doc-justif">
             <div class="label">Justificativa clínica</div>
-            <span id="doc-justif-1">—</span>
+            <span id="doc-justif-1">-</span>
           </div>
           <div class="doc-sign">
             <span>Assinatura e carimbo do médico</span>
@@ -1187,32 +1205,31 @@
       <h3>Painel germinativo BRCA1/2 <span class="pill ok">indicado neste caso</span></h3>
       <div class="program-row">
         <div class="who">
-          <span class="logo">?</span>
+          <span class="logo">🧬</span>
           <div>
-            <div class="name">Programa a mapear</div>
-            <div class="test">Nenhum parceiro confirmado ainda para este teste</div>
+            <div class="name">Life Genomics</div>
+            <div class="test">Laboratório parceiro · a confirmar critérios atuais</div>
           </div>
         </div>
-        <a class="link" href="#" onclick="return false;" style="opacity:.5;pointer-events:none;">Pendente</a>
+        <a class="link" href="https://lifegenomics.com.br/" target="_blank" rel="noopener">Ver portal oficial ↗</a>
       </div>
 
       <div class="doc-preview-wrap" id="doc-germinativo" style="margin-top:22px;">
         <div class="card" style="box-shadow:none;border:none;padding:0;background:transparent;">
-          <h3 style="margin-bottom:14px;">Solicitação — Painel germinativo BRCA1/2</h3>
+          <h3 style="margin-bottom:14px;">Solicitação - Painel germinativo BRCA1/2</h3>
         </div>
         <div class="doc-preview">
           <div class="doc-head">
-            <span class="org">Requisição de exame — laboratório a definir</span>
             <span class="doc-type">Formulário de solicitação</span>
           </div>
-          <div class="doc-row"><span class="k">Paciente</span><span class="v" id="doc-name-2">—</span></div>
-          <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">Dra. Ana Ferreira — CRM 52-1198</span></div>
+          <div class="doc-row"><span class="k">Paciente</span><span class="v" id="doc-name-2">-</span></div>
+          <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">Dra. Ana Ferreira - CRM 52-1198</span></div>
           <div class="doc-row"><span class="k">Amostra</span><span class="v">Sangue periférico</span></div>
           <div class="doc-row"><span class="k">Teste solicitado</span><span class="v">Painel germinativo BRCA1/2</span></div>
-          <div class="doc-row"><span class="k">Data</span><span class="v" id="doc-date-2">—</span></div>
+          <div class="doc-row"><span class="k">Data</span><span class="v" id="doc-date-2">-</span></div>
           <div class="doc-justif">
             <div class="label">Justificativa clínica</div>
-            <span id="doc-justif-2">—</span>
+            <span id="doc-justif-2">-</span>
           </div>
           <div class="doc-sign">
             <span>Assinatura e carimbo do médico</span>
@@ -1227,7 +1244,7 @@
     </div>
 
     <div class="disclaimer">
-      Documento gerado a partir dos dados que você confirmou nesta sessão. Revise sempre antes de assinar e enviar — a plataforma preenche o formulário, mas a responsabilidade pela solicitação é do médico assistente.
+      Documento gerado a partir dos dados que você confirmou nesta sessão. Revise sempre antes de assinar e enviar - a plataforma preenche o formulário, mas a responsabilidade pela solicitação é do médico assistente.
     </div>
 
     <div class="foot-nav">
@@ -1267,8 +1284,8 @@
 
   function currentSources() {
     const sources = [];
-    pdfFiles.forEach((f) => sources.push('Laudo em PDF — ' + f.name));
-    photoFiles.forEach((f) => sources.push('Foto do laudo — ' + f.name));
+    pdfFiles.forEach((f) => sources.push('Laudo em PDF - ' + f.name));
+    photoFiles.forEach((f) => sources.push('Foto do laudo - ' + f.name));
     if (document.getElementById('case-text').value.trim()) sources.push('Texto ou transcrição colada');
     if (recSeconds > 0) sources.push('Ditado por voz (' + document.getElementById('voice-time').textContent + ')');
     return sources;
@@ -1283,7 +1300,7 @@
   }
 
   // Nome do paciente extraído do material anexado (PDF/foto), se identificável.
-  // Nunca é mostrado nas telas de revisão/triagem — só pré-preenche o campo
+  // Nunca é mostrado nas telas de revisão/triagem - só pré-preenche o campo
   // isolado da tela final de solicitação (ver renderDocs()).
   let extractedPatientName = '';
 
@@ -1334,19 +1351,63 @@
     }
   }
 
-  function useBotCase() {
-    fillField('field-histologia', 'Seroso');
-    fillField('field-grau', 'Alto grau');
-    fillField('field-estadiamento', 'IIIC');
-    fillField('field-idade', '');
-    fillField('field-historico', 'Mãe teve câncer de mama aos 58 anos.');
-    fillField('field-testes', 'Nenhum relatado');
+  // OncoBot: conduz um roteiro curto de perguntas e, ao final, junta as
+  // respostas num único texto e manda pro mesmo motor de extração real
+  // usado no modo formulário (extractCase() -> /api/extract).
+  const chatQuestions = [
+    'Há histórico familiar de câncer de mama ou ovário em parentes de primeiro grau?',
+    'A paciente já realizou algum teste genético, somático ou germinativo, antes de hoje?',
+    'Mais alguma informação relevante (idade, grau, achados cirúrgicos)? Se não, digite "não".',
+  ];
+  let chatStep = 0;
+  let chatTranscript = [];
 
-    document.getElementById('sources-grid').innerHTML =
-      '<div class="field"><label>Origem</label><div class="value">Conversa com o OncoBot</div></div>';
+  function appendChatMsg(role, text) {
+    const win = document.getElementById('chat-window');
+    const msg = document.createElement('div');
+    msg.className = 'chat-msg ' + (role === 'bot' ? 'bot' : 'doc');
+    if (role === 'bot') {
+      const avatar = document.createElement('span');
+      avatar.className = 'chat-avatar';
+      avatar.textContent = '🧬';
+      msg.appendChild(avatar);
+    }
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.textContent = text;
+    msg.appendChild(bubble);
+    win.appendChild(msg);
+    win.scrollTop = win.scrollHeight;
+  }
 
-    updateGrauEstadioRelevance();
-    goTo(1);
+  function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+    appendChatMsg('doc', text);
+    chatTranscript.push(text);
+    input.value = '';
+
+    if (chatStep < chatQuestions.length) {
+      const q = chatQuestions[chatStep];
+      chatStep++;
+      setTimeout(() => appendChatMsg('bot', q), 250);
+    } else {
+      setTimeout(() => {
+        appendChatMsg('bot', 'Caso reunido. Clique abaixo para estruturar com o motor de extração.');
+        document.getElementById('chat-input-row').style.display = 'none';
+        document.getElementById('chat-finish-row').style.display = '';
+      }, 250);
+    }
+  }
+
+  document.getElementById('chat-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); sendChatMessage(); }
+  });
+
+  async function finishChat() {
+    document.getElementById('case-text').value = chatTranscript.join('. ');
+    await runExtraction();
   }
 
   let pdfFiles = [];
@@ -1409,7 +1470,7 @@
     });
   }
 
-  // Regra de indicação — Ginecológico (ovário), v0.3.
+  // Regra de indicação - Ginecológico (ovário), v0.3.
   // Fontes: ASCO "Germline and Somatic Tumor Testing in Epithelial Ovarian Cancer"
   // (JCO 2020, PMID 32074015), NCCN Ovarian Cancer Guidelines e SGO (testagem
   // somática BRCA+HRD para elegibilidade a PARP em histologia serosa OU
@@ -1443,7 +1504,7 @@
     const histologiaEpitelial = HISTOLOGIAS_EPITELIAIS.find((x) => h.includes(x));
     if (!histologiaEpitelial) return { state: 'nao-reconhecida' };
 
-    // Germinativo é indicado pra toda histologia epitelial — só o par
+    // Germinativo é indicado pra toda histologia epitelial - só o par
     // somático depende de histologia + grau + estágio, checados abaixo.
     if (!HISTOLOGIAS_SOMATICO.some((x) => h.includes(x))) {
       return { state: 'so-germinativo', histologiaEpitelial };
@@ -1461,7 +1522,7 @@
     // Confirmados dentro do critério: par completo.
     if (altoGrau && estadioAvancado) return { state: 'pareado', histologiaEpitelial };
 
-    // Histologia já elegível (seroso/endometrioide) e nada aponta contra —
+    // Histologia já elegível (seroso/endometrioide) e nada aponta contra -
     // só falta confirmar grau e/ou estágio no laudo. Isso não bloqueia o
     // resultado (só histologia é imprescindível): o somático é sugerido como
     // provável, sinalizado para confirmação, não escondido atrás de mais campo obrigatório.
@@ -1469,7 +1530,7 @@
   }
 
   // Mostra, nas telas de Programas e Solicitação, só o que a triagem
-  // efetivamente indicou para este caso — nunca teste sem indicação,
+  // efetivamente indicou para este caso - nunca teste sem indicação,
   // pra não confundir o médico com opção que não se aplica.
   function applyIndicationVisibility(result) {
     const somaticoIndicado = result.state === 'pareado' || result.state === 'pareado-provisorio';
@@ -1480,13 +1541,13 @@
     document.getElementById('card-germinativo').style.display = germinativoIndicado ? '' : 'none';
 
     const pillSomatico = document.getElementById('pill-somatico');
-    pillSomatico.textContent = provisorio ? 'indicação provável — confirmar' : 'indicado neste caso';
+    pillSomatico.textContent = provisorio ? 'indicação provável - confirmar' : 'indicado neste caso';
     pillSomatico.classList.toggle('warn', provisorio);
     pillSomatico.classList.toggle('ok', !provisorio);
 
     const programsNote = document.getElementById('programs-note');
     if (!somaticoIndicado && germinativoIndicado) {
-      programsNote.textContent = 'Este caso teve indicação apenas para o teste germinativo — o teste somático (HRD) não é mostrado porque não se aplica ao critério NCCN para este perfil.';
+      programsNote.textContent = 'Este caso teve indicação apenas para o teste germinativo - o teste somático (HRD) não é mostrado porque não se aplica ao critério NCCN para este perfil.';
       programsNote.style.display = '';
     } else {
       programsNote.style.display = 'none';
@@ -1494,12 +1555,15 @@
   }
 
   // Monta o texto de diagnóstico/justificativa dos documentos de solicitação
-  // a partir do caso realmente confirmado na tela de revisão — nunca dado de exemplo fixo.
+  // a partir do caso realmente confirmado na tela de revisão - nunca dado de exemplo fixo.
   function formatDiagnostico() {
-    const h = document.getElementById('field-histologia').value.trim();
+    // A histologia extraída às vezes já vem como "Carcinoma seroso..." (texto
+    // literal do laudo) - remove o prefixo pra não duplicar "Carcinoma Carcinoma".
+    let h = document.getElementById('field-histologia').value.trim();
+    h = h.replace(/^(carcinoma|tumor|neoplasia)\s+/i, '');
     const g = document.getElementById('field-grau').value.trim();
     const e = document.getElementById('field-estadiamento').value.trim();
-    const partes = ['Carcinoma ' + (h || '—') + ' de ovário'];
+    const partes = ['Carcinoma ' + (h || '-') + ' de ovário'];
     if (g) partes.push(g.toLowerCase());
     if (e) partes.push('estágio ' + e);
     return partes.join(', ');
@@ -1519,13 +1583,13 @@
     document.getElementById('doc-diag-1').textContent = diagnostico;
     document.getElementById('doc-date-1').textContent = date;
     document.getElementById('doc-justif-1').textContent =
-      `Paciente com ${diagnostico.toLowerCase()}, ${testesPrevios ? testesPrevios.toLowerCase() : 'sem teste molecular prévio relatado'}. ` +
+      `Caso com diagnóstico acima descrito, ${testesPrevios ? testesPrevios.toLowerCase() : 'sem teste molecular prévio relatado'}. ` +
       'Elegível para avaliação de status HRD tumoral para definição de elegibilidade a terapia de manutenção com inibidor de PARP.';
 
     document.getElementById('doc-date-2').textContent = date;
     document.getElementById('doc-justif-2').textContent =
-      `${diagnostico} — todo carcinoma epitelial de ovário de alto grau tem indicação de teste germinativo BRCA1/2 ao diagnóstico, independente de histórico familiar.` +
-      (historico ? ` Histórico familiar relatado: ${historico} — reforça encaminhamento para aconselhamento genético.` : '');
+      'Todo carcinoma epitelial de ovário de alto grau tem indicação de teste germinativo BRCA1/2 ao diagnóstico, independente de histórico familiar.' +
+      (historico ? ` Histórico familiar relatado: ${historico}, reforça encaminhamento para aconselhamento genético.` : '');
 
     const nameInput = document.getElementById('patient-name');
     if (!nameInput.value.trim() && extractedPatientName) nameInput.value = extractedPatientName;
@@ -1589,15 +1653,15 @@
       const caveat = document.getElementById('provisional-caveat');
       glyph.textContent = '✓';
       if (result.state === 'pareado') {
-        title.textContent = 'Este caso tem indicação para testagem molecular pareada';
-        text.textContent = `Carcinoma ${result.histologiaEpitelial} de alto grau de ovário, estágio ${estadiamento} — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.`;
+        title.textContent = 'Este caso tem indicação para 2 testes';
+        text.textContent = `Carcinoma ${result.histologiaEpitelial} de alto grau de ovário, estágio ${estadiamento}. Solicite os 2 testes abaixo: HRD Somático e Painel germinativo BRCA1/2.`;
         caveat.style.display = 'none';
       } else {
         const faltando = [result.grauFaltando ? 'grau' : null, result.estadioFaltando ? 'estágio' : null].filter(Boolean).join(' e ');
-        title.textContent = 'Este caso tem indicação provável para testagem pareada';
-        text.textContent = `Carcinoma ${result.histologiaEpitelial} de ovário — histologia compatível com o critério de par somático+germinativo. Confirme ${faltando} no laudo patológico antes de solicitar o teste somático.`;
+        title.textContent = 'Este caso tem indicação provável para 2 testes';
+        text.textContent = `Carcinoma ${result.histologiaEpitelial} de ovário. Histologia compatível com indicação de HRD Somático + Painel germinativo BRCA1/2. Confirme ${faltando} no laudo patológico antes de solicitar o teste somático.`;
         document.getElementById('provisional-caveat-title').textContent = result.grauFaltando && result.estadioFaltando ? 'Grau e estágio não informados' : (result.grauFaltando ? 'Grau não informado' : 'Estágio não informado');
-        document.getElementById('provisional-caveat-text').textContent = `A indicação do teste somático (HRD) abaixo assume que ${faltando} está dentro do critério NCCN (alto grau, estágio III/IV) — o mais comum para esta histologia. Isso não foi confirmado com os dados informados. O germinativo é indicado de qualquer forma.`;
+        document.getElementById('provisional-caveat-text').textContent = `A indicação do teste somático (HRD) abaixo assume que ${faltando} está dentro do critério NCCN (alto grau, estágio III/IV) - o mais comum para esta histologia. Isso não foi confirmado com os dados informados. O germinativo é indicado de qualquer forma.`;
         caveat.style.display = '';
       }
       pairedContent.style.display = '';
@@ -1606,7 +1670,7 @@
     } else {
       glyph.textContent = '✓';
       title.textContent = 'Este caso tem indicação para teste germinativo';
-      text.textContent = `Carcinoma ${result.histologiaEpitelial} de ovário${estadiamento ? ', estágio ' + estadiamento : ''} — indicação de teste germinativo. O critério para o teste somático (HRD) não foi atendido com os dados informados.`;
+      text.textContent = `Carcinoma ${result.histologiaEpitelial} de ovário${estadiamento ? ', estágio ' + estadiamento : ''} - indicação de teste germinativo. O critério para o teste somático (HRD) não foi atendido com os dados informados.`;
       germlineContent.style.display = '';
       nextBtn.textContent = 'Ver programas de acesso →';
       nextBtn.onclick = () => goTo(3);
@@ -1655,7 +1719,7 @@
   }
 
   function updateDocs() {
-    const name = document.getElementById('patient-name').value.trim() || '— (preencha o nome do paciente)';
+    const name = document.getElementById('patient-name').value.trim() || '- (preencha o nome do paciente)';
     document.getElementById('doc-name-1').textContent = name;
     document.getElementById('doc-name-2').textContent = name;
   }
