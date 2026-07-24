@@ -511,36 +511,83 @@
   .test-card p { font-size: 12.5px; color: var(--ink-muted); line-height: 1.5; margin: 0 0 10px; }
   .test-card .src { font-size: 11px; color: var(--ink-faint); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
 
-  .warm-card {
+  .note-card {
     margin-top: 16px;
-    border: 1px solid var(--warm-soft-border);
-    background: var(--warm-soft);
-    border-radius: 12px;
-    padding: 20px 22px;
-  }
-  .warm-card .eyebrow2 {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--warm); font-weight: 700; margin-bottom: 10px;
-  }
-  .warm-card h3 { font-size: 16px; color: var(--ink); margin-bottom: 8px; }
-  .warm-card p { font-size: 13.5px; color: var(--ink-muted); line-height: 1.6; margin: 0 0 10px; }
-  .warm-card ul { margin: 0 0 12px; padding-left: 18px; }
-  .warm-card li { font-size: 13.5px; color: var(--ink-muted); line-height: 1.55; margin-bottom: 4px; }
-  .warm-card .script {
-    background: var(--surface);
-    border: 1px solid var(--warm-soft-border);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--warm);
     border-radius: 8px;
-    padding: 12px 14px;
-    font-size: 13px;
-    font-style: italic;
-    color: var(--ink);
-    line-height: 1.55;
+    background: var(--surface);
+    padding: 14px 18px;
   }
-  .warm-card .stat-row { display: flex; gap: 18px; margin: 14px 0 4px; flex-wrap: wrap; }
-  .warm-card .stat { min-width: 120px; }
-  .warm-card .stat .n { font-family: Georgia, serif; font-size: 22px; color: var(--warm); }
-  .warm-card .stat .l { font-size: 11px; color: var(--ink-faint); }
+  .note-card .tag {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--warm);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .note-card h4 { font-family: Georgia, serif; font-size: 14.5px; color: var(--ink); margin: 0 0 7px; }
+  .note-card p { font-size: 12.5px; color: var(--ink-muted); line-height: 1.5; margin: 0 0 10px; }
+  .note-card .stats-line {
+    display: flex; flex-wrap: wrap; gap: 6px 16px;
+    font-size: 11.5px; color: var(--ink-muted);
+    margin: 0 0 10px;
+  }
+  .note-card .stats-line strong { color: var(--ink); font-family: ui-monospace, monospace; }
+  .note-card .script-line {
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    border-top: 1px solid var(--border);
+    padding-top: 9px;
+    line-height: 1.5;
+  }
+  .note-card .script-line .label { color: var(--ink-muted); font-weight: 600; }
+
+  /* ---- voice intake ---- */
+  .voice-panel { display: none; margin-top: 14px; }
+  .voice-panel.open { display: block; }
+  .voice-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+  }
+  .rec-btn {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: #c0392b;
+    color: #fff;
+    font-size: 12px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .rec-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .voice-wave { display: flex; align-items: center; gap: 3px; height: 22px; flex: 1; }
+  .voice-wave span {
+    display: block;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--ink-faint);
+    height: 6px;
+  }
+  .voice-wave.recording span { background: var(--accent); animation: wave 0.9s ease-in-out infinite; }
+  .voice-wave span:nth-child(1) { animation-delay: 0s; }
+  .voice-wave span:nth-child(2) { animation-delay: .1s; }
+  .voice-wave span:nth-child(3) { animation-delay: .2s; }
+  .voice-wave span:nth-child(4) { animation-delay: .3s; }
+  .voice-wave span:nth-child(5) { animation-delay: .4s; }
+  .voice-wave span:nth-child(6) { animation-delay: .3s; }
+  .voice-wave span:nth-child(7) { animation-delay: .2s; }
+  .voice-wave span:nth-child(8) { animation-delay: .1s; }
+  @keyframes wave { 0%, 100% { height: 6px; } 50% { height: 20px; } }
+  @media (prefers-reduced-motion: reduce) { .voice-wave.recording span { animation: none; height: 14px; } }
+  .voice-time { font-size: 12.5px; color: var(--ink-muted); }
 
   .disclaimer {
     margin-top: 20px;
@@ -759,9 +806,25 @@
             <span class="title">Transcrição de consulta</span>
             <span class="desc">Cole o texto de uma gravação já transcrita.</span>
           </button>
+          <button class="intake-tile" id="tile-voice" onclick="toggleVoicePanel()">
+            <span class="icon">🎤</span>
+            <span class="title">Ditado clínico por voz</span>
+            <span class="desc">Grave a descrição do caso falando; a transcrição alimenta a mesma extração estruturada.</span>
+          </button>
         </div>
 
         <textarea placeholder="Ex.: Paciente 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, sem histórico familiar relatado até o momento...">Mulher, 61 anos. Carcinoma seroso de alto grau de ovário, estágio IIIC ao diagnóstico. Sem teste genético prévio. Mãe teve câncer de mama aos 58 anos.</textarea>
+
+        <div class="voice-panel" id="voice-panel">
+          <div class="voice-row">
+            <button class="rec-btn" id="rec-btn" type="button" onclick="toggleRecording()" aria-label="Iniciar ou parar gravação">●</button>
+            <div class="voice-wave" id="voice-wave" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span class="voice-time mono" id="voice-time">00:00</span>
+          </div>
+          <p class="hint" style="margin:8px 0 0;">A transcrição é gerada e pseudonimizada antes de qualquer outro processamento — mesma regra da Camada 2.</p>
+        </div>
 
         <div class="plaud-row">
           <div class="left">
@@ -920,17 +983,16 @@
       </div>
     </div>
 
-    <div class="warm-card">
-      <div class="eyebrow2">💛 Por que também pedir o germinativo</div>
-      <h3>Isso não é só sobre a sua paciente — é sobre quem está ao lado dela</h3>
-      <p>O teste somático (tumoral) responde à pergunta de tratamento. O germinativo responde a uma pergunta maior: <strong>se essa mutação é hereditária, filhas, irmãs e outros parentes de primeiro grau podem se antecipar</strong> — com vigilância mais próxima, rastreio mais cedo, e em alguns casos prevenção — antes que a doença apareça neles.</p>
-      <div class="stat-row">
-        <div class="stat"><div class="n">~1/3</div><div class="l">dos parentes elegíveis nunca chega a ser informado do risco</div></div>
-        <div class="stat"><div class="n">60–70%</div><div class="l">risco estimado de câncer de mama ao longo da vida em portadoras BRCA</div></div>
-        <div class="stat"><div class="n">20–30%</div><div class="l">risco estimado de câncer de ovário ao longo da vida em portadoras BRCA</div></div>
+    <div class="note-card">
+      <span class="tag">Indicação concomitante</span>
+      <h4>Germinativo — independente do resultado somático</h4>
+      <p>Não altera a conduta terapêutica atual. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
+      <div class="stats-line">
+        <span><strong>~1/3</strong> dos parentes elegíveis não é informado do risco</span>
+        <span><strong>60–70%</strong> risco vitalício de Ca mama em portadoras BRCA</span>
+        <span><strong>20–30%</strong> risco vitalício de Ca ovário em portadoras BRCA</span>
       </div>
-      <p>Uma forma de apresentar isso à paciente, sem soar alarmista:</p>
-      <div class="script">"Além do exame do tumor, existe um segundo teste, feito com uma amostra de sangue, que verifica se essa característica pode ser genética. Não muda o seu tratamento agora — mas, se for positivo, sua filha e suas irmãs podem se cuidar antes, com exames que hoje talvez nem soubessem que precisam fazer."</div>
+      <div class="script-line"><span class="label">Comunicação sugerida:</span> "Exame de sangue avalia se a alteração é hereditária — resultado positivo permite rastreio precoce em familiares diretos."</div>
     </div>
 
     <div class="disclaimer">
@@ -1097,6 +1159,33 @@
     document.getElementById('mode-btn-bot').classList.toggle('active', mode === 'bot');
     document.getElementById('mode-btn-form').setAttribute('aria-selected', mode === 'form');
     document.getElementById('mode-btn-bot').setAttribute('aria-selected', mode === 'bot');
+  }
+
+  let recording = false;
+  let recTimer = null;
+  let recSeconds = 0;
+
+  function toggleVoicePanel() {
+    document.getElementById('voice-panel').classList.toggle('open');
+  }
+
+  function toggleRecording() {
+    recording = !recording;
+    const wave = document.getElementById('voice-wave');
+    const btn = document.getElementById('rec-btn');
+    wave.classList.toggle('recording', recording);
+    btn.textContent = recording ? '■' : '●';
+    if (recording) {
+      recSeconds = 0;
+      recTimer = setInterval(() => {
+        recSeconds++;
+        const m = String(Math.floor(recSeconds / 60)).padStart(2, '0');
+        const s = String(recSeconds % 60).padStart(2, '0');
+        document.getElementById('voice-time').textContent = `${m}:${s}`;
+      }, 1000);
+    } else {
+      clearInterval(recTimer);
+    }
   }
 
   function updateDocs() {
