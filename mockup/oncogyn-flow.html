@@ -455,6 +455,19 @@
   .field .value.editable { background: var(--surface); }
   .field .value.missing { color: var(--warn); border-style: dashed; background: var(--warn-soft); }
 
+  .field input.value {
+    width: 100%;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--surface);
+  }
+  .field input.value:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .field input.value.missing { color: var(--warn); border-style: dashed; background: var(--warn-soft); }
+  .field input.value.missing::placeholder { color: var(--warn); opacity: 0.75; }
+
+  .verdict.negative { background: var(--warn-soft); border-color: var(--warn); }
+  .verdict.negative .glyph { background: var(--warn); }
+
   .pill {
     display: inline-flex;
     align-items: center;
@@ -811,7 +824,8 @@
           </button>
         </div>
 
-        <textarea placeholder="Ex.: Paciente 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, sem histórico familiar relatado até o momento...">Mulher, 61 anos. Carcinoma seroso de alto grau de ovário, estágio IIIC ao diagnóstico. Sem teste genético prévio. Mãe teve câncer de mama aos 58 anos.</textarea>
+        <textarea id="case-text" placeholder="Descreva o caso com suas palavras. Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, mãe com câncer de mama aos 58 anos, sem teste genético prévio..."></textarea>
+        <p class="hint" id="extract-hint" style="margin-top:8px;">Experimente descrever um caso real (ou fictício) com suas palavras — histologia, estágio, idade e histórico familiar, se houver.</p>
 
         <div class="voice-panel" id="voice-panel">
           <div class="voice-row">
@@ -838,7 +852,7 @@
 
       <div class="btn-row">
         <button class="ghost" type="button">Salvar rascunho</button>
-        <button class="primary" type="button" onclick="goTo(1)">Estruturar caso →</button>
+        <button class="primary" type="button" onclick="runExtraction()">Estruturar caso →</button>
         <span class="note">Nenhum dado de identificação é enviado a modelos externos</span>
       </div>
     </div>
@@ -881,7 +895,7 @@
 
         <div class="chat-input-row">
           <input class="chat-input" type="text" placeholder="Digite sua resposta..." disabled />
-          <button class="primary" type="button" onclick="goTo(1)">Revisar caso reunido →</button>
+          <button class="primary" type="button" onclick="useBotCase()">Revisar caso reunido →</button>
         </div>
       </div>
     </div>
@@ -891,60 +905,56 @@
   <section class="screen" id="screen-1">
     <div class="case-banner">
       <span>Identificação removida automaticamente</span>
-      <span class="code lock">🔒 Caso <span class="mono">A.F.M.-0231</span></span>
+      <span class="code lock">🔒 Caso <span class="mono" id="case-code-1">—</span></span>
     </div>
 
     <div class="eyebrow">Ginecológico · passo 2 de 5</div>
     <h1>Confirme o caso estruturado</h1>
-    <p class="lede">Extraímos o que conseguimos identificar. Revise e complete antes de rodar a triagem — o médico sempre valida antes do sistema decidir.</p>
+    <p class="lede">Isto foi extraído do que você descreveu no passo 1. Corrija ou complete os campos abaixo — a triagem do passo 3 usa exatamente o que estiver escrito aqui.</p>
 
     <div class="card">
       <h3>Perfil clínico</h3>
       <div class="field-grid">
         <div class="field">
           <label>Subtipo oncológico</label>
-          <div class="value editable">Ginecológico — Ovário</div>
+          <input class="value editable" id="field-subtipo" value="Ginecológico — Ovário" />
         </div>
         <div class="field">
           <label>Histologia</label>
-          <div class="value editable">Seroso de alto grau</div>
+          <input class="value editable" id="field-histologia" placeholder="Ex.: Seroso de alto grau" />
         </div>
         <div class="field">
           <label>Estadiamento</label>
-          <div class="value editable">IIIC</div>
+          <input class="value editable" id="field-estadiamento" placeholder="Ex.: IIIC" />
         </div>
         <div class="field">
           <label>Faixa etária</label>
-          <div class="value editable">60–64 anos</div>
+          <input class="value editable" id="field-idade" placeholder="Ex.: 60–64 anos" />
         </div>
         <div class="field full">
           <label>Histórico familiar relatado</label>
-          <div class="value editable">Mãe — câncer de mama aos 58 anos</div>
+          <input class="value editable" id="field-historico" placeholder="Ex.: mãe com câncer de mama aos 58 anos" />
         </div>
         <div class="field full">
           <label>Testes genéticos prévios</label>
-          <div class="value missing">Não informado — confirme antes de prosseguir</div>
+          <input class="value editable" id="field-testes" placeholder="Ex.: nenhum teste realizado" />
         </div>
       </div>
     </div>
 
     <div class="card">
       <h3>Fontes usadas neste caso</h3>
-      <div class="field-grid">
+      <div class="field-grid" id="sources-grid">
         <div class="field">
           <label>Origem</label>
-          <div class="value">Texto livre (consulta)</div>
-        </div>
-        <div class="field">
-          <label>Origem</label>
-          <div class="value">Laudo anatomopatológico.pdf</div>
+          <div class="value">—</div>
         </div>
       </div>
     </div>
 
     <div class="btn-row">
       <button class="ghost" type="button" onclick="goTo(0)">← Voltar</button>
-      <button class="primary" type="button" onclick="goTo(2)">Rodar triagem genômica →</button>
+      <button class="primary" type="button" onclick="runTriage()">Rodar triagem genômica →</button>
     </div>
   </section>
 
@@ -952,45 +962,47 @@
   <section class="screen" id="screen-2">
     <div class="case-banner">
       <span>Triagem baseada em diretrizes — não é indicação terapêutica</span>
-      <span class="code lock">🔒 Caso <span class="mono">A.F.M.-0231</span></span>
+      <span class="code lock">🔒 Caso <span class="mono" id="case-code-2">—</span></span>
     </div>
 
     <div class="eyebrow">Ginecológico · passo 3 de 5</div>
     <h1>Resultado da triagem</h1>
 
-    <div class="verdict">
-      <span class="glyph">✓</span>
+    <div class="verdict" id="verdict-box">
+      <span class="glyph" id="verdict-glyph">✓</span>
       <div>
-        <h2>Este caso tem indicação para testagem molecular</h2>
-        <p>Carcinoma seroso de alto grau de ovário em estágio avançado — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.</p>
+        <h2 id="verdict-title">Este caso tem indicação para testagem molecular</h2>
+        <p id="verdict-text">Carcinoma seroso de alto grau de ovário em estágio avançado — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.</p>
       </div>
     </div>
 
-    <div class="test-pair">
-      <div class="test-card">
-        <div class="order">Tumoral · somático</div>
-        <h4>HRD + BRCA1/2 tumoral</h4>
-        <p>Avalia o status de deficiência de recombinação homóloga e mutação BRCA no tecido tumoral, para orientar elegibilidade a terapia de manutenção com inibidor de PARP.</p>
-        <div class="src">Referência: NCCN Ovarian Cancer · ESMO Clinical Practice Guideline 2026</div>
+    <div id="verdict-positive-content">
+      <div class="test-pair">
+        <div class="test-card">
+          <div class="order">Tumoral · somático</div>
+          <h4>HRD + BRCA1/2 tumoral</h4>
+          <p>Avalia o status de deficiência de recombinação homóloga e mutação BRCA no tecido tumoral, para orientar elegibilidade a terapia de manutenção com inibidor de PARP.</p>
+          <div class="src">Referência: NCCN Ovarian Cancer · ESMO Clinical Practice Guideline 2026</div>
+        </div>
+        <div class="test-card">
+          <div class="order">Sangue · germinativo</div>
+          <h4>Painel germinativo BRCA1/2</h4>
+          <p>Investiga mutação hereditária, independente do resultado tumoral — todo carcinoma de alto grau de ovário tem indicação de teste germinativo ao diagnóstico.</p>
+          <div class="src">Referência: ASCO Guideline (JCO 2020) · ESMO 2026 · NCCN</div>
+        </div>
       </div>
-      <div class="test-card">
-        <div class="order">Sangue · germinativo</div>
-        <h4>Painel germinativo BRCA1/2</h4>
-        <p>Investiga mutação hereditária, independente do resultado tumoral — todo carcinoma de alto grau de ovário tem indicação de teste germinativo ao diagnóstico.</p>
-        <div class="src">Referência: ASCO Guideline (JCO 2020) · ESMO 2026 · NCCN</div>
-      </div>
-    </div>
 
-    <div class="note-card">
-      <span class="tag">Indicação concomitante</span>
-      <h4>Germinativo — independente do resultado somático</h4>
-      <p>Não altera a conduta terapêutica atual. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
-      <div class="stats-line">
-        <span><strong>~1/3</strong> dos parentes elegíveis não é informado do risco</span>
-        <span><strong>60–70%</strong> risco vitalício de Ca mama em portadoras BRCA</span>
-        <span><strong>20–30%</strong> risco vitalício de Ca ovário em portadoras BRCA</span>
+      <div class="note-card">
+        <span class="tag">Indicação concomitante</span>
+        <h4>Germinativo — independente do resultado somático</h4>
+        <p>Não altera a conduta terapêutica atual. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
+        <div class="stats-line">
+          <span><strong>~1/3</strong> dos parentes elegíveis não é informado do risco</span>
+          <span><strong>60–70%</strong> risco vitalício de Ca mama em portadoras BRCA</span>
+          <span><strong>20–30%</strong> risco vitalício de Ca ovário em portadoras BRCA</span>
+        </div>
+        <div class="script-line"><span class="label">Comunicação sugerida:</span> "Exame de sangue avalia se a alteração é hereditária — resultado positivo permite rastreio precoce em familiares diretos."</div>
       </div>
-      <div class="script-line"><span class="label">Comunicação sugerida:</span> "Exame de sangue avalia se a alteração é hereditária — resultado positivo permite rastreio precoce em familiares diretos."</div>
     </div>
 
     <div class="disclaimer">
@@ -999,7 +1011,7 @@
 
     <div class="foot-nav">
       <button class="ghost" type="button" onclick="goTo(1)">← Voltar</button>
-      <button class="primary" type="button" onclick="goTo(3)">Ver programas de acesso →</button>
+      <button class="primary" type="button" id="verdict-next-btn" onclick="goTo(3)">Ver programas de acesso →</button>
     </div>
   </section>
 
@@ -1071,7 +1083,7 @@
       <button class="primary" type="button" onclick="updateDocs()">Atualizar documentos</button>
     </div>
     <div class="reident-note">
-      🔒 O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não é enviado ao motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono">A.F.M.-0231</span>) e não sai desta tela.
+      🔒 O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não é enviado ao motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono" id="case-code-3">—</span>) e não sai desta tela.
     </div>
 
     <div class="doc-preview-wrap">
@@ -1145,6 +1157,130 @@
 </main>
 
 <script>
+  // Código do caso: identificador de sessão, não é o nome do paciente.
+  const caseCode = 'GYN-' + String(Math.floor(1000 + Math.random() * 9000));
+  document.querySelectorAll('#case-code-1, #case-code-2, #case-code-3').forEach((el) => { el.textContent = caseCode; });
+
+  // Extração heurística simples, só para simular a Camada 3 neste protótipo.
+  // Em produção isso é feito por parsing de PDF/OCR + modelo de linguagem sobre o dado já pseudonimizado.
+  function extractCase(text) {
+    const t = (text || '').toLowerCase();
+    const result = { histologia: '', estadiamento: '', idade: '', historico: '', testes: '' };
+
+    const histologias = ['seroso', 'mucinoso', 'endometrioide', 'células claras', 'celulas claras', 'indiferenciado'];
+    const histologiaEncontrada = histologias.find((h) => t.includes(h));
+    if (histologiaEncontrada) {
+      const grau = t.includes('alto grau') ? ' de alto grau' : (t.includes('baixo grau') ? ' de baixo grau' : '');
+      result.histologia = (histologiaEncontrada.charAt(0).toUpperCase() + histologiaEncontrada.slice(1)).replace('celulas', 'células') + grau;
+    }
+
+    const estadioMatch = t.match(/(?:est[aá]gio|estadiamento|figo)\s*[:\-]?\s*\b(iv|iii[abc]?|ii[abc]?|i[abc]?)\b/i);
+    if (estadioMatch) result.estadiamento = estadioMatch[1].toUpperCase();
+
+    const idadeMatch = t.match(/(\d{1,3})\s*anos/);
+    if (idadeMatch) {
+      const idade = parseInt(idadeMatch[1], 10);
+      if (idade > 0 && idade < 110) {
+        const base = Math.floor(idade / 5) * 5;
+        result.idade = `${base}–${base + 4} anos`;
+      }
+    }
+
+    if (/sem hist[oó]rico familiar|nenhum hist[oó]rico familiar|nega hist[oó]rico familiar/.test(t)) {
+      result.historico = 'Não relatado';
+    } else {
+      const familiaMatch = text.match(/[^.]*\b(mãe|mae|irmã|irma|tia|avó|avo|pai|família|familia)\b[^.]*\./i);
+      if (familiaMatch) result.historico = familiaMatch[0].trim();
+    }
+
+    if (/sem teste gen[eé]tico|nenhum teste gen[eé]tico|n[aã]o realizou teste|sem teste pr[eé]vio/.test(t)) {
+      result.testes = 'Nenhum relatado';
+    } else if (/brca|hrd/.test(t)) {
+      result.testes = 'Mencionado no texto — confirmar resultado';
+    }
+
+    return result;
+  }
+
+  function fillField(id, value) {
+    const el = document.getElementById(id);
+    el.value = value || '';
+    el.classList.toggle('missing', !value);
+  }
+
+  function runExtraction() {
+    const text = document.getElementById('case-text').value.trim();
+    const extracted = extractCase(text);
+
+    fillField('field-histologia', extracted.histologia);
+    fillField('field-estadiamento', extracted.estadiamento);
+    fillField('field-idade', extracted.idade);
+    fillField('field-historico', extracted.historico);
+    fillField('field-testes', extracted.testes);
+
+    const sourcesGrid = document.getElementById('sources-grid');
+    const selectedTiles = Array.from(document.querySelectorAll('.intake-tile.selected .title')).map((el) => el.textContent);
+    if (text && !selectedTiles.includes('Descrição em texto')) selectedTiles.push('Descrição em texto');
+    sourcesGrid.innerHTML = (selectedTiles.length ? selectedTiles : ['Nenhuma fonte selecionada'])
+      .map((title) => `<div class="field"><label>Origem</label><div class="value">${title}</div></div>`)
+      .join('');
+
+    goTo(1);
+  }
+
+  function useBotCase() {
+    fillField('field-histologia', 'Seroso de alto grau');
+    fillField('field-estadiamento', 'IIIC');
+    fillField('field-idade', '');
+    fillField('field-historico', 'Mãe teve câncer de mama aos 58 anos.');
+    fillField('field-testes', 'Nenhum relatado');
+
+    document.getElementById('sources-grid').innerHTML =
+      '<div class="field"><label>Origem</label><div class="value">Conversa com o OncoBot</div></div>';
+
+    goTo(1);
+  }
+
+  function runTriage() {
+    const histologia = document.getElementById('field-histologia').value.trim().toLowerCase();
+    const estadiamento = document.getElementById('field-estadiamento').value.trim();
+
+    const box = document.getElementById('verdict-box');
+    const glyph = document.getElementById('verdict-glyph');
+    const title = document.getElementById('verdict-title');
+    const text = document.getElementById('verdict-text');
+    const positiveContent = document.getElementById('verdict-positive-content');
+    const nextBtn = document.getElementById('verdict-next-btn');
+
+    if (!histologia) {
+      box.classList.add('negative');
+      glyph.textContent = '!';
+      title.textContent = 'Dados insuficientes para triagem';
+      text.textContent = 'Histologia não identificada. Volte à revisão do caso e complete o campo antes de rodar a triagem novamente.';
+      positiveContent.style.display = 'none';
+      nextBtn.textContent = '← Completar dados';
+      nextBtn.onclick = () => goTo(1);
+    } else if (histologia.includes('seroso') && histologia.includes('alto grau')) {
+      box.classList.remove('negative');
+      glyph.textContent = '✓';
+      title.textContent = 'Este caso tem indicação para testagem molecular';
+      text.textContent = `Carcinoma seroso de alto grau de ovário${estadiamento ? ', estágio ' + estadiamento : ''} — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.`;
+      positiveContent.style.display = '';
+      nextBtn.textContent = 'Ver programas de acesso →';
+      nextBtn.onclick = () => goTo(3);
+    } else {
+      box.classList.add('negative');
+      glyph.textContent = '!';
+      title.textContent = 'Regra de triagem não coberta neste protótipo';
+      text.textContent = `Histologia informada (“${document.getElementById('field-histologia').value}”) não corresponde à regra implementada nesta versão (carcinoma seroso de alto grau de ovário). Consulte a diretriz correspondente a este perfil.`;
+      positiveContent.style.display = 'none';
+      nextBtn.textContent = '← Completar dados';
+      nextBtn.onclick = () => goTo(1);
+    }
+
+    goTo(2);
+  }
+
   function setMode(mode) {
     document.getElementById('mode-form').classList.toggle('active', mode === 'form');
     document.getElementById('mode-bot').classList.toggle('active', mode === 'bot');
