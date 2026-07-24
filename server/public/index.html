@@ -1,0 +1,1615 @@
+<title>OncoGenYX — Mockup: Triagem GYN</title>
+<style>
+  :root {
+    --bg: #eef2f0;
+    --surface: #ffffff;
+    --surface-2: #e4eae7;
+    --border: #cdd7d2;
+    --ink: #1b2420;
+    --ink-muted: #56645d;
+    --ink-faint: #8a968f;
+    --accent: #0f6b5c;
+    --accent-ink: #ffffff;
+    --accent-soft: #dcebe6;
+    --accent-soft-border: #b9d6cc;
+    --warm: #a15a3f;
+    --warm-soft: #f3e4dc;
+    --warm-soft-border: #ddbca8;
+    --ok: #0f6b5c;
+    --ok-soft: #dcebe6;
+    --warn: #93650f;
+    --warn-soft: #f3e9d3;
+    --neutral-soft: #e4e7e5;
+    --focus: #1b6de0;
+    --shadow: 0 1px 2px rgba(20, 30, 26, 0.06), 0 8px 24px -12px rgba(20, 30, 26, 0.18);
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #101512;
+    --surface: #171e1a;
+    --surface-2: #1f2822;
+    --border: #2b362f;
+    --ink: #e9efec;
+    --ink-muted: #a3b1a9;
+    --ink-faint: #71807a;
+    --accent: #55c2a8;
+    --accent-ink: #072019;
+    --accent-soft: #1a352e;
+    --accent-soft-border: #2b5148;
+    --warm: #e2a284;
+    --warm-soft: #33241c;
+    --warm-soft-border: #55392b;
+    --ok: #55c2a8;
+    --ok-soft: #1a352e;
+    --warn: #dcb256;
+    --warn-soft: #362c17;
+    --neutral-soft: #232b26;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.55);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101512;
+      --surface: #171e1a;
+      --surface-2: #1f2822;
+      --border: #2b362f;
+      --ink: #e9efec;
+      --ink-muted: #a3b1a9;
+      --ink-faint: #71807a;
+      --accent: #55c2a8;
+      --accent-ink: #072019;
+      --accent-soft: #1a352e;
+      --accent-soft-border: #2b5148;
+      --warm: #e2a284;
+      --warm-soft: #33241c;
+      --warm-soft-border: #55392b;
+      --ok: #55c2a8;
+      --ok-soft: #1a352e;
+      --warn: #dcb256;
+      --warn-soft: #362c17;
+      --neutral-soft: #232b26;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.55);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .mono {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  a { color: inherit; }
+
+  /* ---- shell ---- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .brand .mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-ink);
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .brand strong { font-size: 15px; letter-spacing: 0.01em; }
+  .brand span { font-size: 12px; color: var(--ink-faint); }
+
+  .doctor-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-muted);
+  }
+  .doctor-chip .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--ink-muted);
+  }
+
+  .steps {
+    display: flex;
+    gap: 2px;
+    padding: 0 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .step-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 11px;
+    border: none;
+    background: transparent;
+    color: var(--ink-faint);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+  }
+  .step-btn .num {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--ink-faint);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-family: ui-monospace, monospace;
+  }
+  .step-btn.active {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+  }
+  .step-btn.active .num {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+  .step-btn.done .num {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft-border);
+    color: var(--accent);
+  }
+  .step-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 24px 96px;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; animation: rise .28s ease both; }
+  @media (prefers-reduced-motion: reduce) { .screen.active { animation: none; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+  .screen h1 { font-size: 26px; margin-bottom: 6px; }
+  .screen > .lede { color: var(--ink-muted); font-size: 14.5px; max-width: 62ch; line-height: 1.55; margin: 0 0 28px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+  .card + .card { margin-top: 16px; }
+  .card h3 { font-size: 15px; margin-bottom: 4px; }
+  .card .hint { font-size: 12.5px; color: var(--ink-faint); margin: 0 0 14px; }
+
+  /* ---- mode switch ---- */
+  .mode-switch {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: none;
+    background: transparent;
+    color: var(--ink-muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .mode-btn.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+  .mode-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .mode-panel { display: none; }
+  .mode-panel.active { display: block; animation: rise .22s ease both; }
+  @media (prefers-reduced-motion: reduce) { .mode-panel.active { animation: none; } }
+
+  /* ---- chat (OncoBot) ---- */
+  .chat-card { padding-bottom: 16px; }
+  .chat-window {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding: 4px 2px 8px;
+  }
+  .chat-msg { display: flex; gap: 10px; align-items: flex-start; }
+  .chat-msg.doc { flex-direction: row-reverse; }
+  .chat-avatar {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-soft-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+  }
+  .chat-bubble {
+    max-width: 78%;
+    font-size: 13.5px;
+    line-height: 1.5;
+    padding: 10px 13px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--ink);
+  }
+  .chat-msg.bot .chat-bubble { border-top-left-radius: 4px; }
+  .chat-msg.doc .chat-bubble { border-top-right-radius: 4px; background: var(--accent-soft); border-color: var(--accent-soft-border); }
+  .chat-input-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .chat-input {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--ink-faint);
+    font-family: inherit;
+    font-size: 13.5px;
+    padding: 10px 12px;
+  }
+
+  /* ---- ingestion ---- */
+  .dropzone {
+    position: relative;
+    border-radius: 10px;
+    border: 2px dashed transparent;
+    padding: 2px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .dropzone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .dropzone-hint {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .dropzone.drag-over .dropzone-hint { display: flex; }
+
+  .thumb-row { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .thumb-row img { width: 22px; height: 22px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+
+  .ocr-disclaimer {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--warn);
+    background: var(--warn-soft);
+    border: 1px solid var(--warn-soft-border, var(--warn));
+    border-radius: 8px;
+    padding: 9px 12px;
+    line-height: 1.5;
+  }
+
+  .intake-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  @media (max-width: 680px) { .intake-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 380px) { .intake-grid { grid-template-columns: 1fr; } }
+
+  .intake-tile {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 10px;
+    background: var(--surface-2);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .intake-tile:hover { border-color: var(--accent-soft-border); background: var(--accent-soft); }
+  .intake-tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .intake-tile.selected { border: 1px solid var(--accent); background: var(--accent-soft); }
+  .intake-tile .row { display: flex; align-items: center; gap: 6px; }
+  .intake-tile .icon { font-size: 14px; line-height: 1; }
+  .intake-tile .title { font-size: 12px; font-weight: 600; }
+  .intake-tile .desc { font-size: 10.5px; color: var(--ink-faint); line-height: 1.35; }
+  .intake-tile .file-name { font-size: 10.5px; color: var(--accent); font-weight: 600; margin-top: 1px; }
+
+  textarea {
+    width: 100%;
+    min-height: 96px;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13.5px;
+    padding: 12px;
+    margin-top: 14px;
+  }
+  textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  .plaud-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+  }
+  .plaud-row .left { display: flex; align-items: center; gap: 10px; }
+  .plaud-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-faint); }
+  .plaud-row .name { font-size: 13px; font-weight: 600; }
+  .plaud-row .sub { font-size: 11.5px; color: var(--ink-faint); }
+  .toggle {
+    width: 38px; height: 22px; border-radius: 20px;
+    background: var(--border);
+    position: relative;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--surface);
+    transition: transform .15s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle.on::after { transform: translateX(16px); }
+
+  /* ---- buttons ---- */
+  .btn-row { display: flex; gap: 10px; margin-top: 24px; align-items: center; }
+  button.primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 8px;
+    padding: 11px 20px;
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  button.primary:hover { filter: brightness(1.05); }
+  button.primary:focus-visible, button.ghost:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button.ghost {
+    background: transparent;
+    color: var(--ink-muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 18px;
+    font-size: 13.5px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  button.ghost:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .btn-row .note { font-size: 12px; color: var(--ink-faint); margin-left: auto; }
+
+  /* ---- case id banner ---- */
+  .case-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+  .case-banner .code { color: var(--ink); font-weight: 600; }
+  .case-banner .lock { display: flex; align-items: center; gap: 6px; }
+
+  /* ---- review form ---- */
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .field-grid { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 11.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  .field .value {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 11px;
+    font-size: 13.5px;
+    background: var(--surface-2);
+  }
+  .field .value.editable { background: var(--surface); }
+  .field .value.missing { color: var(--warn); border-style: dashed; background: var(--warn-soft); }
+
+  .field input.value {
+    width: 100%;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--surface);
+  }
+  .field input.value:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .field input.value.missing { color: var(--warn); border-style: dashed; background: var(--warn-soft); }
+  .field input.value.missing::placeholder { color: var(--warn); opacity: 0.75; }
+
+  .verdict.negative { background: var(--warn-soft); border-color: var(--warn); }
+  .verdict.negative .glyph { background: var(--warn); }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 100px;
+  }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+
+  /* ---- result screen ---- */
+  .verdict {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 20px 22px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-soft-border);
+  }
+  .verdict .glyph {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .verdict h2 { font-size: 17px; margin-bottom: 4px; color: var(--ink); }
+  .verdict p { margin: 0; font-size: 13.5px; color: var(--ink-muted); line-height: 1.55; }
+
+  .test-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  @media (max-width: 560px) { .test-pair { grid-template-columns: 1fr; } }
+  .test-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    background: var(--surface);
+  }
+  .test-card .order {
+    font-size: 10.5px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .test-card h4 { font-size: 15px; font-weight: 700; margin: 4px 0 8px; }
+  .test-card p { font-size: 12.5px; color: var(--ink-muted); line-height: 1.5; margin: 0 0 10px; }
+  .test-card .src { font-size: 11px; color: var(--ink-faint); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
+
+  .note-card {
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--warm);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+  .note-card.warn { border-left-color: var(--warn); }
+  .note-card.warn .tag { color: var(--warn); }
+  .note-card .tag {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--warm);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .note-card h4 { font-size: 14.5px; font-weight: 700; color: var(--ink); margin: 0 0 7px; }
+  .note-card p { font-size: 12.5px; color: var(--ink-muted); line-height: 1.5; margin: 0 0 10px; }
+  .note-card .stats-line {
+    display: flex; flex-wrap: wrap; gap: 6px 16px;
+    font-size: 11.5px; color: var(--ink-muted);
+    margin: 0 0 10px;
+  }
+  .note-card .stats-line strong { color: var(--ink); font-family: ui-monospace, monospace; }
+  .note-card .script-line {
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    border-top: 1px solid var(--border);
+    padding-top: 9px;
+    line-height: 1.5;
+  }
+  .note-card .script-line .label { color: var(--ink-muted); font-weight: 600; }
+
+  /* ---- voice intake ---- */
+  .voice-panel { display: none; margin-top: 14px; }
+  .voice-panel.open { display: block; }
+  .voice-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+  }
+  .rec-btn {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: #c0392b;
+    color: #fff;
+    font-size: 12px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .rec-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .voice-wave { display: flex; align-items: center; gap: 3px; height: 22px; flex: 1; }
+  .voice-wave span {
+    display: block;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--ink-faint);
+    height: 6px;
+  }
+  .voice-wave.recording span { background: var(--accent); animation: wave 0.9s ease-in-out infinite; }
+  .voice-wave span:nth-child(1) { animation-delay: 0s; }
+  .voice-wave span:nth-child(2) { animation-delay: .1s; }
+  .voice-wave span:nth-child(3) { animation-delay: .2s; }
+  .voice-wave span:nth-child(4) { animation-delay: .3s; }
+  .voice-wave span:nth-child(5) { animation-delay: .4s; }
+  .voice-wave span:nth-child(6) { animation-delay: .3s; }
+  .voice-wave span:nth-child(7) { animation-delay: .2s; }
+  .voice-wave span:nth-child(8) { animation-delay: .1s; }
+  @keyframes wave { 0%, 100% { height: 6px; } 50% { height: 20px; } }
+  @media (prefers-reduced-motion: reduce) { .voice-wave.recording span { animation: none; height: 14px; } }
+  .voice-time { font-size: 12.5px; color: var(--ink-muted); }
+
+  .disclaimer {
+    margin-top: 20px;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    line-height: 1.6;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+
+  /* ---- programs screen ---- */
+  .validate-flag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: var(--warn-soft);
+    border: 1px solid var(--warn-soft-border, var(--warn));
+    color: var(--warn);
+    font-size: 12.5px;
+    margin-bottom: 20px;
+  }
+  .program-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  .program-row + .program-row { margin-top: 10px; }
+  .program-row .who { display: flex; align-items: center; gap: 12px; }
+  .program-row .logo {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--ink-muted);
+  }
+  .program-row .name { font-size: 13.5px; font-weight: 600; }
+  .program-row .test { font-size: 11.5px; color: var(--ink-faint); }
+  .program-row a.link {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--accent-soft-border);
+    background: var(--accent-soft);
+    padding: 7px 12px;
+    border-radius: 7px;
+    white-space: nowrap;
+  }
+
+  .table-wrap { overflow-x: auto; margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--ink-faint); font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: .04em; }
+
+  .foot-nav { display: flex; justify-content: space-between; margin-top: 28px; }
+
+  /* ---- solicitação (documento gerado) ---- */
+  .name-card {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .name-card .field { flex: 1; min-width: 220px; }
+  .name-card input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 11px;
+    font-size: 13.5px;
+    font-family: inherit;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .name-card input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .reident-note {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 12px;
+    color: var(--ink-muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+
+  .doc-preview-wrap {
+    margin-top: 16px;
+    border-radius: 12px;
+    padding: 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+  .doc-preview {
+    background: #ffffff;
+    color: #1c1c1c;
+    border: 1px solid #d8d8d8;
+    border-radius: 6px;
+    padding: 28px 30px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15), 0 10px 26px -16px rgba(0,0,0,0.35);
+  }
+  .doc-preview .doc-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 2px solid #1c1c1c;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .doc-preview .doc-head .org { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
+  .doc-preview .doc-head .doc-type { font-size: 11px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.06em; }
+  .doc-preview .doc-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12.5px;
+    padding: 6px 0;
+    border-bottom: 1px solid #ececec;
+  }
+  .doc-preview .doc-row .k { color: #6b6b6b; }
+  .doc-preview .doc-row .v { font-weight: 600; text-align: right; }
+  .doc-preview .doc-justif {
+    margin-top: 14px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #2a2a2a;
+  }
+  .doc-preview .doc-justif .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: #6b6b6b; margin-bottom: 4px; }
+  .doc-preview .doc-sign {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid #d8d8d8;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: #6b6b6b;
+  }
+  .doc-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+  }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <span class="mark">O</span>
+    <strong>OncoGenYX</strong>
+    <span>· mockup de fluxo, não é produto final</span>
+  </div>
+  <div class="doctor-chip">
+    <span>Dra. Ana Ferreira · CRM 52-1198</span>
+    <span class="avatar">AF</span>
+  </div>
+</div>
+
+<div class="steps" id="steps">
+  <button class="step-btn active" data-step="0"><span class="num">1</span>Novo caso</button>
+  <button class="step-btn" data-step="1"><span class="num">2</span>Revisão do caso</button>
+  <button class="step-btn" data-step="2"><span class="num">3</span>Resultado da triagem</button>
+  <button class="step-btn" data-step="3"><span class="num">4</span>Programas de acesso</button>
+  <button class="step-btn" data-step="4"><span class="num">5</span>Modelo de solicitação</button>
+</div>
+
+<main>
+
+  <!-- SCREEN 1 — INGESTÃO -->
+  <section class="screen active" id="screen-0">
+    <div class="eyebrow">Ginecológico · passo 1 de 5</div>
+    <h1>Descreva o caso</h1>
+    <p class="lede">Use quantas fontes fizer sentido — laudo em PDF, foto, texto livre ou transcrição de consulta — ou converse com o OncoBot se preferir ser guiado por perguntas. Tudo é convertido em iniciais e número de caso antes de qualquer outro processamento.</p>
+
+    <div class="mode-switch" role="tablist" aria-label="Como inserir o caso">
+      <button class="mode-btn active" id="mode-btn-form" role="tab" aria-selected="true" onclick="setMode('form')">
+        <span class="icon">🗂️</span> Formulário / upload
+      </button>
+      <button class="mode-btn" id="mode-btn-bot" role="tab" aria-selected="false" onclick="setMode('bot')">
+        <span class="icon">💬</span> Conversar com o OncoBot
+      </button>
+    </div>
+
+    <div class="mode-panel active" id="mode-form">
+      <div class="card">
+        <h3>Como você quer inserir os dados?</h3>
+        <p class="hint">Pode combinar mais de uma fonte para o mesmo caso. Arraste arquivos pra qualquer lugar desta área, ou clique nos tiles abaixo pra selecionar (pode escolher vários de uma vez).</p>
+        <div class="dropzone" id="dropzone">
+          <div class="intake-grid">
+            <button class="intake-tile" id="tile-pdf" type="button" onclick="document.getElementById('input-pdf').click()">
+              <span class="row"><span class="icon">📄</span><span class="title">Laudo em PDF</span></span>
+              <span class="desc">Anatomopatológico, prontuário.</span>
+              <span class="file-name" id="file-name-pdf"></span>
+            </button>
+            <button class="intake-tile" id="tile-photo" type="button" onclick="document.getElementById('input-photo').click()">
+              <span class="row"><span class="icon">🖼️</span><span class="title">Foto do laudo</span></span>
+              <span class="desc">Foto ou print do documento.</span>
+              <span class="file-name" id="file-name-photo"></span>
+              <div class="thumb-row" id="thumb-row"></div>
+            </button>
+            <button class="intake-tile" id="tile-text" type="button" onclick="document.getElementById('case-text').focus()">
+              <span class="row"><span class="icon">✍️</span><span class="title">Texto ou transcrição</span></span>
+              <span class="desc">Escreva ou cole uma transcrição.</span>
+            </button>
+            <button class="intake-tile" id="tile-voice" type="button" onclick="toggleVoicePanel()">
+              <span class="row"><span class="icon">🎤</span><span class="title">Ditado por voz</span></span>
+              <span class="desc">Grave o caso falando.</span>
+            </button>
+          </div>
+          <div class="dropzone-hint">Solte os arquivos aqui</div>
+        </div>
+        <input type="file" id="input-pdf" accept="application/pdf" multiple style="display:none" onchange="addFiles('pdf', this.files)" />
+        <input type="file" id="input-photo" accept="image/*" multiple style="display:none" onchange="addFiles('photo', this.files)" />
+
+        <div class="ocr-disclaimer" id="ocr-disclaimer" style="display:none;">
+          ℹ️ PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto abaixo — tudo é combinado na estruturação do caso.
+        </div>
+        <div class="ocr-disclaimer" id="extract-error" style="display:none; background:#fde2e2; color:#7a1f1f;"></div>
+
+        <textarea id="case-text" placeholder="Descreva o caso com suas palavras, ou cole uma transcrição. Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, mãe com câncer de mama aos 58 anos, sem teste genético prévio..."></textarea>
+        <p class="hint" id="extract-hint" style="margin-top:8px;">Experimente descrever um caso real (ou fictício) com suas palavras, ou anexe o laudo em PDF/foto — histologia, estágio, idade e histórico familiar, se houver.</p>
+
+        <div class="voice-panel" id="voice-panel">
+          <div class="voice-row">
+            <button class="rec-btn" id="rec-btn" type="button" onclick="toggleRecording()" aria-label="Iniciar ou parar gravação">●</button>
+            <div class="voice-wave" id="voice-wave" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span class="voice-time mono" id="voice-time">00:00</span>
+          </div>
+          <p class="hint" style="margin:8px 0 0;">A transcrição é gerada e pseudonimizada antes de qualquer outro processamento — mesma regra da Camada 2.</p>
+        </div>
+
+        <div class="plaud-row">
+          <div class="left">
+            <span class="dot"></span>
+            <div>
+              <div class="name">Conectar ao Plaud</div>
+              <div class="sub">Sincroniza a transcrição da gravação diretamente — em avaliação de disponibilidade de API</div>
+            </div>
+          </div>
+          <button class="toggle" id="plaud-toggle" aria-label="Conectar ao Plaud" aria-pressed="false"></button>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="ghost" type="button">Salvar rascunho</button>
+        <button class="primary" type="button" id="btn-extract" onclick="runExtraction()">Estruturar caso →</button>
+        <span class="note">Nenhum dado de identificação é enviado a modelos externos</span>
+      </div>
+    </div>
+
+    <div class="mode-panel" id="mode-bot">
+      <div class="card chat-card">
+        <h3>OncoBot — triagem por conversa</h3>
+        <p class="hint">Mesmo motor de triagem da Camada 4 — o bot só pergunta o que falta para completar o caso. Nunca pede nome, CPF ou dado que identifique a paciente.</p>
+
+        <div class="chat-window" id="chat-window">
+          <div class="chat-msg bot">
+            <span class="chat-avatar">🧬</span>
+            <div class="chat-bubble">Olá, Dra. Vamos triar um caso ginecológico. Qual a histologia e o estágio ao diagnóstico?</div>
+          </div>
+          <div class="chat-msg doc">
+            <div class="chat-bubble">Carcinoma seroso de alto grau, estágio IIIC.</div>
+          </div>
+          <div class="chat-msg bot">
+            <span class="chat-avatar">🧬</span>
+            <div class="chat-bubble">Entendido. Há histórico familiar de câncer de mama ou ovário em parentes de primeiro grau?</div>
+          </div>
+          <div class="chat-msg doc">
+            <div class="chat-bubble">Mãe teve câncer de mama aos 58 anos.</div>
+          </div>
+          <div class="chat-msg bot">
+            <span class="chat-avatar">🧬</span>
+            <div class="chat-bubble">Última pergunta: a paciente já realizou algum teste genético, somático ou germinativo, antes de hoje?</div>
+          </div>
+          <div class="chat-msg doc">
+            <div class="chat-bubble">Não, nenhum teste prévio.</div>
+          </div>
+          <div class="chat-msg bot">
+            <span class="chat-avatar">🧬</span>
+            <div class="chat-bubble">
+              Caso reunido: histologia, estágio e histórico familiar já cobrem os critérios de triagem para este subtipo.
+              <span class="pill ok" style="margin-top:8px;">pronto para triagem</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-row">
+          <input class="chat-input" type="text" placeholder="Digite sua resposta..." disabled />
+          <button class="primary" type="button" onclick="useBotCase()">Revisar caso reunido →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 2 — REVISÃO -->
+  <section class="screen" id="screen-1">
+    <div class="case-banner">
+      <span>Identificação removida automaticamente</span>
+      <span class="code lock">🔒 Caso <span class="mono" id="case-code-1">—</span></span>
+    </div>
+
+    <div class="eyebrow">Ginecológico · passo 2 de 5</div>
+    <h1>Confirme o caso estruturado</h1>
+    <p class="lede">Isto foi extraído do que você descreveu no passo 1. Corrija ou complete os campos abaixo — a triagem do passo 3 usa exatamente o que estiver escrito aqui.</p>
+
+    <div class="card">
+      <h3>Perfil clínico</h3>
+      <p class="hint">Grau e estadiamento são eixos independentes: estágio (FIGO I–IV) mede a extensão da doença; grau é a leitura patológica do tecido e não é deduzido do estágio — um estágio IIIC pode ser de baixo ou de alto grau. Só a histologia é obrigatória para rodar a triagem; grau e estadiamento refinam o resultado mas não bloqueiam — se faltarem, a triagem sinaliza a indicação mais provável e pede confirmação no laudo.</p>
+      <div class="field-grid">
+        <div class="field">
+          <label>Subtipo oncológico</label>
+          <input class="value editable" id="field-subtipo" value="Ginecológico — Ovário" />
+        </div>
+        <div class="field">
+          <label>Histologia</label>
+          <input class="value editable" id="field-histologia" placeholder="Ex.: Seroso" />
+        </div>
+        <div class="field">
+          <label>Grau (laudo patológico)</label>
+          <input class="value editable" id="field-grau" placeholder="Ex.: Alto grau" />
+        </div>
+        <div class="field">
+          <label>Estadiamento (FIGO)</label>
+          <input class="value editable" id="field-estadiamento" placeholder="Ex.: IIIC" />
+          <p class="hint" id="estadio-justificativa" style="margin-top:6px; display:none;"></p>
+        </div>
+        <div class="field">
+          <label>Faixa etária</label>
+          <input class="value editable" id="field-idade" placeholder="Ex.: 60–64 anos" />
+        </div>
+        <div class="field full">
+          <label>Histórico familiar relatado</label>
+          <input class="value editable" id="field-historico" placeholder="Ex.: mãe com câncer de mama aos 58 anos" />
+        </div>
+        <div class="field full">
+          <label>Testes genéticos prévios</label>
+          <input class="value editable" id="field-testes" placeholder="Ex.: nenhum teste realizado" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Fontes usadas neste caso</h3>
+      <div class="field-grid" id="sources-grid">
+        <div class="field">
+          <label>Origem</label>
+          <div class="value">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="ghost" type="button" onclick="goTo(0)">← Voltar</button>
+      <button class="primary" type="button" onclick="runTriage()">Rodar triagem genômica →</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 3 — RESULTADO -->
+  <section class="screen" id="screen-2">
+    <div class="case-banner">
+      <span>Triagem baseada em diretrizes — não é indicação terapêutica</span>
+      <span class="code lock">🔒 Caso <span class="mono" id="case-code-2">—</span></span>
+    </div>
+
+    <div class="eyebrow">Ginecológico · passo 3 de 5</div>
+    <h1>Resultado da triagem</h1>
+
+    <div class="verdict" id="verdict-box">
+      <span class="glyph" id="verdict-glyph">✓</span>
+      <div>
+        <h2 id="verdict-title">Este caso tem indicação para testagem molecular</h2>
+        <p id="verdict-text">Carcinoma seroso de alto grau de ovário em estágio avançado — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.</p>
+      </div>
+    </div>
+
+    <div id="verdict-paired-content">
+      <div class="note-card warn" id="provisional-caveat" style="display:none;">
+        <span class="tag">A confirmar no laudo</span>
+        <h4 id="provisional-caveat-title">Grau e/ou estágio não informados</h4>
+        <p id="provisional-caveat-text">Indicação abaixo é a mais provável para este perfil, mas não foi confirmada.</p>
+      </div>
+      <div class="test-pair">
+        <div class="test-card">
+          <div class="order">Tumoral · somático</div>
+          <h4>HRD + BRCA1/2 tumoral</h4>
+          <p>Avalia o status de deficiência de recombinação homóloga e mutação BRCA no tecido tumoral, para orientar elegibilidade a terapia de manutenção com inibidor de PARP.</p>
+          <div class="src">Referência: NCCN Ovarian Cancer Guidelines · SGO — seroso ou endometrioide, alto grau, estágio III/IV</div>
+        </div>
+        <div class="test-card">
+          <div class="order">Sangue · germinativo</div>
+          <h4>Painel germinativo BRCA1/2</h4>
+          <p>Investiga mutação hereditária, independente do resultado tumoral — toda histologia epitelial não-borderline tem indicação de teste germinativo ao diagnóstico.</p>
+          <div class="src">Referência: ASCO Guideline (JCO 2020) · SGO</div>
+        </div>
+      </div>
+
+      <div class="note-card">
+        <span class="tag">Indicação concomitante</span>
+        <h4>Germinativo — independente do resultado somático</h4>
+        <p>Não altera a conduta terapêutica atual. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
+        <div class="stats-line">
+          <span><strong>~1/3</strong> dos parentes elegíveis não é informado do risco</span>
+          <span><strong>60–70%</strong> risco vitalício de Ca mama em portadoras BRCA</span>
+          <span><strong>20–30%</strong> risco vitalício de Ca ovário em portadoras BRCA</span>
+        </div>
+        <div class="script-line"><span class="label">Comunicação sugerida:</span> "Exame de sangue avalia se a alteração é hereditária — resultado positivo permite rastreio precoce em familiares diretos."</div>
+      </div>
+    </div>
+
+    <div id="verdict-germline-content">
+      <div class="test-pair" style="grid-template-columns: 1fr;">
+        <div class="test-card">
+          <div class="order">Sangue · germinativo</div>
+          <h4>Painel germinativo BRCA1/2 (+ painel ampliado)</h4>
+          <p>Indicado para toda histologia epitelial não-borderline de ovário (seroso, endometrioide, células claras, mucinoso, carcinossarcoma), independente de grau ou estágio.</p>
+          <div class="src">Referência: ASCO Guideline (JCO 2020) · SGO</div>
+        </div>
+      </div>
+      <div class="note-card">
+        <span class="tag">Somático — critério não atendido</span>
+        <h4>HRD + BRCA1/2 tumoral não indicado por esta regra</h4>
+        <p id="germline-only-reason">O protocolo de teste somático (BRCA+HRD) para elegibilidade a PARP é específico para histologia serosa ou endometrioide de alto grau em estágio III/IV (NCCN). Reavalie se grau, histologia ou estágio forem atualizados.</p>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      Esta triagem indica <strong>qual exame solicitar e por quê</strong>, com base em diretrizes publicadas (NCCN, ESMO, ASCO, SGO e demais sociedades reconhecidas). Não constitui recomendação terapêutica nem substitui aconselhamento genético — casos com critério para síndrome hereditária devem ser encaminhados ao especialista.
+    </div>
+
+    <div class="foot-nav">
+      <button class="ghost" type="button" onclick="goTo(1)">← Voltar</button>
+      <button class="primary" type="button" id="verdict-next-btn" onclick="goTo(3)">Ver programas de acesso →</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 4 — PROGRAMAS -->
+  <section class="screen" id="screen-3">
+    <div class="eyebrow">Ginecológico · passo 4 de 5</div>
+    <h1>Programas de acesso disponíveis</h1>
+    <p class="lede">A plataforma direciona ao portal oficial de cada laboratório ou indústria — nunca processa a solicitação. Estes dados precisam ser confirmados por você antes de qualquer publicação.</p>
+    <p class="hint" id="programs-note" style="display:none; margin: -10px 0 20px;"></p>
+
+    <div class="validate-flag">
+      ⚠️ Dado de exemplo — critérios de elegibilidade e disponibilidade mudam por programa. Requer sua validação antes de ir ao ar.
+    </div>
+
+    <div class="card" id="card-somatico">
+      <h3>HRD + BRCA1/2 tumoral <span class="pill ok" id="pill-somatico">indicado neste caso</span></h3>
+      <div class="program-row">
+        <div class="who">
+          <span class="logo">AZ</span>
+          <div>
+            <div class="name">AstraZeneca — Programa de teste HRD</div>
+            <div class="test">Laboratório parceiro · a confirmar critérios atuais</div>
+          </div>
+        </div>
+        <a class="link" href="#" onclick="return false;">Ver portal oficial ↗</a>
+      </div>
+      <div class="program-row">
+        <div class="who">
+          <span class="logo">GSK</span>
+          <div>
+            <div class="name">GSK — Programa de teste HRD</div>
+            <div class="test">Laboratório parceiro · a confirmar critérios atuais</div>
+          </div>
+        </div>
+        <a class="link" href="#" onclick="return false;">Ver portal oficial ↗</a>
+      </div>
+    </div>
+
+    <div class="card" id="card-germinativo">
+      <h3>Painel germinativo BRCA1/2 <span class="pill ok">indicado neste caso</span></h3>
+      <div class="program-row">
+        <div class="who">
+          <span class="logo">?</span>
+          <div>
+            <div class="name">Programa a mapear</div>
+            <div class="test">Nenhum parceiro confirmado ainda para este teste</div>
+          </div>
+        </div>
+        <a class="link" href="#" onclick="return false;" style="opacity:.5;pointer-events:none;">Pendente</a>
+      </div>
+    </div>
+
+    <div class="foot-nav">
+      <button class="ghost" type="button" onclick="goTo(2)">← Voltar</button>
+      <button class="primary" type="button" onclick="goTo(4)">Gerar modelo de solicitação →</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 5 — MODELO DE SOLICITAÇÃO -->
+  <section class="screen" id="screen-4">
+    <div class="eyebrow">Ginecológico · passo 5 de 5</div>
+    <h1>Modelo de solicitação preenchido</h1>
+    <p class="lede">O maior gargalo não é só saber qual exame pedir — é o tempo perdido preenchendo o formulário certo, do jeito certo, para cada laboratório. Informe o nome do paciente para gerar o documento pronto para baixar e assinar.</p>
+    <p class="hint" id="docs-note" style="display:none; margin: -10px 0 20px;"></p>
+
+    <div class="card name-card">
+      <div class="field">
+        <label for="patient-name" style="font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Nome completo do paciente</label>
+        <input id="patient-name" type="text" value="Felipe da Silva" oninput="updateDocs()" />
+      </div>
+      <button class="primary" type="button" onclick="updateDocs()">Atualizar documentos</button>
+    </div>
+    <div class="reident-note">
+      🔒 O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não é enviado ao motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono" id="case-code-3">—</span>) e não sai desta tela.
+    </div>
+
+    <div class="doc-preview-wrap" id="doc-somatico">
+      <div class="card" style="box-shadow:none;border:none;padding:0;background:transparent;">
+        <h3 style="margin-bottom:14px;">Solicitação — HRD + BRCA1/2 tumoral</h3>
+      </div>
+      <div class="doc-preview">
+        <div class="doc-head">
+          <span class="org">Programa de teste HRD — AstraZeneca</span>
+          <span class="doc-type">Formulário de solicitação</span>
+        </div>
+        <div class="doc-row"><span class="k">Paciente</span><span class="v" id="doc-name-1">Felipe da Silva</span></div>
+        <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">Dra. Ana Ferreira — CRM 52-1198</span></div>
+        <div class="doc-row"><span class="k">Diagnóstico</span><span class="v">Carcinoma seroso de alto grau de ovário, estágio IIIC</span></div>
+        <div class="doc-row"><span class="k">Teste solicitado</span><span class="v">HRD (somático) + BRCA1/2 tumoral</span></div>
+        <div class="doc-row"><span class="k">Data</span><span class="v">24/07/2026</span></div>
+        <div class="doc-justif">
+          <div class="label">Justificativa clínica</div>
+          Paciente com carcinoma epitelial de ovário de alto grau, estágio avançado (IIIC), sem teste molecular prévio. Elegível para avaliação de status HRD e BRCA1/2 tumoral para definição de elegibilidade a terapia de manutenção com inibidor de PARP, conforme NCCN Ovarian Cancer Guideline e ESMO Clinical Practice Guideline (2026).
+        </div>
+        <div class="doc-sign">
+          <span>Assinatura e carimbo do médico</span>
+          <span>CRM 52-1198 / RJ</span>
+        </div>
+      </div>
+      <div class="doc-actions">
+        <button class="primary" type="button">Baixar PDF preenchido ↓</button>
+        <button class="ghost" type="button">Editar campos</button>
+      </div>
+    </div>
+
+    <div class="doc-preview-wrap" id="doc-germinativo">
+      <div class="card" style="box-shadow:none;border:none;padding:0;background:transparent;">
+        <h3 style="margin-bottom:14px;">Solicitação — Painel germinativo BRCA1/2</h3>
+      </div>
+      <div class="doc-preview">
+        <div class="doc-head">
+          <span class="org">Requisição de exame — laboratório a definir</span>
+          <span class="doc-type">Formulário de solicitação</span>
+        </div>
+        <div class="doc-row"><span class="k">Paciente</span><span class="v" id="doc-name-2">Felipe da Silva</span></div>
+        <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">Dra. Ana Ferreira — CRM 52-1198</span></div>
+        <div class="doc-row"><span class="k">Amostra</span><span class="v">Sangue periférico</span></div>
+        <div class="doc-row"><span class="k">Teste solicitado</span><span class="v">Painel germinativo BRCA1/2</span></div>
+        <div class="doc-row"><span class="k">Data</span><span class="v">24/07/2026</span></div>
+        <div class="doc-justif">
+          <div class="label">Justificativa clínica</div>
+          Todo carcinoma epitelial de ovário de alto grau tem indicação de teste germinativo BRCA1/2 ao diagnóstico, independente de histórico familiar, conforme ASCO (JCO 2020), ESMO (2026) e NCCN. Histórico familiar relatado: mãe com câncer de mama aos 58 anos — reforça encaminhamento para aconselhamento genético.
+        </div>
+        <div class="doc-sign">
+          <span>Assinatura e carimbo do médico</span>
+          <span>CRM 52-1198 / RJ</span>
+        </div>
+      </div>
+      <div class="doc-actions">
+        <button class="primary" type="button">Baixar PDF preenchido ↓</button>
+        <button class="ghost" type="button">Editar campos</button>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      Documento gerado a partir dos dados que você confirmou nesta sessão. Revise sempre antes de assinar e enviar — a plataforma preenche o formulário, mas a responsabilidade pela solicitação é do médico assistente.
+    </div>
+
+    <div class="foot-nav">
+      <button class="ghost" type="button" onclick="goTo(3)">← Voltar</button>
+      <button class="primary" type="button" onclick="goTo(0)">Iniciar novo caso</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Código do caso: identificador de sessão, não é o nome do paciente.
+  const caseCode = 'GYN-' + String(Math.floor(1000 + Math.random() * 9000));
+  document.querySelectorAll('#case-code-1, #case-code-2, #case-code-3').forEach((el) => { el.textContent = caseCode; });
+
+  // Extração real: envia texto + arquivos (PDF/foto) para o backend, que usa a
+  // API da Anthropic com saída estruturada (Camada 3 real, não regex).
+  async function extractCase(text) {
+    const formData = new FormData();
+    formData.append('text', text || '');
+    pdfFiles.forEach((f) => formData.append('files', f));
+    photoFiles.forEach((f) => formData.append('files', f));
+
+    const response = await fetch('/api/extract', { method: 'POST', body: formData });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(body.error || 'Falha na extração do caso.');
+    }
+    return body.extracted;
+  }
+
+  function fillField(id, value) {
+    const el = document.getElementById(id);
+    el.value = value || '';
+    el.classList.toggle('missing', !value);
+  }
+
+  function currentSources() {
+    const sources = [];
+    pdfFiles.forEach((f) => sources.push('Laudo em PDF — ' + f.name));
+    photoFiles.forEach((f) => sources.push('Foto do laudo — ' + f.name));
+    if (document.getElementById('case-text').value.trim()) sources.push('Texto ou transcrição colada');
+    if (recSeconds > 0) sources.push('Ditado por voz (' + document.getElementById('voice-time').textContent + ')');
+    return sources;
+  }
+
+  function renderSources() {
+    const sourcesGrid = document.getElementById('sources-grid');
+    const sources = currentSources();
+    sourcesGrid.innerHTML = (sources.length ? sources : ['Nenhuma fonte informada ainda'])
+      .map((title) => `<div class="field"><label>Origem</label><div class="value">${title}</div></div>`)
+      .join('');
+  }
+
+  async function runExtraction() {
+    const text = document.getElementById('case-text').value.trim();
+    const errorBox = document.getElementById('extract-error');
+    const btn = document.getElementById('btn-extract');
+
+    if (!text && !pdfFiles.length && !photoFiles.length) {
+      errorBox.textContent = 'Descreva o caso em texto ou anexe ao menos um arquivo antes de estruturar.';
+      errorBox.style.display = '';
+      return;
+    }
+
+    errorBox.style.display = 'none';
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.textContent = 'Lendo caso com IA...';
+
+    try {
+      const extracted = await extractCase(text);
+
+      fillField('field-histologia', extracted.histologia);
+      fillField('field-grau', extracted.grau);
+      fillField('field-estadiamento', extracted.estadiamento);
+      fillField('field-idade', extracted.idade_faixa);
+      fillField('field-historico', extracted.historico_familiar);
+      fillField('field-testes', extracted.testes_previos);
+
+      const justEl = document.getElementById('estadio-justificativa');
+      if (extracted.estadiamento_justificativa) {
+        justEl.textContent = 'Estágio inferido: ' + extracted.estadiamento_justificativa;
+        justEl.style.display = '';
+      } else {
+        justEl.style.display = 'none';
+      }
+
+      updateGrauEstadioRelevance();
+      renderSources();
+      goTo(1);
+    } catch (err) {
+      errorBox.textContent = '⚠️ ' + (err.message || 'Não foi possível extrair o caso. Tente novamente.');
+      errorBox.style.display = '';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  }
+
+  function useBotCase() {
+    fillField('field-histologia', 'Seroso');
+    fillField('field-grau', 'Alto grau');
+    fillField('field-estadiamento', 'IIIC');
+    fillField('field-idade', '');
+    fillField('field-historico', 'Mãe teve câncer de mama aos 58 anos.');
+    fillField('field-testes', 'Nenhum relatado');
+
+    document.getElementById('sources-grid').innerHTML =
+      '<div class="field"><label>Origem</label><div class="value">Conversa com o OncoBot</div></div>';
+
+    updateGrauEstadioRelevance();
+    goTo(1);
+  }
+
+  let pdfFiles = [];
+  let photoFiles = [];
+
+  function addFiles(kind, fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+
+    if (kind === 'pdf') {
+      pdfFiles = pdfFiles.concat(files);
+      document.getElementById('file-name-pdf').textContent = pdfFiles.length === 1 ? pdfFiles[0].name : `${pdfFiles.length} arquivos anexados`;
+      document.getElementById('tile-pdf').classList.add('selected');
+    } else {
+      photoFiles = photoFiles.concat(files);
+      document.getElementById('file-name-photo').textContent = photoFiles.length === 1 ? photoFiles[0].name : `${photoFiles.length} arquivos anexados`;
+      document.getElementById('tile-photo').classList.add('selected');
+
+      const thumbRow = document.getElementById('thumb-row');
+      files.forEach((f) => {
+        if (f.type.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(f);
+          img.alt = f.name;
+          thumbRow.appendChild(img);
+        }
+      });
+    }
+
+    document.getElementById('ocr-disclaimer').style.display = (pdfFiles.length || photoFiles.length) ? '' : 'none';
+  }
+
+  // Rotea arquivo solto por tipo: PDF vira "Laudo em PDF", imagem vira "Foto do laudo".
+  function routeDroppedFiles(fileList) {
+    const files = Array.from(fileList || []);
+    const pdfs = files.filter((f) => f.type === 'application/pdf');
+    const images = files.filter((f) => f.type.startsWith('image/'));
+    if (pdfs.length) addFiles('pdf', pdfs);
+    if (images.length) addFiles('photo', images);
+  }
+
+  function setupDropzone() {
+    const zone = document.getElementById('dropzone');
+    let dragDepth = 0;
+    zone.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragDepth++;
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragover', (e) => e.preventDefault());
+    zone.addEventListener('dragleave', () => {
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragDepth = 0;
+      zone.classList.remove('drag-over');
+      routeDroppedFiles(e.dataTransfer.files);
+    });
+  }
+
+  // Regra de indicação — Ginecológico (ovário), v0.3.
+  // Fontes: ASCO "Germline and Somatic Tumor Testing in Epithelial Ovarian Cancer"
+  // (JCO 2020, PMID 32074015), NCCN Ovarian Cancer Guidelines e SGO (testagem
+  // somática BRCA+HRD para elegibilidade a PARP em histologia serosa OU
+  // endometrioide, alto grau, estágio III/IV). Ver docs/ARQUITETURA.md seção 6.
+  const HISTOLOGIAS_EPITELIAIS = ['seroso', 'endometrioide', 'células claras', 'celulas claras', 'mucinoso', 'carcinossarcoma', 'indiferenciado'];
+  const HISTOLOGIAS_SOMATICO = ['seroso', 'endometrioide'];
+
+  // Grau e estadiamento só influenciam o resultado quando a histologia é
+  // seroso ou endometrioide (a única com o par somático na regra). Pra
+  // qualquer outra histologia, marcar esses campos de amarelo/obrigatório
+  // seria pedir um dado que não muda nada na resposta.
+  function updateGrauEstadioRelevance() {
+    const h = document.getElementById('field-histologia').value.toLowerCase();
+    const relevante = HISTOLOGIAS_SOMATICO.some((x) => h.includes(x));
+    const grauEl = document.getElementById('field-grau');
+    const estadioEl = document.getElementById('field-estadiamento');
+    [grauEl, estadioEl].forEach((el) => {
+      el.classList.toggle('missing', relevante && !el.value.trim());
+    });
+    grauEl.placeholder = relevante ? 'Ex.: Alto grau' : 'Não influencia a indicação para esta histologia';
+    estadioEl.placeholder = relevante ? 'Ex.: IIIC' : 'Não influencia a indicação para esta histologia';
+  }
+
+  function classifyCase(histologia, grau, estadiamento) {
+    const h = (histologia || '').toLowerCase();
+    const g = (grau || '').toLowerCase();
+    const e = (estadiamento || '').trim();
+
+    if (!h) return { state: 'insuficiente' };
+
+    const histologiaEpitelial = HISTOLOGIAS_EPITELIAIS.find((x) => h.includes(x));
+    if (!histologiaEpitelial) return { state: 'nao-reconhecida' };
+
+    // Germinativo é indicado pra toda histologia epitelial — só o par
+    // somático depende de histologia + grau + estágio, checados abaixo.
+    if (!HISTOLOGIAS_SOMATICO.some((x) => h.includes(x))) {
+      return { state: 'so-germinativo', histologiaEpitelial };
+    }
+
+    const altoGrau = g.includes('alto');
+    const baixoGrau = g.includes('baixo');
+    const estadioAvancado = /^(III|IV)/i.test(e);
+    const estadioInicial = e !== '' && !estadioAvancado;
+
+    // Grau e estadiamento confirmados como fora do critério: negativo, não é falta de dado.
+    if (baixoGrau || estadioInicial) {
+      return { state: 'so-germinativo', histologiaEpitelial };
+    }
+    // Confirmados dentro do critério: par completo.
+    if (altoGrau && estadioAvancado) return { state: 'pareado', histologiaEpitelial };
+
+    // Histologia já elegível (seroso/endometrioide) e nada aponta contra —
+    // só falta confirmar grau e/ou estágio no laudo. Isso não bloqueia o
+    // resultado (só histologia é imprescindível): o somático é sugerido como
+    // provável, sinalizado para confirmação, não escondido atrás de mais campo obrigatório.
+    return { state: 'pareado-provisorio', histologiaEpitelial, grauFaltando: !g, estadioFaltando: !e };
+  }
+
+  // Mostra, nas telas de Programas e Solicitação, só o que a triagem
+  // efetivamente indicou para este caso — nunca teste sem indicação,
+  // pra não confundir o médico com opção que não se aplica.
+  function applyIndicationVisibility(result) {
+    const somaticoIndicado = result.state === 'pareado' || result.state === 'pareado-provisorio';
+    const germinativoIndicado = result.state === 'pareado' || result.state === 'pareado-provisorio' || result.state === 'so-germinativo';
+    const provisorio = result.state === 'pareado-provisorio';
+
+    ['card-somatico', 'doc-somatico'].forEach((id) => {
+      document.getElementById(id).style.display = somaticoIndicado ? '' : 'none';
+    });
+    ['card-germinativo', 'doc-germinativo'].forEach((id) => {
+      document.getElementById(id).style.display = germinativoIndicado ? '' : 'none';
+    });
+
+    const pillSomatico = document.getElementById('pill-somatico');
+    pillSomatico.textContent = provisorio ? 'indicação provável — confirmar' : 'indicado neste caso';
+    pillSomatico.classList.toggle('warn', provisorio);
+    pillSomatico.classList.toggle('ok', !provisorio);
+
+    const programsNote = document.getElementById('programs-note');
+    const docsNote = document.getElementById('docs-note');
+    if (!somaticoIndicado && germinativoIndicado) {
+      const msg = 'Este caso teve indicação apenas para o teste germinativo — o painel somático (HRD+BRCA tumoral) não é mostrado porque não se aplica ao critério NCCN para este perfil.';
+      programsNote.textContent = msg;
+      programsNote.style.display = '';
+      docsNote.textContent = msg.replace('não é mostrado', 'não tem documento de solicitação gerado');
+      docsNote.style.display = '';
+    } else {
+      programsNote.style.display = 'none';
+      docsNote.style.display = 'none';
+    }
+  }
+
+  function runTriage() {
+    const histologiaRaw = document.getElementById('field-histologia').value.trim();
+    const grauRaw = document.getElementById('field-grau').value.trim();
+    const estadiamento = document.getElementById('field-estadiamento').value.trim();
+    const result = classifyCase(histologiaRaw, grauRaw, estadiamento);
+
+    const box = document.getElementById('verdict-box');
+    const glyph = document.getElementById('verdict-glyph');
+    const title = document.getElementById('verdict-title');
+    const text = document.getElementById('verdict-text');
+    const pairedContent = document.getElementById('verdict-paired-content');
+    const germlineContent = document.getElementById('verdict-germline-content');
+    const nextBtn = document.getElementById('verdict-next-btn');
+
+    pairedContent.style.display = 'none';
+    germlineContent.style.display = 'none';
+    box.classList.remove('negative');
+
+    if (result.state === 'insuficiente') {
+      box.classList.add('negative');
+      glyph.textContent = '!';
+      title.textContent = 'Dados insuficientes para triagem';
+      text.textContent = 'Histologia não identificada. Volte à revisão do caso e complete o campo antes de rodar a triagem novamente.';
+      nextBtn.textContent = '← Completar dados';
+      nextBtn.onclick = () => goTo(1);
+    } else if (result.state === 'nao-reconhecida') {
+      box.classList.add('negative');
+      glyph.textContent = '!';
+      title.textContent = 'Histologia não reconhecida por esta regra';
+      text.textContent = `“${histologiaRaw}” não corresponde a nenhuma histologia epitelial de ovário mapeada nesta versão. Confirme a grafia ou consulte a diretriz correspondente a este perfil.`;
+      nextBtn.textContent = '← Completar dados';
+      nextBtn.onclick = () => goTo(1);
+    } else if (result.state === 'pareado' || result.state === 'pareado-provisorio') {
+      const caveat = document.getElementById('provisional-caveat');
+      glyph.textContent = '✓';
+      if (result.state === 'pareado') {
+        title.textContent = 'Este caso tem indicação para testagem molecular pareada';
+        text.textContent = `Carcinoma ${result.histologiaEpitelial} de alto grau de ovário, estágio ${estadiamento} — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.`;
+        caveat.style.display = 'none';
+      } else {
+        const faltando = [result.grauFaltando ? 'grau' : null, result.estadioFaltando ? 'estágio' : null].filter(Boolean).join(' e ');
+        title.textContent = 'Este caso tem indicação provável para testagem pareada';
+        text.textContent = `Carcinoma ${result.histologiaEpitelial} de ovário — histologia compatível com o critério de par somático+germinativo. Confirme ${faltando} no laudo patológico antes de solicitar o teste somático.`;
+        document.getElementById('provisional-caveat-title').textContent = result.grauFaltando && result.estadioFaltando ? 'Grau e estágio não informados' : (result.grauFaltando ? 'Grau não informado' : 'Estágio não informado');
+        document.getElementById('provisional-caveat-text').textContent = `A indicação do teste somático (HRD+BRCA tumoral) abaixo assume que ${faltando} está dentro do critério NCCN (alto grau, estágio III/IV) — o mais comum para esta histologia. Isso não foi confirmado com os dados informados. O germinativo é indicado de qualquer forma.`;
+        caveat.style.display = '';
+      }
+      pairedContent.style.display = '';
+      nextBtn.textContent = 'Ver programas de acesso →';
+      nextBtn.onclick = () => goTo(3);
+    } else {
+      glyph.textContent = '✓';
+      title.textContent = 'Este caso tem indicação para teste germinativo';
+      text.textContent = `Carcinoma ${result.histologiaEpitelial} de ovário${estadiamento ? ', estágio ' + estadiamento : ''} — indicação de teste germinativo. O critério para o par somático (BRCA+HRD tumoral) não foi atendido com os dados informados.`;
+      germlineContent.style.display = '';
+      nextBtn.textContent = 'Ver programas de acesso →';
+      nextBtn.onclick = () => goTo(3);
+    }
+
+    applyIndicationVisibility(result);
+    goTo(2);
+  }
+
+  function setMode(mode) {
+    document.getElementById('mode-form').classList.toggle('active', mode === 'form');
+    document.getElementById('mode-bot').classList.toggle('active', mode === 'bot');
+    document.getElementById('mode-btn-form').classList.toggle('active', mode === 'form');
+    document.getElementById('mode-btn-bot').classList.toggle('active', mode === 'bot');
+    document.getElementById('mode-btn-form').setAttribute('aria-selected', mode === 'form');
+    document.getElementById('mode-btn-bot').setAttribute('aria-selected', mode === 'bot');
+  }
+
+  let recording = false;
+  let recTimer = null;
+  let recSeconds = 0;
+
+  function toggleVoicePanel() {
+    document.getElementById('voice-panel').classList.toggle('open');
+  }
+
+  function toggleRecording() {
+    recording = !recording;
+    const wave = document.getElementById('voice-wave');
+    const btn = document.getElementById('rec-btn');
+    wave.classList.toggle('recording', recording);
+    btn.textContent = recording ? '■' : '●';
+    if (recording) {
+      recSeconds = 0;
+      recTimer = setInterval(() => {
+        recSeconds++;
+        const m = String(Math.floor(recSeconds / 60)).padStart(2, '0');
+        const s = String(recSeconds % 60).padStart(2, '0');
+        document.getElementById('voice-time').textContent = `${m}:${s}`;
+      }, 1000);
+    } else {
+      clearInterval(recTimer);
+      document.getElementById('tile-voice').classList.toggle('selected', recSeconds > 0);
+    }
+  }
+
+  function updateDocs() {
+    const name = document.getElementById('patient-name').value || 'Felipe da Silva';
+    document.getElementById('doc-name-1').textContent = name;
+    document.getElementById('doc-name-2').textContent = name;
+  }
+
+  function goTo(i) {
+    document.querySelectorAll('.screen').forEach((el, idx) => el.classList.toggle('active', idx === i));
+    document.querySelectorAll('.step-btn').forEach((el, idx) => {
+      el.classList.toggle('active', idx === i);
+      el.classList.toggle('done', idx < i);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  document.querySelectorAll('.step-btn').forEach((btn, idx) => {
+    btn.addEventListener('click', () => goTo(idx));
+  });
+  document.getElementById('case-text').addEventListener('input', function () {
+    document.getElementById('tile-text').classList.toggle('selected', this.value.trim().length > 0);
+  });
+  document.getElementById('field-histologia').addEventListener('input', updateGrauEstadioRelevance);
+  document.getElementById('field-grau').addEventListener('input', updateGrauEstadioRelevance);
+  document.getElementById('field-estadiamento').addEventListener('input', updateGrauEstadioRelevance);
+  setupDropzone();
+  const plaudToggle = document.getElementById('plaud-toggle');
+  plaudToggle.addEventListener('click', () => {
+    const on = plaudToggle.classList.toggle('on');
+    plaudToggle.setAttribute('aria-pressed', on);
+  });
+</script>
