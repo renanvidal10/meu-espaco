@@ -195,9 +195,25 @@ Pontos a resolver antes de desenhar o encaixe técnico:
 
 ---
 
-## 10. Perguntas em aberto
+## 10. Decisões já tomadas (v0.2)
 
-1. **Escopo do protótipo agora**: você quer um protótipo funcional real (web app) já nesta sessão, ou um desenho/mockup navegável primeiro para validar o fluxo antes de código de produção?
-2. **Primeiro subtipo oncológico**: começamos só com Ginecológico (HRD/BRCA), sua área de maior domínio, para ter um caso vertical completo e correto, e expandir depois?
-3. **Origem da IA de extração**: tudo bem usar uma API de LLM (ex. Claude) rodando sobre o dado já pseudonimizado, ou você prefere que a extração inicial seja 100% regras/manual (sem chamada a modelo externo) até validar o modelo de compliance com Medical/Regulatory?
-4. **Plaud**: você tem hoje acesso a exportar transcrição do Plaud (arquivo/texto), ou só a experiência de uso do device? Isso define se a integração é "colar texto" (simples, imediato) ou "puxar via API" (depende do que a Plaud expõe).
+- **Escopo agora**: mockup navegável (ver `mockup/oncogyn-flow.html`) para validar o fluxo antes de qualquer código de produção.
+- **Vertical piloto**: Ginecológico (câncer de ovário), com expansão posterior para outros subtipos com componente genético relevante.
+- **Plaud**: integração via API é o alvo (Fase 2/3); no MVP o campo "colar transcrição" já cobre o mesmo caso de uso sem depender de disponibilidade de API.
+- **Regra de ouro do GYN**: a triagem nunca recomenda **só** o teste somático. Todo carcinoma epitelial de alto grau de ovário gera recomendação **pareada** — tumoral (HRD + BRCA somático, para elegibilidade a manutenção com inibidor de PARP) **e** germinativo (BRCA1/2 em sangue), porque respondem perguntas diferentes: um orienta o tratamento da paciente, o outro abre a porta para rastreio/prevenção antecipada em parentes de primeiro grau (teste em cascata). Essa lógica está refletida no card "Por que também pedir o germinativo" do mockup — tom acolhedor, sem alarmismo, com um script de exemplo que o médico pode adaptar ao conversar com a paciente.
+- **Fonte das regras de indicação**: diretrizes publicadas e reconhecidas internacionalmente — NCCN, ESMO, ASCO, e demais sociedades validadas (ex.: comparativos como AIOM/BGCS/ESGO/JGSO/NICE quando relevante). Cada regra no motor de triagem carrega a diretriz de origem e a versão/ano, para rastreabilidade. Referência-base usada neste mockup: ESMO recomenda teste germinativo **e** somático de BRCA1/2 para todo carcinoma epitelial de ovário de alto grau, com HRD adicional em doença avançada; NCCN recomenda germinativo + somático (incluindo HRD) ao diagnóstico em doença avançada para elegibilidade a PARP; ASCO tem guideline dedicado a teste germinativo e somático em câncer epitelial de ovário (JCO 2020).
+- **Mapeamento indústria × teste**: fica como dado a validar por você antes de publicar (ver seção 11) — o motor de triagem e a base de programas são desacoplados de propósito, para que a parte clínica (diretriz) nunca dependa da parte comercial (quem patrocina o teste hoje).
+
+## 11. Pendente da sua validação
+
+O mockup já mostra a estrutura da tela de programas (AstraZeneca e GSK como exemplo para HRD), mas os dados de **quem oferece o quê, com qual critério de elegibilidade, hoje** precisam ser confirmados por você antes de qualquer publicação — isso inclui:
+- Critérios de elegibilidade atuais de cada programa (podem ser mais restritos que o critério clínico da diretriz).
+- Se há programa de acesso gratuito para o **teste germinativo** em GYN (o mockup mostra esse card como "pendente" propositalmente).
+- Cobertura por região/rede (nem todo programa está disponível em todo lugar).
+
+## 12. Próximas perguntas em aberto
+
+1. Olhando o mockup (`mockup/oncogyn-flow.html`), o fluxo de 4 passos faz sentido, ou falta/sobra alguma etapa?
+2. O tom do card "Por que também pedir o germinativo" está no nível certo de acolhimento, ou precisa ajustar (mais direto/mais suave)?
+3. Para a tela de Programas: você já tem a lista real de critérios de elegibilidade AstraZeneca/GSK para HRD que eu possa estruturar, ou isso fica para uma rodada de validação conjunta depois do mockup aprovado?
+4. Depois do GYN, qual subtipo entra em seguida — Mama (você já citou o exemplo TNBC+idade<45 do deck) ou outro?

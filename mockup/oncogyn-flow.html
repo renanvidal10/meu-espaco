@@ -1,0 +1,801 @@
+<title>OncoGeneHUB — Mockup: Triagem GYN</title>
+<style>
+  :root {
+    --bg: #eef2f0;
+    --surface: #ffffff;
+    --surface-2: #e4eae7;
+    --border: #cdd7d2;
+    --ink: #1b2420;
+    --ink-muted: #56645d;
+    --ink-faint: #8a968f;
+    --accent: #0f6b5c;
+    --accent-ink: #ffffff;
+    --accent-soft: #dcebe6;
+    --accent-soft-border: #b9d6cc;
+    --warm: #a15a3f;
+    --warm-soft: #f3e4dc;
+    --warm-soft-border: #ddbca8;
+    --ok: #0f6b5c;
+    --ok-soft: #dcebe6;
+    --warn: #93650f;
+    --warn-soft: #f3e9d3;
+    --neutral-soft: #e4e7e5;
+    --focus: #1b6de0;
+    --shadow: 0 1px 2px rgba(20, 30, 26, 0.06), 0 8px 24px -12px rgba(20, 30, 26, 0.18);
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #101512;
+    --surface: #171e1a;
+    --surface-2: #1f2822;
+    --border: #2b362f;
+    --ink: #e9efec;
+    --ink-muted: #a3b1a9;
+    --ink-faint: #71807a;
+    --accent: #55c2a8;
+    --accent-ink: #072019;
+    --accent-soft: #1a352e;
+    --accent-soft-border: #2b5148;
+    --warm: #e2a284;
+    --warm-soft: #33241c;
+    --warm-soft-border: #55392b;
+    --ok: #55c2a8;
+    --ok-soft: #1a352e;
+    --warn: #dcb256;
+    --warn-soft: #362c17;
+    --neutral-soft: #232b26;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.55);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101512;
+      --surface: #171e1a;
+      --surface-2: #1f2822;
+      --border: #2b362f;
+      --ink: #e9efec;
+      --ink-muted: #a3b1a9;
+      --ink-faint: #71807a;
+      --accent: #55c2a8;
+      --accent-ink: #072019;
+      --accent-soft: #1a352e;
+      --accent-soft-border: #2b5148;
+      --warm: #e2a284;
+      --warm-soft: #33241c;
+      --warm-soft-border: #55392b;
+      --ok: #55c2a8;
+      --ok-soft: #1a352e;
+      --warn: #dcb256;
+      --warn-soft: #362c17;
+      --neutral-soft: #232b26;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.55);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    font-weight: 600;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .mono {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  a { color: inherit; }
+
+  /* ---- shell ---- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .brand .mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-ink);
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .brand strong { font-size: 15px; letter-spacing: 0.01em; }
+  .brand span { font-size: 12px; color: var(--ink-faint); }
+
+  .doctor-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-muted);
+  }
+  .doctor-chip .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--ink-muted);
+  }
+
+  .steps {
+    display: flex;
+    gap: 2px;
+    padding: 0 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .step-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 11px;
+    border: none;
+    background: transparent;
+    color: var(--ink-faint);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+  }
+  .step-btn .num {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--ink-faint);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-family: ui-monospace, monospace;
+  }
+  .step-btn.active {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+  }
+  .step-btn.active .num {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+  .step-btn.done .num {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft-border);
+    color: var(--accent);
+  }
+  .step-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 24px 96px;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; animation: rise .28s ease both; }
+  @media (prefers-reduced-motion: reduce) { .screen.active { animation: none; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+  .screen h1 { font-size: 26px; margin-bottom: 6px; }
+  .screen > .lede { color: var(--ink-muted); font-size: 14.5px; max-width: 62ch; line-height: 1.55; margin: 0 0 28px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+  .card + .card { margin-top: 16px; }
+  .card h3 { font-size: 15px; margin-bottom: 4px; }
+  .card .hint { font-size: 12.5px; color: var(--ink-faint); margin: 0 0 14px; }
+
+  /* ---- ingestion ---- */
+  .intake-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 560px) { .intake-grid { grid-template-columns: 1fr; } }
+
+  .intake-tile {
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    background: var(--surface-2);
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .intake-tile:hover { border-color: var(--accent-soft-border); background: var(--accent-soft); }
+  .intake-tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .intake-tile.selected { border: 1px solid var(--accent); background: var(--accent-soft); }
+  .intake-tile .icon { font-size: 18px; }
+  .intake-tile .title { font-size: 13.5px; font-weight: 600; }
+  .intake-tile .desc { font-size: 12px; color: var(--ink-muted); line-height: 1.4; }
+  .intake-tile .badge {
+    align-self: flex-start;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--warn-soft);
+    color: var(--warn);
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 96px;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13.5px;
+    padding: 12px;
+    margin-top: 14px;
+  }
+  textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  .plaud-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+  }
+  .plaud-row .left { display: flex; align-items: center; gap: 10px; }
+  .plaud-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-faint); }
+  .plaud-row .name { font-size: 13px; font-weight: 600; }
+  .plaud-row .sub { font-size: 11.5px; color: var(--ink-faint); }
+  .toggle {
+    width: 38px; height: 22px; border-radius: 20px;
+    background: var(--border);
+    position: relative;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--surface);
+    transition: transform .15s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle.on::after { transform: translateX(16px); }
+
+  /* ---- buttons ---- */
+  .btn-row { display: flex; gap: 10px; margin-top: 24px; align-items: center; }
+  button.primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    border-radius: 8px;
+    padding: 11px 20px;
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  button.primary:hover { filter: brightness(1.05); }
+  button.primary:focus-visible, button.ghost:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button.ghost {
+    background: transparent;
+    color: var(--ink-muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 18px;
+    font-size: 13.5px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  button.ghost:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .btn-row .note { font-size: 12px; color: var(--ink-faint); margin-left: auto; }
+
+  /* ---- case id banner ---- */
+  .case-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+  .case-banner .code { color: var(--ink); font-weight: 600; }
+  .case-banner .lock { display: flex; align-items: center; gap: 6px; }
+
+  /* ---- review form ---- */
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .field-grid { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 11.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  .field .value {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 11px;
+    font-size: 13.5px;
+    background: var(--surface-2);
+  }
+  .field .value.editable { background: var(--surface); }
+  .field .value.missing { color: var(--warn); border-style: dashed; background: var(--warn-soft); }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 100px;
+  }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.neutral { background: var(--neutral-soft); color: var(--ink-muted); }
+
+  /* ---- result screen ---- */
+  .verdict {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 20px 22px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-soft-border);
+  }
+  .verdict .glyph {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .verdict h2 { font-size: 17px; margin-bottom: 4px; color: var(--ink); }
+  .verdict p { margin: 0; font-size: 13.5px; color: var(--ink-muted); line-height: 1.55; }
+
+  .test-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  @media (max-width: 560px) { .test-pair { grid-template-columns: 1fr; } }
+  .test-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    background: var(--surface);
+  }
+  .test-card .order {
+    font-size: 10.5px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .test-card h4 { font-family: Georgia, serif; font-size: 15px; margin: 4px 0 8px; }
+  .test-card p { font-size: 12.5px; color: var(--ink-muted); line-height: 1.5; margin: 0 0 10px; }
+  .test-card .src { font-size: 11px; color: var(--ink-faint); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
+
+  .warm-card {
+    margin-top: 16px;
+    border: 1px solid var(--warm-soft-border);
+    background: var(--warm-soft);
+    border-radius: 12px;
+    padding: 20px 22px;
+  }
+  .warm-card .eyebrow2 {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--warm); font-weight: 700; margin-bottom: 10px;
+  }
+  .warm-card h3 { font-size: 16px; color: var(--ink); margin-bottom: 8px; }
+  .warm-card p { font-size: 13.5px; color: var(--ink-muted); line-height: 1.6; margin: 0 0 10px; }
+  .warm-card ul { margin: 0 0 12px; padding-left: 18px; }
+  .warm-card li { font-size: 13.5px; color: var(--ink-muted); line-height: 1.55; margin-bottom: 4px; }
+  .warm-card .script {
+    background: var(--surface);
+    border: 1px solid var(--warm-soft-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  .warm-card .stat-row { display: flex; gap: 18px; margin: 14px 0 4px; flex-wrap: wrap; }
+  .warm-card .stat { min-width: 120px; }
+  .warm-card .stat .n { font-family: Georgia, serif; font-size: 22px; color: var(--warm); }
+  .warm-card .stat .l { font-size: 11px; color: var(--ink-faint); }
+
+  .disclaimer {
+    margin-top: 20px;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    line-height: 1.6;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+
+  /* ---- programs screen ---- */
+  .validate-flag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: var(--warn-soft);
+    border: 1px solid var(--warn-soft-border, var(--warn));
+    color: var(--warn);
+    font-size: 12.5px;
+    margin-bottom: 20px;
+  }
+  .program-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  .program-row + .program-row { margin-top: 10px; }
+  .program-row .who { display: flex; align-items: center; gap: 12px; }
+  .program-row .logo {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--ink-muted);
+  }
+  .program-row .name { font-size: 13.5px; font-weight: 600; }
+  .program-row .test { font-size: 11.5px; color: var(--ink-faint); }
+  .program-row a.link {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--accent-soft-border);
+    background: var(--accent-soft);
+    padding: 7px 12px;
+    border-radius: 7px;
+    white-space: nowrap;
+  }
+
+  .table-wrap { overflow-x: auto; margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--ink-faint); font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: .04em; }
+
+  .foot-nav { display: flex; justify-content: space-between; margin-top: 28px; }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <span class="mark">O</span>
+    <strong>OncoGeneHUB</strong>
+    <span>· mockup de fluxo, não é produto final</span>
+  </div>
+  <div class="doctor-chip">
+    <span>Dra. Ana Ferreira · CRM 52-1198</span>
+    <span class="avatar">AF</span>
+  </div>
+</div>
+
+<div class="steps" id="steps">
+  <button class="step-btn active" data-step="0"><span class="num">1</span>Novo caso</button>
+  <button class="step-btn" data-step="1"><span class="num">2</span>Revisão do caso</button>
+  <button class="step-btn" data-step="2"><span class="num">3</span>Resultado da triagem</button>
+  <button class="step-btn" data-step="3"><span class="num">4</span>Programas de acesso</button>
+</div>
+
+<main>
+
+  <!-- SCREEN 1 — INGESTÃO -->
+  <section class="screen active" id="screen-0">
+    <div class="eyebrow">Ginecológico · passo 1 de 4</div>
+    <h1>Descreva o caso</h1>
+    <p class="lede">Use quantas fontes fizer sentido — laudo em PDF, foto, texto livre ou transcrição de consulta. Tudo é convertido em iniciais e número de caso antes de qualquer outro processamento.</p>
+
+    <div class="card">
+      <h3>Como você quer inserir os dados?</h3>
+      <p class="hint">Pode combinar mais de uma fonte para o mesmo caso.</p>
+      <div class="intake-grid">
+        <button class="intake-tile selected">
+          <span class="icon">📄</span>
+          <span class="title">Laudo em PDF</span>
+          <span class="desc">Anatomopatológico, imuno-histoquímica, prontuário.</span>
+        </button>
+        <button class="intake-tile">
+          <span class="icon">🖼️</span>
+          <span class="title">Foto do laudo</span>
+          <span class="desc">Leitura por OCR quando o arquivo é escaneado.</span>
+        </button>
+        <button class="intake-tile selected">
+          <span class="icon">✍️</span>
+          <span class="title">Descrição em texto</span>
+          <span class="desc">Escreva o perfil da paciente com suas palavras.</span>
+        </button>
+        <button class="intake-tile">
+          <span class="icon">🎙️</span>
+          <span class="title">Transcrição de consulta</span>
+          <span class="desc">Cole o texto de uma gravação já transcrita.</span>
+        </button>
+      </div>
+
+      <textarea placeholder="Ex.: Paciente 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, sem histórico familiar relatado até o momento...">Mulher, 61 anos. Carcinoma seroso de alto grau de ovário, estágio IIIC ao diagnóstico. Sem teste genético prévio. Mãe teve câncer de mama aos 58 anos.</textarea>
+
+      <div class="plaud-row">
+        <div class="left">
+          <span class="dot"></span>
+          <div>
+            <div class="name">Conectar ao Plaud</div>
+            <div class="sub">Sincroniza a transcrição da gravação diretamente — em avaliação de disponibilidade de API</div>
+          </div>
+        </div>
+        <button class="toggle" id="plaud-toggle" aria-label="Conectar ao Plaud" aria-pressed="false"></button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="ghost" type="button">Salvar rascunho</button>
+      <button class="primary" type="button" onclick="goTo(1)">Estruturar caso →</button>
+      <span class="note">Nenhum dado de identificação é enviado a modelos externos</span>
+    </div>
+  </section>
+
+  <!-- SCREEN 2 — REVISÃO -->
+  <section class="screen" id="screen-1">
+    <div class="case-banner">
+      <span>Identificação removida automaticamente</span>
+      <span class="code lock">🔒 Caso <span class="mono">A.F.M.-0231</span></span>
+    </div>
+
+    <div class="eyebrow">Ginecológico · passo 2 de 4</div>
+    <h1>Confirme o caso estruturado</h1>
+    <p class="lede">Extraímos o que conseguimos identificar. Revise e complete antes de rodar a triagem — o médico sempre valida antes do sistema decidir.</p>
+
+    <div class="card">
+      <h3>Perfil clínico</h3>
+      <div class="field-grid">
+        <div class="field">
+          <label>Subtipo oncológico</label>
+          <div class="value editable">Ginecológico — Ovário</div>
+        </div>
+        <div class="field">
+          <label>Histologia</label>
+          <div class="value editable">Seroso de alto grau</div>
+        </div>
+        <div class="field">
+          <label>Estadiamento</label>
+          <div class="value editable">IIIC</div>
+        </div>
+        <div class="field">
+          <label>Faixa etária</label>
+          <div class="value editable">60–64 anos</div>
+        </div>
+        <div class="field full">
+          <label>Histórico familiar relatado</label>
+          <div class="value editable">Mãe — câncer de mama aos 58 anos</div>
+        </div>
+        <div class="field full">
+          <label>Testes genéticos prévios</label>
+          <div class="value missing">Não informado — confirme antes de prosseguir</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Fontes usadas neste caso</h3>
+      <div class="field-grid">
+        <div class="field">
+          <label>Origem</label>
+          <div class="value">Texto livre (consulta)</div>
+        </div>
+        <div class="field">
+          <label>Origem</label>
+          <div class="value">Laudo anatomopatológico.pdf</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="ghost" type="button" onclick="goTo(0)">← Voltar</button>
+      <button class="primary" type="button" onclick="goTo(2)">Rodar triagem genômica →</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 3 — RESULTADO -->
+  <section class="screen" id="screen-2">
+    <div class="case-banner">
+      <span>Triagem baseada em diretrizes — não é indicação terapêutica</span>
+      <span class="code lock">🔒 Caso <span class="mono">A.F.M.-0231</span></span>
+    </div>
+
+    <div class="eyebrow">Ginecológico · passo 3 de 4</div>
+    <h1>Resultado da triagem</h1>
+
+    <div class="verdict">
+      <span class="glyph">✓</span>
+      <div>
+        <h2>Este caso tem indicação para testagem molecular</h2>
+        <p>Carcinoma seroso de alto grau de ovário em estágio avançado — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.</p>
+      </div>
+    </div>
+
+    <div class="test-pair">
+      <div class="test-card">
+        <div class="order">Tumoral · somático</div>
+        <h4>HRD + BRCA1/2 tumoral</h4>
+        <p>Avalia o status de deficiência de recombinação homóloga e mutação BRCA no tecido tumoral, para orientar elegibilidade a terapia de manutenção com inibidor de PARP.</p>
+        <div class="src">Referência: NCCN Ovarian Cancer · ESMO Clinical Practice Guideline 2026</div>
+      </div>
+      <div class="test-card">
+        <div class="order">Sangue · germinativo</div>
+        <h4>Painel germinativo BRCA1/2</h4>
+        <p>Investiga mutação hereditária, independente do resultado tumoral — todo carcinoma de alto grau de ovário tem indicação de teste germinativo ao diagnóstico.</p>
+        <div class="src">Referência: ASCO Guideline (JCO 2020) · ESMO 2026 · NCCN</div>
+      </div>
+    </div>
+
+    <div class="warm-card">
+      <div class="eyebrow2">💛 Por que também pedir o germinativo</div>
+      <h3>Isso não é só sobre a sua paciente — é sobre quem está ao lado dela</h3>
+      <p>O teste somático (tumoral) responde à pergunta de tratamento. O germinativo responde a uma pergunta maior: <strong>se essa mutação é hereditária, filhas, irmãs e outros parentes de primeiro grau podem se antecipar</strong> — com vigilância mais próxima, rastreio mais cedo, e em alguns casos prevenção — antes que a doença apareça neles.</p>
+      <div class="stat-row">
+        <div class="stat"><div class="n">~1/3</div><div class="l">dos parentes elegíveis nunca chega a ser informado do risco</div></div>
+        <div class="stat"><div class="n">60–70%</div><div class="l">risco estimado de câncer de mama ao longo da vida em portadoras BRCA</div></div>
+        <div class="stat"><div class="n">20–30%</div><div class="l">risco estimado de câncer de ovário ao longo da vida em portadoras BRCA</div></div>
+      </div>
+      <p>Uma forma de apresentar isso à paciente, sem soar alarmista:</p>
+      <div class="script">"Além do exame do tumor, existe um segundo teste, feito com uma amostra de sangue, que verifica se essa característica pode ser genética. Não muda o seu tratamento agora — mas, se for positivo, sua filha e suas irmãs podem se cuidar antes, com exames que hoje talvez nem soubessem que precisam fazer."</div>
+    </div>
+
+    <div class="disclaimer">
+      Esta triagem indica <strong>qual exame solicitar e por quê</strong>, com base em diretrizes publicadas (NCCN, ESMO, ASCO e demais sociedades reconhecidas). Não constitui recomendação terapêutica nem substitui aconselhamento genético — casos com critério para síndrome hereditária devem ser encaminhados ao especialista.
+    </div>
+
+    <div class="foot-nav">
+      <button class="ghost" type="button" onclick="goTo(1)">← Voltar</button>
+      <button class="primary" type="button" onclick="goTo(3)">Ver programas de acesso →</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 4 — PROGRAMAS -->
+  <section class="screen" id="screen-3">
+    <div class="eyebrow">Ginecológico · passo 4 de 4</div>
+    <h1>Programas de acesso disponíveis</h1>
+    <p class="lede">A plataforma direciona ao portal oficial de cada laboratório ou indústria — nunca processa a solicitação. Estes dados precisam ser confirmados por você antes de qualquer publicação.</p>
+
+    <div class="validate-flag">
+      ⚠️ Dado de exemplo — critérios de elegibilidade e disponibilidade mudam por programa. Requer sua validação antes de ir ao ar.
+    </div>
+
+    <div class="card">
+      <h3>HRD + BRCA1/2 tumoral <span class="pill ok">indicado neste caso</span></h3>
+      <div class="program-row">
+        <div class="who">
+          <span class="logo">AZ</span>
+          <div>
+            <div class="name">AstraZeneca — Programa de teste HRD</div>
+            <div class="test">Laboratório parceiro · a confirmar critérios atuais</div>
+          </div>
+        </div>
+        <a class="link" href="#" onclick="return false;">Ver portal oficial ↗</a>
+      </div>
+      <div class="program-row">
+        <div class="who">
+          <span class="logo">GSK</span>
+          <div>
+            <div class="name">GSK — Programa de teste HRD</div>
+            <div class="test">Laboratório parceiro · a confirmar critérios atuais</div>
+          </div>
+        </div>
+        <a class="link" href="#" onclick="return false;">Ver portal oficial ↗</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Painel germinativo BRCA1/2 <span class="pill ok">indicado neste caso</span></h3>
+      <div class="program-row">
+        <div class="who">
+          <span class="logo">?</span>
+          <div>
+            <div class="name">Programa a mapear</div>
+            <div class="test">Nenhum parceiro confirmado ainda para este teste</div>
+          </div>
+        </div>
+        <a class="link" href="#" onclick="return false;" style="opacity:.5;pointer-events:none;">Pendente</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Painel para status de reparo homólogo ampliado <span class="pill neutral">fora do escopo deste caso</span></h3>
+      <p class="hint" style="margin-top:6px;">Indicado apenas quando BRCA tumoral é selvagem em estágio III–IV — não se aplica automaticamente aqui.</p>
+    </div>
+
+    <div class="foot-nav">
+      <button class="ghost" type="button" onclick="goTo(2)">← Voltar</button>
+      <button class="primary" type="button" onclick="goTo(0)">Iniciar novo caso</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  function goTo(i) {
+    document.querySelectorAll('.screen').forEach((el, idx) => el.classList.toggle('active', idx === i));
+    document.querySelectorAll('.step-btn').forEach((el, idx) => {
+      el.classList.toggle('active', idx === i);
+      el.classList.toggle('done', idx < i);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  document.querySelectorAll('.step-btn').forEach((btn, idx) => {
+    btn.addEventListener('click', () => goTo(idx));
+  });
+  document.querySelectorAll('.intake-tile').forEach((tile) => {
+    tile.addEventListener('click', () => tile.classList.toggle('selected'));
+  });
+  const plaudToggle = document.getElementById('plaud-toggle');
+  plaudToggle.addEventListener('click', () => {
+    const on = plaudToggle.classList.toggle('on');
+    plaudToggle.setAttribute('aria-pressed', on);
+  });
+</script>
