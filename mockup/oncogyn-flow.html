@@ -307,15 +307,16 @@
   /* ---- ingestion ---- */
   .intake-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
   }
-  @media (max-width: 560px) { .intake-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 680px) { .intake-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 380px) { .intake-grid { grid-template-columns: 1fr; } }
 
   .intake-tile {
-    border: 1px dashed var(--border);
-    border-radius: 10px;
-    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 10px;
     background: var(--surface-2);
     cursor: pointer;
     text-align: left;
@@ -323,25 +324,17 @@
     color: var(--ink);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 2px;
     transition: border-color .15s ease, background .15s ease;
   }
   .intake-tile:hover { border-color: var(--accent-soft-border); background: var(--accent-soft); }
   .intake-tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .intake-tile.selected { border: 1px solid var(--accent); background: var(--accent-soft); }
-  .intake-tile .icon { font-size: 18px; }
-  .intake-tile .title { font-size: 13.5px; font-weight: 600; }
-  .intake-tile .desc { font-size: 12px; color: var(--ink-muted); line-height: 1.4; }
-  .intake-tile .badge {
-    align-self: flex-start;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 2px 6px;
-    border-radius: 4px;
-    background: var(--warn-soft);
-    color: var(--warn);
-  }
+  .intake-tile .row { display: flex; align-items: center; gap: 6px; }
+  .intake-tile .icon { font-size: 14px; line-height: 1; }
+  .intake-tile .title { font-size: 12px; font-weight: 600; }
+  .intake-tile .desc { font-size: 10.5px; color: var(--ink-faint); line-height: 1.35; }
+  .intake-tile .file-name { font-size: 10.5px; color: var(--accent); font-weight: 600; margin-top: 1px; }
 
   textarea {
     width: 100%;
@@ -797,34 +790,29 @@
         <h3>Como você quer inserir os dados?</h3>
         <p class="hint">Pode combinar mais de uma fonte para o mesmo caso.</p>
         <div class="intake-grid">
-          <button class="intake-tile selected">
-            <span class="icon">📄</span>
-            <span class="title">Laudo em PDF</span>
-            <span class="desc">Anatomopatológico, imuno-histoquímica, prontuário.</span>
+          <button class="intake-tile" id="tile-pdf" type="button" onclick="document.getElementById('input-pdf').click()">
+            <span class="row"><span class="icon">📄</span><span class="title">Laudo em PDF</span></span>
+            <span class="desc">Anatomopatológico, prontuário.</span>
+            <span class="file-name" id="file-name-pdf"></span>
           </button>
-          <button class="intake-tile">
-            <span class="icon">🖼️</span>
-            <span class="title">Foto do laudo</span>
-            <span class="desc">Leitura por OCR quando o arquivo é escaneado.</span>
+          <button class="intake-tile" id="tile-photo" type="button" onclick="document.getElementById('input-photo').click()">
+            <span class="row"><span class="icon">🖼️</span><span class="title">Foto do laudo</span></span>
+            <span class="desc">Leitura por OCR se escaneado.</span>
+            <span class="file-name" id="file-name-photo"></span>
           </button>
-          <button class="intake-tile selected">
-            <span class="icon">✍️</span>
-            <span class="title">Descrição em texto</span>
-            <span class="desc">Escreva o perfil da paciente com suas palavras.</span>
+          <button class="intake-tile" id="tile-text" type="button" onclick="document.getElementById('case-text').focus()">
+            <span class="row"><span class="icon">✍️</span><span class="title">Texto ou transcrição</span></span>
+            <span class="desc">Escreva ou cole uma transcrição.</span>
           </button>
-          <button class="intake-tile">
-            <span class="icon">🎙️</span>
-            <span class="title">Transcrição de consulta</span>
-            <span class="desc">Cole o texto de uma gravação já transcrita.</span>
-          </button>
-          <button class="intake-tile" id="tile-voice" onclick="toggleVoicePanel()">
-            <span class="icon">🎤</span>
-            <span class="title">Ditado clínico por voz</span>
-            <span class="desc">Grave a descrição do caso falando; a transcrição alimenta a mesma extração estruturada.</span>
+          <button class="intake-tile" id="tile-voice" type="button" onclick="toggleVoicePanel()">
+            <span class="row"><span class="icon">🎤</span><span class="title">Ditado por voz</span></span>
+            <span class="desc">Grave o caso falando.</span>
           </button>
         </div>
+        <input type="file" id="input-pdf" accept="application/pdf" style="display:none" onchange="onFileChosen('pdf', this)" />
+        <input type="file" id="input-photo" accept="image/*" style="display:none" onchange="onFileChosen('photo', this)" />
 
-        <textarea id="case-text" placeholder="Descreva o caso com suas palavras. Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, mãe com câncer de mama aos 58 anos, sem teste genético prévio..."></textarea>
+        <textarea id="case-text" placeholder="Descreva o caso com suas palavras, ou cole uma transcrição. Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, mãe com câncer de mama aos 58 anos, sem teste genético prévio..."></textarea>
         <p class="hint" id="extract-hint" style="margin-top:8px;">Experimente descrever um caso real (ou fictício) com suas palavras — histologia, estágio, idade e histórico familiar, se houver.</p>
 
         <div class="voice-panel" id="voice-panel">
@@ -1208,6 +1196,23 @@
     el.classList.toggle('missing', !value);
   }
 
+  function currentSources() {
+    const sources = [];
+    if (pdfFileName) sources.push('Laudo em PDF — ' + pdfFileName);
+    if (photoFileName) sources.push('Foto do laudo — ' + photoFileName);
+    if (document.getElementById('case-text').value.trim()) sources.push('Texto ou transcrição colada');
+    if (recSeconds > 0) sources.push('Ditado por voz (' + document.getElementById('voice-time').textContent + ')');
+    return sources;
+  }
+
+  function renderSources() {
+    const sourcesGrid = document.getElementById('sources-grid');
+    const sources = currentSources();
+    sourcesGrid.innerHTML = (sources.length ? sources : ['Nenhuma fonte informada ainda'])
+      .map((title) => `<div class="field"><label>Origem</label><div class="value">${title}</div></div>`)
+      .join('');
+  }
+
   function runExtraction() {
     const text = document.getElementById('case-text').value.trim();
     const extracted = extractCase(text);
@@ -1218,13 +1223,7 @@
     fillField('field-historico', extracted.historico);
     fillField('field-testes', extracted.testes);
 
-    const sourcesGrid = document.getElementById('sources-grid');
-    const selectedTiles = Array.from(document.querySelectorAll('.intake-tile.selected .title')).map((el) => el.textContent);
-    if (text && !selectedTiles.includes('Descrição em texto')) selectedTiles.push('Descrição em texto');
-    sourcesGrid.innerHTML = (selectedTiles.length ? selectedTiles : ['Nenhuma fonte selecionada'])
-      .map((title) => `<div class="field"><label>Origem</label><div class="value">${title}</div></div>`)
-      .join('');
-
+    renderSources();
     goTo(1);
   }
 
@@ -1239,6 +1238,23 @@
       '<div class="field"><label>Origem</label><div class="value">Conversa com o OncoBot</div></div>';
 
     goTo(1);
+  }
+
+  let pdfFileName = '';
+  let photoFileName = '';
+
+  function onFileChosen(kind, input) {
+    const file = input.files && input.files[0];
+    const name = file ? file.name : '';
+    if (kind === 'pdf') {
+      pdfFileName = name;
+      document.getElementById('file-name-pdf').textContent = name;
+      document.getElementById('tile-pdf').classList.toggle('selected', !!name);
+    } else {
+      photoFileName = name;
+      document.getElementById('file-name-photo').textContent = name;
+      document.getElementById('tile-photo').classList.toggle('selected', !!name);
+    }
   }
 
   function runTriage() {
@@ -1314,6 +1330,7 @@
       }, 1000);
     } else {
       clearInterval(recTimer);
+      document.getElementById('tile-voice').classList.toggle('selected', recSeconds > 0);
     }
   }
 
@@ -1334,8 +1351,8 @@
   document.querySelectorAll('.step-btn').forEach((btn, idx) => {
     btn.addEventListener('click', () => goTo(idx));
   });
-  document.querySelectorAll('.intake-tile').forEach((tile) => {
-    tile.addEventListener('click', () => tile.classList.toggle('selected'));
+  document.getElementById('case-text').addEventListener('input', function () {
+    document.getElementById('tile-text').classList.toggle('selected', this.value.trim().length > 0);
   });
   const plaudToggle = document.getElementById('plaud-toggle');
   plaudToggle.addEventListener('click', () => {
