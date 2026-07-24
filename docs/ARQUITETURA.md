@@ -164,19 +164,55 @@ Ver o passo 5 do mockup (`mockup/oncogyn-flow.html`) para o desenho de tela dest
 
 ---
 
-## 6. Matriz de biomarcadores por subtipo oncológico (estrutura, não valor final)
+## 6. Base de diretrizes — critérios de indicação (Ginecológico · Ovário)
 
-Isso deve virar uma tabela **viva e curada**, não hardcoded — mas a estrutura conceitual é:
+**Processo obrigatório daqui pra frente**: antes de qualquer regra entrar no motor de triagem, ela precisa estar documentada nesta seção, com a fonte (diretriz + ano/versão) e o critério exato de histologia/grau/estágio que a aciona. O motor de código (Camada 4 do mockup) só pode implementar o que estiver aqui — nunca o contrário. Isso evita o erro que já aconteceu uma vez: a primeira versão do protótipo só reconhecia "seroso de alto grau" e deixava de fora "endometrioide de alto grau em estágio III/IV", que segundo a NCCN tem exatamente a mesma indicação.
 
-| Subtipo | Cenário clínico gatilho | Teste(s) indicado(s) | Indústria(s) com programa (exemplo) |
-|---|---|---|---|
-| **Ginecológico** (ovário seroso alto grau) | Diagnóstico de Ca ovário epitelial não-mucinoso | HRD (somático) + BRCA1/2 germinativo | AstraZeneca, GSK (a validar critério vigente de cada programa) |
-| **Ginecológico** | Suspeita de síndrome hereditária (idade jovem + histórico familiar) | Painel germinativo ampliado + encaminhamento aconselhamento genético | Varia por painel/laboratório |
-| **Geniturinário** (próstata metastático) | CRPC ou histórico familiar relevante | Painel germinativo + somático (HRR genes) | A mapear |
-| **Mama** | Triplo-negativo, idade <45, ou histórico familiar (exemplo do próprio deck) | BRCA1/2 germinativo | A mapear |
-| **Pulmão** (NSCLC) | Adenocarcinoma avançado | Painel amplo (EGFR, ALK, ROS1, KRAS, PD-L1, etc.) | A mapear |
+### Sociedades de referência usadas nesta triagem
 
-**Importante:** você, pela sua posição na BU de Oncologia GYN/Lynparza, já tem know-how direto sobre os programas de HRD/BRCA da AstraZeneca e concorrência (GSK). Isso deveria ser o primeiro bloco a popular com precisão — é onde o produto tem mais credibilidade de saída. Os outros subtipos (mama, pulmão, GU) podem entrar em fases seguintes, com curadoria própria.
+- **NCCN** — Ovarian Cancer Guidelines (versão vigente)
+- **ASCO** — "Germline and Somatic Tumor Testing in Epithelial Ovarian Cancer: ASCO Guideline" (*Journal of Clinical Oncology*, 2020; PMID 32074015)
+- **ESMO** — Clinical Practice Guideline para câncer epitelial de ovário, incluindo a adaptação Pan-Ásia (ESMO Open, 2025) que reforça HRD tanto em histologia serosa quanto não-serosa
+- **SGO** — Society of Gynecologic Oncology, referência de prática clínica específica para oncologia ginecológica, usada como checagem cruzada para os critérios acima
+
+### Regra 1 — Teste germinativo (BRCA1/2 + painel ampliado)
+
+**Indicado para toda histologia epitelial não-borderline de ovário, independente de grau ou estágio**: seroso, endometrioide, células claras, mucinoso, carcinossarcoma, indiferenciado.
+
+> Fonte: ASCO (JCO 2020) — recomenda oferecer teste germinativo a toda mulher diagnosticada com câncer epitelial de ovário, independente de histórico familiar. Histologias não-serosas (endometrioide, células claras, baixo grau, carcinossarcoma) têm taxa de mutação germinativa BRCA próxima à do seroso de alto grau (~28%); mucinoso tem o menor rendimento para BRCA, mas ainda é ofertado — e tem indicação adicional de considerar teste somático de dMMR.
+
+### Regra 2 — Teste somático tumoral (BRCA1/2 + HRD)
+
+**Indicado quando histologia é seroso OU endometrioide, de alto grau, em estágio III ou IV** (qualquer subestágio A/B/C) — orienta elegibilidade a terapia de manutenção com inibidor de PARP.
+
+> Fonte: NCCN Ovarian Cancer Guidelines — teste somático (BRCA1/2 + HRD) recomendado para doença avançada (estágio III/IV) de histologia serosa **ou endometrioide** de alto grau. O erro corrigido nesta versão: a regra anterior só cobria "seroso", excluindo endometrioide — que a NCCN trata com o mesmo critério.
+
+### Regra 3 (referência, ainda não implementada no motor) — dMMR/MSI (Lynch)
+
+Considerar teste somático de dMMR/MSI para histologia de células claras, endometrioide ou mucinoso.
+
+> Fonte: ASCO (JCO 2020).
+
+### Tabela-resumo
+
+| Perfil do caso | Germinativo | Somático (BRCA+HRD) |
+|---|---|---|
+| Seroso ou endometrioide, alto grau, estágio III/IV | Indicado | Indicado — par completo |
+| Seroso ou endometrioide, mas baixo grau ou estágio I/II | Indicado | Não coberto por esta regra — fora do critério NCCN |
+| Células claras, mucinoso, carcinossarcoma, indiferenciado | Indicado | Não coberto por esta regra (considerar dMMR — Regra 3) |
+| Histologia não identificada ou não mapeada | Triagem insuficiente — completar dado | — |
+
+### Outros subtipos oncológicos (fora do escopo desta fase)
+
+A mesma exigência de "primeiro a diretriz, depois o código" vale para qualquer subtipo futuro. Ainda não foi feito o levantamento de critérios para os subtipos abaixo — não implementar nenhuma regra para eles até essa etapa acontecer:
+
+| Subtipo | Status |
+|---|---|
+| Geniturinário (ex.: próstata metastático) | Levantamento de diretrizes pendente |
+| Mama | Levantamento de diretrizes pendente |
+| Pulmão (NSCLC) | Levantamento de diretrizes pendente |
+
+O mapeamento **indústria × teste × programa gratuito** (quem oferece HRD, quem oferece germinativo) continua sendo uma camada separada (Camada 5) e uma etapa de validação sua — não faz parte da diretriz clínica em si e não deve influenciá-la (ver regra de ouro da seção 10).
 
 ---
 
@@ -249,10 +285,11 @@ Você identificou dois gargalos distintos, e é importante mantê-los separados 
 - **Escopo agora**: mockup navegável (ver `mockup/oncogyn-flow.html`) para validar o fluxo antes de qualquer código de produção.
 - **Vertical piloto**: Ginecológico (câncer de ovário), com expansão posterior para outros subtipos com componente genético relevante.
 - **Plaud**: integração via API é o alvo (Fase 2/3); no MVP o campo "colar transcrição" já cobre o mesmo caso de uso sem depender de disponibilidade de API.
-- **Regra de ouro do GYN**: a triagem nunca recomenda **só** o teste somático. Todo carcinoma epitelial de alto grau de ovário gera recomendação **pareada** — tumoral (HRD + BRCA somático, para elegibilidade a manutenção com inibidor de PARP) **e** germinativo (BRCA1/2 em sangue), porque respondem perguntas diferentes: um orienta o tratamento da paciente, o outro abre a porta para rastreio/prevenção antecipada em parentes de primeiro grau (teste em cascata).
+- **Regra de ouro do GYN (corrigida na v0.3 — ver seção 6)**: germinativo é indicado para **toda** histologia epitelial não-borderline de ovário, sempre. Somático (HRD+BRCA tumoral, elegibilidade PARP) só é indicado quando histologia é **seroso OU endometrioide**, de **alto grau**, em **estágio III/IV** — não é regra de "sempre os dois juntos". A versão anterior só reconhecia "seroso de alto grau" e deixava de fora "endometrioide de alto grau em estágio III/IV", que pela NCCN tem exatamente a mesma indicação de par completo — esse bug foi corrigido no motor do mockup (`classifyCase()` em `mockup/oncogyn-flow.html`).
 - **Tom da cópia clínica**: texto direto, sucinto e objetivo — sem linguagem decorativa, ícones afetivos ou blocos de texto longos. O card sobre indicação do germinativo é uma nota clínica curta (rótulo + uma frase de justificativa + estatísticas em linha + uma sugestão de comunicação, sem enfeite visual), porque o médico navega a ferramenta rápido entre consultas e espera objetividade, não acolhimento estético.
 - **Princípio de exibição — só o que é acionável agora**: a tela de Programas não lista mais testes/painéis fora do escopo do caso atual (removido o card "Painel para status de reparo homólogo ampliado — fora do escopo"). Mostrar algo marcado como "não se aplica aqui" não dá nenhuma ação possível ao médico, só adiciona leitura e ruído. Esse princípio vale para o produto inteiro: qualquer informação que não seja necessária ao passo em que o médico está fica fora da tela. Se um caminho condicional futuro precisar ser sinalizado (ex.: painel de HRR ampliado, relevante só se o BRCA tumoral vier selvagem), ele deve aparecer **depois**, quando o resultado anterior o tornar de fato relevante — não antes, como aviso do que "não se aplica ainda".
-- **Fonte das regras de indicação**: diretrizes publicadas e reconhecidas internacionalmente — NCCN, ESMO, ASCO, e demais sociedades validadas (ex.: comparativos como AIOM/BGCS/ESGO/JGSO/NICE quando relevante). Cada regra no motor de triagem carrega a diretriz de origem e a versão/ano, para rastreabilidade. Referência-base usada neste mockup: ESMO recomenda teste germinativo **e** somático de BRCA1/2 para todo carcinoma epitelial de ovário de alto grau, com HRD adicional em doença avançada; NCCN recomenda germinativo + somático (incluindo HRD) ao diagnóstico em doença avançada para elegibilidade a PARP; ASCO tem guideline dedicado a teste germinativo e somático em câncer epitelial de ovário (JCO 2020).
+- **Fonte das regras de indicação**: diretrizes publicadas e reconhecidas internacionalmente — NCCN, ESMO, ASCO e **SGO** (Society of Gynecologic Oncology, referência de prática específica para oncologia ginecológica). Cada regra no motor de triagem carrega a diretriz de origem e a versão/ano, para rastreabilidade. Ver o detalhamento completo, com o critério exato de cada regra, na seção 6.
+- **Processo daqui pra frente**: diretriz primeiro, código depois — nenhuma regra nova entra no motor sem antes estar documentada na seção 6 com fonte e critério. Essa ordem foi adotada depois do bug do "endometrioide" (ver acima), que aconteceu justamente por implementar uma regra sem levantar todos os critérios da diretriz antes.
 - **Mapeamento indústria × teste**: fica como dado a validar por você antes de publicar (ver seção 12) — o motor de triagem e a base de programas são desacoplados de propósito, para que a parte clínica (diretriz) nunca dependa da parte comercial (quem patrocina o teste hoje).
 - **Segundo gargalo endereçado**: além de "qual teste pedir", a Camada 8 gera o **documento de solicitação já preenchido** (nome do paciente, dados do médico, teste e justificativa citando diretriz) — ver passo 5 do mockup. O nome real do paciente só existe nessa camada, isolado do resto do pipeline pseudonimizado.
 

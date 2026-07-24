@@ -964,19 +964,19 @@
       </div>
     </div>
 
-    <div id="verdict-positive-content">
+    <div id="verdict-paired-content">
       <div class="test-pair">
         <div class="test-card">
           <div class="order">Tumoral · somático</div>
           <h4>HRD + BRCA1/2 tumoral</h4>
           <p>Avalia o status de deficiência de recombinação homóloga e mutação BRCA no tecido tumoral, para orientar elegibilidade a terapia de manutenção com inibidor de PARP.</p>
-          <div class="src">Referência: NCCN Ovarian Cancer · ESMO Clinical Practice Guideline 2026</div>
+          <div class="src">Referência: NCCN Ovarian Cancer Guidelines · SGO — seroso ou endometrioide, alto grau, estágio III/IV</div>
         </div>
         <div class="test-card">
           <div class="order">Sangue · germinativo</div>
           <h4>Painel germinativo BRCA1/2</h4>
-          <p>Investiga mutação hereditária, independente do resultado tumoral — todo carcinoma de alto grau de ovário tem indicação de teste germinativo ao diagnóstico.</p>
-          <div class="src">Referência: ASCO Guideline (JCO 2020) · ESMO 2026 · NCCN</div>
+          <p>Investiga mutação hereditária, independente do resultado tumoral — toda histologia epitelial não-borderline tem indicação de teste germinativo ao diagnóstico.</p>
+          <div class="src">Referência: ASCO Guideline (JCO 2020) · SGO</div>
         </div>
       </div>
 
@@ -993,8 +993,24 @@
       </div>
     </div>
 
+    <div id="verdict-germline-content">
+      <div class="test-pair" style="grid-template-columns: 1fr;">
+        <div class="test-card">
+          <div class="order">Sangue · germinativo</div>
+          <h4>Painel germinativo BRCA1/2 (+ painel ampliado)</h4>
+          <p>Indicado para toda histologia epitelial não-borderline de ovário (seroso, endometrioide, células claras, mucinoso, carcinossarcoma), independente de grau ou estágio.</p>
+          <div class="src">Referência: ASCO Guideline (JCO 2020) · SGO</div>
+        </div>
+      </div>
+      <div class="note-card">
+        <span class="tag">Somático — critério não atendido</span>
+        <h4>HRD + BRCA1/2 tumoral não indicado por esta regra</h4>
+        <p id="germline-only-reason">O protocolo de teste somático (BRCA+HRD) para elegibilidade a PARP é específico para histologia serosa ou endometrioide de alto grau em estágio III/IV (NCCN). Reavalie se grau, histologia ou estágio forem atualizados.</p>
+      </div>
+    </div>
+
     <div class="disclaimer">
-      Esta triagem indica <strong>qual exame solicitar e por quê</strong>, com base em diretrizes publicadas (NCCN, ESMO, ASCO e demais sociedades reconhecidas). Não constitui recomendação terapêutica nem substitui aconselhamento genético — casos com critério para síndrome hereditária devem ser encaminhados ao especialista.
+      Esta triagem indica <strong>qual exame solicitar e por quê</strong>, com base em diretrizes publicadas (NCCN, ESMO, ASCO, SGO e demais sociedades reconhecidas). Não constitui recomendação terapêutica nem substitui aconselhamento genético — casos com critério para síndrome hereditária devem ser encaminhados ao especialista.
     </div>
 
     <div class="foot-nav">
@@ -1257,41 +1273,73 @@
     }
   }
 
+  // Regra de indicação — Ginecológico (ovário), v0.2.
+  // Fontes: ASCO "Germline and Somatic Tumor Testing in Epithelial Ovarian Cancer"
+  // (JCO 2020, PMID 32074015) e NCCN Ovarian Cancer Guidelines (testagem somática
+  // BRCA+HRD para elegibilidade a PARP em histologia serosa OU endometrioide,
+  // alto grau, estágio III/IV). Ver docs/ARQUITETURA.md seção "Base de diretrizes".
+  const HISTOLOGIAS_EPITELIAIS = ['seroso', 'endometrioide', 'células claras', 'celulas claras', 'mucinoso', 'carcinossarcoma', 'indiferenciado'];
+  const HISTOLOGIAS_SOMATICO = ['seroso', 'endometrioide'];
+
+  function classifyCase(histologia, estadiamento) {
+    const h = (histologia || '').toLowerCase();
+    if (!h) return { state: 'insuficiente' };
+
+    const histologiaEpitelial = HISTOLOGIAS_EPITELIAIS.find((x) => h.includes(x));
+    if (!histologiaEpitelial) return { state: 'nao-reconhecida' };
+
+    const altoGrau = h.includes('alto grau');
+    const estadioAvancado = /^(III|IV)/i.test((estadiamento || '').trim());
+    const elegivelSomatico = HISTOLOGIAS_SOMATICO.some((x) => h.includes(x)) && altoGrau && estadioAvancado;
+
+    return { state: elegivelSomatico ? 'pareado' : 'so-germinativo', histologiaEpitelial, altoGrau, estadioAvancado };
+  }
+
   function runTriage() {
-    const histologia = document.getElementById('field-histologia').value.trim().toLowerCase();
+    const histologiaRaw = document.getElementById('field-histologia').value.trim();
     const estadiamento = document.getElementById('field-estadiamento').value.trim();
+    const result = classifyCase(histologiaRaw, estadiamento);
 
     const box = document.getElementById('verdict-box');
     const glyph = document.getElementById('verdict-glyph');
     const title = document.getElementById('verdict-title');
     const text = document.getElementById('verdict-text');
-    const positiveContent = document.getElementById('verdict-positive-content');
+    const pairedContent = document.getElementById('verdict-paired-content');
+    const germlineContent = document.getElementById('verdict-germline-content');
     const nextBtn = document.getElementById('verdict-next-btn');
 
-    if (!histologia) {
+    pairedContent.style.display = 'none';
+    germlineContent.style.display = 'none';
+    box.classList.remove('negative');
+
+    if (result.state === 'insuficiente') {
       box.classList.add('negative');
       glyph.textContent = '!';
       title.textContent = 'Dados insuficientes para triagem';
       text.textContent = 'Histologia não identificada. Volte à revisão do caso e complete o campo antes de rodar a triagem novamente.';
-      positiveContent.style.display = 'none';
       nextBtn.textContent = '← Completar dados';
       nextBtn.onclick = () => goTo(1);
-    } else if (histologia.includes('seroso') && histologia.includes('alto grau')) {
-      box.classList.remove('negative');
+    } else if (result.state === 'nao-reconhecida') {
+      box.classList.add('negative');
+      glyph.textContent = '!';
+      title.textContent = 'Histologia não reconhecida por esta regra';
+      text.textContent = `“${histologiaRaw}” não corresponde a nenhuma histologia epitelial de ovário mapeada nesta versão. Confirme a grafia ou consulte a diretriz correspondente a este perfil.`;
+      nextBtn.textContent = '← Completar dados';
+      nextBtn.onclick = () => goTo(1);
+    } else if (result.state === 'pareado') {
       glyph.textContent = '✓';
-      title.textContent = 'Este caso tem indicação para testagem molecular';
-      text.textContent = `Carcinoma seroso de alto grau de ovário${estadiamento ? ', estágio ' + estadiamento : ''} — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.`;
-      positiveContent.style.display = '';
+      title.textContent = 'Este caso tem indicação para testagem molecular pareada';
+      text.textContent = `Carcinoma ${result.histologiaEpitelial} de alto grau de ovário${estadiamento ? ', estágio ' + estadiamento : ''} — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.`;
+      pairedContent.style.display = '';
       nextBtn.textContent = 'Ver programas de acesso →';
       nextBtn.onclick = () => goTo(3);
     } else {
-      box.classList.add('negative');
-      glyph.textContent = '!';
-      title.textContent = 'Regra de triagem não coberta neste protótipo';
-      text.textContent = `Histologia informada (“${document.getElementById('field-histologia').value}”) não corresponde à regra implementada nesta versão (carcinoma seroso de alto grau de ovário). Consulte a diretriz correspondente a este perfil.`;
-      positiveContent.style.display = 'none';
-      nextBtn.textContent = '← Completar dados';
-      nextBtn.onclick = () => goTo(1);
+      glyph.textContent = '✓';
+      title.textContent = 'Este caso tem indicação para teste germinativo';
+      text.textContent = `Carcinoma ${result.histologiaEpitelial} de ovário${estadiamento ? ', estágio ' + estadiamento : ''} — indicação de teste germinativo. O critério para o par somático (BRCA+HRD tumoral) não foi atendido com os dados informados.`;
+      germlineContent.style.display = '';
+      nextBtn.textContent = 'Ver programas de acesso →';
+      nextBtn.onclick = () => goTo(3);
     }
 
     goTo(2);
