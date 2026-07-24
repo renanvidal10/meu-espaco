@@ -1,4 +1,4 @@
-<title>OncoGeneHUB — Mockup: Triagem GYN</title>
+<title>OncoGenYX — Mockup: Triagem GYN</title>
 <style>
   :root {
     --bg: #eef2f0;
@@ -224,6 +224,85 @@
   .card + .card { margin-top: 16px; }
   .card h3 { font-size: 15px; margin-bottom: 4px; }
   .card .hint { font-size: 12.5px; color: var(--ink-faint); margin: 0 0 14px; }
+
+  /* ---- mode switch ---- */
+  .mode-switch {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: none;
+    background: transparent;
+    color: var(--ink-muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .mode-btn.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+  .mode-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .mode-panel { display: none; }
+  .mode-panel.active { display: block; animation: rise .22s ease both; }
+  @media (prefers-reduced-motion: reduce) { .mode-panel.active { animation: none; } }
+
+  /* ---- chat (OncoBot) ---- */
+  .chat-card { padding-bottom: 16px; }
+  .chat-window {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding: 4px 2px 8px;
+  }
+  .chat-msg { display: flex; gap: 10px; align-items: flex-start; }
+  .chat-msg.doc { flex-direction: row-reverse; }
+  .chat-avatar {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-soft-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+  }
+  .chat-bubble {
+    max-width: 78%;
+    font-size: 13.5px;
+    line-height: 1.5;
+    padding: 10px 13px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--ink);
+  }
+  .chat-msg.bot .chat-bubble { border-top-left-radius: 4px; }
+  .chat-msg.doc .chat-bubble { border-top-right-radius: 4px; background: var(--accent-soft); border-color: var(--accent-soft-border); }
+  .chat-input-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .chat-input {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--ink-faint);
+    font-family: inherit;
+    font-size: 13.5px;
+    padding: 10px 12px;
+  }
 
   /* ---- ingestion ---- */
   .intake-grid {
@@ -529,7 +608,7 @@
 <div class="topbar">
   <div class="brand">
     <span class="mark">O</span>
-    <strong>OncoGeneHUB</strong>
+    <strong>OncoGenYX</strong>
     <span>· mockup de fluxo, não é produto final</span>
   </div>
   <div class="doctor-chip">
@@ -551,52 +630,106 @@
   <section class="screen active" id="screen-0">
     <div class="eyebrow">Ginecológico · passo 1 de 4</div>
     <h1>Descreva o caso</h1>
-    <p class="lede">Use quantas fontes fizer sentido — laudo em PDF, foto, texto livre ou transcrição de consulta. Tudo é convertido em iniciais e número de caso antes de qualquer outro processamento.</p>
+    <p class="lede">Use quantas fontes fizer sentido — laudo em PDF, foto, texto livre ou transcrição de consulta — ou converse com o OncoBot se preferir ser guiado por perguntas. Tudo é convertido em iniciais e número de caso antes de qualquer outro processamento.</p>
 
-    <div class="card">
-      <h3>Como você quer inserir os dados?</h3>
-      <p class="hint">Pode combinar mais de uma fonte para o mesmo caso.</p>
-      <div class="intake-grid">
-        <button class="intake-tile selected">
-          <span class="icon">📄</span>
-          <span class="title">Laudo em PDF</span>
-          <span class="desc">Anatomopatológico, imuno-histoquímica, prontuário.</span>
-        </button>
-        <button class="intake-tile">
-          <span class="icon">🖼️</span>
-          <span class="title">Foto do laudo</span>
-          <span class="desc">Leitura por OCR quando o arquivo é escaneado.</span>
-        </button>
-        <button class="intake-tile selected">
-          <span class="icon">✍️</span>
-          <span class="title">Descrição em texto</span>
-          <span class="desc">Escreva o perfil da paciente com suas palavras.</span>
-        </button>
-        <button class="intake-tile">
-          <span class="icon">🎙️</span>
-          <span class="title">Transcrição de consulta</span>
-          <span class="desc">Cole o texto de uma gravação já transcrita.</span>
-        </button>
+    <div class="mode-switch" role="tablist" aria-label="Como inserir o caso">
+      <button class="mode-btn active" id="mode-btn-form" role="tab" aria-selected="true" onclick="setMode('form')">
+        <span class="icon">🗂️</span> Formulário / upload
+      </button>
+      <button class="mode-btn" id="mode-btn-bot" role="tab" aria-selected="false" onclick="setMode('bot')">
+        <span class="icon">💬</span> Conversar com o OncoBot
+      </button>
+    </div>
+
+    <div class="mode-panel active" id="mode-form">
+      <div class="card">
+        <h3>Como você quer inserir os dados?</h3>
+        <p class="hint">Pode combinar mais de uma fonte para o mesmo caso.</p>
+        <div class="intake-grid">
+          <button class="intake-tile selected">
+            <span class="icon">📄</span>
+            <span class="title">Laudo em PDF</span>
+            <span class="desc">Anatomopatológico, imuno-histoquímica, prontuário.</span>
+          </button>
+          <button class="intake-tile">
+            <span class="icon">🖼️</span>
+            <span class="title">Foto do laudo</span>
+            <span class="desc">Leitura por OCR quando o arquivo é escaneado.</span>
+          </button>
+          <button class="intake-tile selected">
+            <span class="icon">✍️</span>
+            <span class="title">Descrição em texto</span>
+            <span class="desc">Escreva o perfil da paciente com suas palavras.</span>
+          </button>
+          <button class="intake-tile">
+            <span class="icon">🎙️</span>
+            <span class="title">Transcrição de consulta</span>
+            <span class="desc">Cole o texto de uma gravação já transcrita.</span>
+          </button>
+        </div>
+
+        <textarea placeholder="Ex.: Paciente 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, sem histórico familiar relatado até o momento...">Mulher, 61 anos. Carcinoma seroso de alto grau de ovário, estágio IIIC ao diagnóstico. Sem teste genético prévio. Mãe teve câncer de mama aos 58 anos.</textarea>
+
+        <div class="plaud-row">
+          <div class="left">
+            <span class="dot"></span>
+            <div>
+              <div class="name">Conectar ao Plaud</div>
+              <div class="sub">Sincroniza a transcrição da gravação diretamente — em avaliação de disponibilidade de API</div>
+            </div>
+          </div>
+          <button class="toggle" id="plaud-toggle" aria-label="Conectar ao Plaud" aria-pressed="false"></button>
+        </div>
       </div>
 
-      <textarea placeholder="Ex.: Paciente 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, sem histórico familiar relatado até o momento...">Mulher, 61 anos. Carcinoma seroso de alto grau de ovário, estágio IIIC ao diagnóstico. Sem teste genético prévio. Mãe teve câncer de mama aos 58 anos.</textarea>
-
-      <div class="plaud-row">
-        <div class="left">
-          <span class="dot"></span>
-          <div>
-            <div class="name">Conectar ao Plaud</div>
-            <div class="sub">Sincroniza a transcrição da gravação diretamente — em avaliação de disponibilidade de API</div>
-          </div>
-        </div>
-        <button class="toggle" id="plaud-toggle" aria-label="Conectar ao Plaud" aria-pressed="false"></button>
+      <div class="btn-row">
+        <button class="ghost" type="button">Salvar rascunho</button>
+        <button class="primary" type="button" onclick="goTo(1)">Estruturar caso →</button>
+        <span class="note">Nenhum dado de identificação é enviado a modelos externos</span>
       </div>
     </div>
 
-    <div class="btn-row">
-      <button class="ghost" type="button">Salvar rascunho</button>
-      <button class="primary" type="button" onclick="goTo(1)">Estruturar caso →</button>
-      <span class="note">Nenhum dado de identificação é enviado a modelos externos</span>
+    <div class="mode-panel" id="mode-bot">
+      <div class="card chat-card">
+        <h3>OncoBot — triagem por conversa</h3>
+        <p class="hint">Mesmo motor de triagem da Camada 4 — o bot só pergunta o que falta para completar o caso. Nunca pede nome, CPF ou dado que identifique a paciente.</p>
+
+        <div class="chat-window" id="chat-window">
+          <div class="chat-msg bot">
+            <span class="chat-avatar">🧬</span>
+            <div class="chat-bubble">Olá, Dra. Vamos triar um caso ginecológico. Qual a histologia e o estágio ao diagnóstico?</div>
+          </div>
+          <div class="chat-msg doc">
+            <div class="chat-bubble">Carcinoma seroso de alto grau, estágio IIIC.</div>
+          </div>
+          <div class="chat-msg bot">
+            <span class="chat-avatar">🧬</span>
+            <div class="chat-bubble">Entendido. Há histórico familiar de câncer de mama ou ovário em parentes de primeiro grau?</div>
+          </div>
+          <div class="chat-msg doc">
+            <div class="chat-bubble">Mãe teve câncer de mama aos 58 anos.</div>
+          </div>
+          <div class="chat-msg bot">
+            <span class="chat-avatar">🧬</span>
+            <div class="chat-bubble">Última pergunta: a paciente já realizou algum teste genético, somático ou germinativo, antes de hoje?</div>
+          </div>
+          <div class="chat-msg doc">
+            <div class="chat-bubble">Não, nenhum teste prévio.</div>
+          </div>
+          <div class="chat-msg bot">
+            <span class="chat-avatar">🧬</span>
+            <div class="chat-bubble">
+              Caso reunido: histologia, estágio e histórico familiar já cobrem os critérios de triagem para este subtipo.
+              <span class="pill ok" style="margin-top:8px;">pronto para triagem</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-input-row">
+          <input class="chat-input" type="text" placeholder="Digite sua resposta..." disabled />
+          <button class="primary" type="button" onclick="goTo(1)">Revisar caso reunido →</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -779,6 +912,15 @@
 </main>
 
 <script>
+  function setMode(mode) {
+    document.getElementById('mode-form').classList.toggle('active', mode === 'form');
+    document.getElementById('mode-bot').classList.toggle('active', mode === 'bot');
+    document.getElementById('mode-btn-form').classList.toggle('active', mode === 'form');
+    document.getElementById('mode-btn-bot').classList.toggle('active', mode === 'bot');
+    document.getElementById('mode-btn-form').setAttribute('aria-selected', mode === 'form');
+    document.getElementById('mode-btn-bot').setAttribute('aria-selected', mode === 'bot');
+  }
+
   function goTo(i) {
     document.querySelectorAll('.screen').forEach((el, idx) => el.classList.toggle('active', idx === i));
     document.querySelectorAll('.step-btn').forEach((el, idx) => {

@@ -1,6 +1,6 @@
-# OncoGeneHUB — Arquitetura Conceitual
+# OncoGenYX — Arquitetura Conceitual
 
-> Baseado no pitch deck "OncoGeneHUB I Projeto Conceitual 2026" (Dr. Haonne Abboud) e na conversa de desenho de produto. Este documento une os dois: o conceito de **Hub de Acesso** (portal + OncoBot já desenhados no deck) com o módulo que você descreveu — **triagem multimodal no ponto de cuidado**, onde o médico sobe dados brutos do paciente (PDF, imagem, texto, áudio) e recebe direcionamento sobre qual teste molecular pedir e onde pedir de graça.
+> Desenho de produto para uma ferramenta de **triagem multimodal no ponto de cuidado**: o médico sobe dados brutos do paciente (PDF, imagem, texto, áudio) e recebe direcionamento sobre qual teste molecular pedir e onde pedir de graça, com apoio de um Hub de Acesso (catálogo de programas da indústria) e de um assistente conversacional (OncoBot) como via alternativa de entrada.
 
 ---
 
@@ -98,11 +98,19 @@ O coração do produto. Uma árvore de decisão **por subtipo oncológico**, bas
 
 Ver seção 6 para o desenho por subtipo.
 
-### Camada 5 — Base de Programas da Indústria (o "Hub" do pitch deck original)
-Catálogo pesquisável por **patologia × biomarcador × empresa**, exatamente como já desenhado no deck (`Catálogo de Programas`, Fase 1). Para cada teste elegível identificado na Camada 4, a plataforma:
+### Camada 4-B — OncoBot (via conversacional, mesmo motor)
+Alternativa à ingestão por formulário/upload: o médico conversa com um assistente que faz perguntas dirigidas ("qual a histologia?", "há histórico familiar?", "já foi feito algum teste?") até reunir os mesmos campos do `CasoClinico` estruturado (Camada 3). Não é um motor de decisão paralelo — é **outra porta de entrada para a mesma Camada 4**: as perguntas do bot são geradas a partir das lacunas do objeto estruturado, e a resposta final passa pelas mesmas regras versionadas e citáveis por diretriz.
+
+- Útil quando o médico não tem laudo/arquivo em mãos e quer só descrever o caso rapidamente entre consultas.
+- Pode ser usado em conjunto com upload (ex.: sobe o laudo, o bot só pergunta o que ficou faltando — histórico familiar, testes prévios).
+- Mesma régua de pseudonimização da Camada 2 se aplica à conversa: o bot nunca pede nome, CPF ou dado que identifique o paciente: só dado clínico.
+- Mesmo disclaimer da Camada 7: o bot direciona qual exame pedir, não sugere conduta terapêutica.
+
+### Camada 5 — Base de Programas da Indústria (o "Hub" de acesso)
+Catálogo pesquisável por **patologia × biomarcador × empresa** (`Catálogo de Programas`, Fase 1). Para cada teste elegível identificado na Camada 4, a plataforma:
 - Lista quais indústrias oferecem aquele teste gratuitamente/patrocinado naquele subtipo.
 - Mostra critérios de elegibilidade do programa (podem ser mais restritos que o critério clínico puro).
-- Redireciona para o **portal oficial** de cada laboratório/indústria parceira — a plataforma nunca processa a solicitação em si (mantém o desenho "facilitador, não gestor" do deck original).
+- Redireciona para o **portal oficial** de cada laboratório/indústria parceira — a plataforma nunca processa a solicitação em si (é facilitador, não gestor do processo).
 
 Essa base precisa de **manutenção contínua** (programas mudam, critérios mudam) — é dado curado, não gerado por IA.
 
@@ -123,13 +131,13 @@ Gera um resumo que o médico pode salvar/exportar:
 
 ## 4. Estrutura de telas (informação, não visual ainda)
 
-1. **Login/Cadastro do médico** (CRM, especialidade, instituição) — conforme "Acesso Seguro ao HUB" do deck.
-2. **Dashboard** — casos recentes, catálogo de programas (herdado do deck original).
-3. **Novo Caso** — tela de ingestão multimodal (upload, texto, áudio, Plaud).
+1. **Login/Cadastro do médico** (CRM, especialidade, instituição) — acesso seguro ao Hub.
+2. **Dashboard** — casos recentes, catálogo de programas.
+3. **Novo Caso** — tela de ingestão multimodal: formulário/upload (texto, PDF, imagem, áudio, Plaud) **ou** conversa com o OncoBot (ver Camada 4-B).
 4. **Revisão do Caso Estruturado** — médico confirma/corrige o que foi extraído antes de rodar a triagem (humano no loop, reduz risco de erro de extração).
 5. **Resultado da Triagem** — alvo(s), teste(s), critério, programas disponíveis, botão para portal oficial.
 6. **Histórico de Casos** — lista de `R.L.V.-0142`, `R.L.V.-0143`... só o médico logado enxerga a tabela de correspondência real.
-7. **Área de Educação** (Fase 3 do deck original).
+7. **Área de Educação** (Fase 3).
 8. **Analytics/Dashboard agregado** (Fase 3, para parceiros da indústria — sempre agregado e anonimizado).
 
 ---
@@ -169,29 +177,29 @@ Pontos a resolver antes de desenhar o encaixe técnico:
 
 ---
 
-## 8. Stack sugerida para prototipagem (MVP rápido, alinhado ao "Fase 1: MVP — R$14.000 / 15 dias" do deck)
+## 8. Stack sugerida para prototipagem (MVP rápido)
 
 - **Frontend**: Web app simples (Next.js/React), mobile-responsive — médico usa no celular/tablet entre consultas.
 - **Backend**: API leve (Node ou Python/FastAPI) para orquestrar ingestão, pseudonimização, extração e motor de regras.
 - **OCR/parsing**: biblioteca de PDF/OCR (Tesseract ou serviço gerenciado) para laudos digitalizados.
-- **Extração estruturada**: chamada a LLM (ex.: Claude) **apenas sobre o dado já pseudonimizado**, com prompt restrito a extrair entidades clínicas — nunca envia dado identificável a provedor externo.
-- **Motor de triagem**: regras explícitas versionadas (não IA generativa pura) — cada regra referencia a diretriz-fonte, para auditabilidade.
+- **Extração estruturada**: chamada a LLM (ex.: Claude) **apenas sobre o dado já pseudonimizado**, com prompt restrito a extrair entidades clínicas — nunca envia dado identificável a provedor externo. O mesmo modelo conduz a via conversacional do OncoBot (Camada 4-B).
+- **Motor de triagem**: regras explícitas versionadas (não IA generativa pura) — cada regra referencia a diretriz-fonte, para auditabilidade. Compartilhado pelas duas vias de entrada (formulário/upload e OncoBot).
 - **Banco de dados**: separar fisicamente/logicamente a tabela de reidentificação (nome real) do banco de casos estruturados.
-- **Base de programas da indústria**: tabela curada (CMS simples, como já previsto no deck — "Painel Administrativo (CMS) para gestão dos programas sem necessidade de código").
+- **Base de programas da indústria**: tabela curada, com painel administrativo (CMS) simples para gestão dos programas sem necessidade de código.
 
 ---
 
-## 9. Como isso conversa com o pitch deck existente
+## 9. Elementos centrais do Hub de Acesso
 
-| Elemento do deck | Onde entra no desenho novo |
+| Elemento | Onde entra no desenho |
 |---|---|
-| OncoBot / Suporte à Decisão Clínica | Camada 4 (Motor de Triagem) + Camada 6 (Output), com a ingestão multimodal como entrada nova (o deck já mostrava um chat simples; aqui expandimos a entrada de dado) |
+| OncoBot (conversa) / Suporte à Decisão Clínica | Camada 4-B (via de entrada) + Camada 4 (Motor de Triagem) + Camada 6 (Output) |
 | Catálogo de Programas | Camada 5 |
 | Portal do Médico / login / CRM | Estrutura de telas, item 1 |
 | Painel Administrativo (CMS) | Camada 5, manutenção da base |
 | Pré-Validação de elegibilidade | Camada 4, parte "critério de elegibilidade" |
-| Disclosure (privacidade do paciente) | Camada 2 (pseudonimização) — o desenho novo é mais forte que o do deck original, porque agora manipulamos dado real do paciente (PDF, áudio), não só descrição textual genérica |
-| Fases 1/2/3 e orçamento | Mantém a mesma lógica de fases; a ingestão multimodal (PDF/imagem/áudio/Plaud) entra dentro da Fase 1 (MVP) e Fase 2 (IA/fluxo) |
+| Disclosure (privacidade do paciente) | Camada 2 (pseudonimização) — cobre tanto dado real do paciente (PDF, áudio) quanto a conversa com o OncoBot |
+| Fases 1/2/3 e orçamento | Fase 1 (MVP): ingestão multimodal + estrutura de telas. Fase 2: motor de triagem completo + OncoBot + Plaud. Fase 3: educação, analytics, parcerias |
 
 ---
 
