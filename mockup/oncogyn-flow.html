@@ -523,6 +523,8 @@
     background: var(--surface);
     padding: 14px 18px;
   }
+  .note-card.warn { border-left-color: var(--warn); }
+  .note-card.warn .tag { color: var(--warn); }
   .note-card .tag {
     display: inline-block;
     font-size: 10px;
@@ -902,7 +904,7 @@
 
     <div class="card">
       <h3>Perfil clínico</h3>
-      <p class="hint">Grau e estadiamento são eixos independentes: estágio (FIGO I–IV) mede a extensão da doença; grau é a leitura patológica do tecido e não é deduzido do estágio — um estágio IIIC pode ser de baixo ou de alto grau.</p>
+      <p class="hint">Grau e estadiamento são eixos independentes: estágio (FIGO I–IV) mede a extensão da doença; grau é a leitura patológica do tecido e não é deduzido do estágio — um estágio IIIC pode ser de baixo ou de alto grau. Só a histologia é obrigatória para rodar a triagem; grau e estadiamento refinam o resultado mas não bloqueiam — se faltarem, a triagem sinaliza a indicação mais provável e pede confirmação no laudo.</p>
       <div class="field-grid">
         <div class="field">
           <label>Subtipo oncológico</label>
@@ -970,6 +972,11 @@
     </div>
 
     <div id="verdict-paired-content">
+      <div class="note-card warn" id="provisional-caveat" style="display:none;">
+        <span class="tag">A confirmar no laudo</span>
+        <h4 id="provisional-caveat-title">Grau e/ou estágio não informados</h4>
+        <p id="provisional-caveat-text">Indicação abaixo é a mais provável para este perfil, mas não foi confirmada.</p>
+      </div>
       <div class="test-pair">
         <div class="test-card">
           <div class="order">Tumoral · somático</div>
@@ -1324,13 +1331,18 @@
     const estadioAvancado = /^(III|IV)/i.test(e);
     const estadioInicial = e !== '' && !estadioAvancado;
 
+    // Grau e estadiamento confirmados como fora do critério: negativo, não é falta de dado.
     if (baixoGrau || estadioInicial) {
       return { state: 'so-germinativo', histologiaEpitelial };
     }
-    if (!g) return { state: 'grau-pendente', histologiaEpitelial };
-    if (!e) return { state: 'estadio-pendente', histologiaEpitelial };
+    // Confirmados dentro do critério: par completo.
     if (altoGrau && estadioAvancado) return { state: 'pareado', histologiaEpitelial };
-    return { state: 'so-germinativo', histologiaEpitelial };
+
+    // Histologia já elegível (seroso/endometrioide) e nada aponta contra —
+    // só falta confirmar grau e/ou estágio no laudo. Isso não bloqueia o
+    // resultado (só histologia é imprescindível): o somático é sugerido como
+    // provável, sinalizado para confirmação, não escondido atrás de mais campo obrigatório.
+    return { state: 'pareado-provisorio', histologiaEpitelial, grauFaltando: !g, estadioFaltando: !e };
   }
 
   function runTriage() {
@@ -1365,19 +1377,21 @@
       text.textContent = `“${histologiaRaw}” não corresponde a nenhuma histologia epitelial de ovário mapeada nesta versão. Confirme a grafia ou consulte a diretriz correspondente a este perfil.`;
       nextBtn.textContent = '← Completar dados';
       nextBtn.onclick = () => goTo(1);
-    } else if (result.state === 'grau-pendente' || result.state === 'estadio-pendente') {
-      box.classList.add('negative');
-      glyph.textContent = '?';
-      title.textContent = 'Germinativo indicado — somático depende de um dado que falta';
-      text.textContent = result.state === 'grau-pendente'
-        ? `Carcinoma ${result.histologiaEpitelial} em estágio ${estadiamento} tem indicação de par somático+germinativo SE for de alto grau. Grau não informado — volte e complete antes de decidir sobre o teste somático.`
-        : `Carcinoma ${result.histologiaEpitelial} de alto grau tem indicação de par somático+germinativo SE o estágio for III ou IV. Estadiamento não informado — volte e complete antes de decidir sobre o teste somático.`;
-      nextBtn.textContent = '← Completar dados';
-      nextBtn.onclick = () => goTo(1);
-    } else if (result.state === 'pareado') {
+    } else if (result.state === 'pareado' || result.state === 'pareado-provisorio') {
+      const caveat = document.getElementById('provisional-caveat');
       glyph.textContent = '✓';
-      title.textContent = 'Este caso tem indicação para testagem molecular pareada';
-      text.textContent = `Carcinoma ${result.histologiaEpitelial} de alto grau de ovário, estágio ${estadiamento} — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.`;
+      if (result.state === 'pareado') {
+        title.textContent = 'Este caso tem indicação para testagem molecular pareada';
+        text.textContent = `Carcinoma ${result.histologiaEpitelial} de alto grau de ovário, estágio ${estadiamento} — perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.`;
+        caveat.style.display = 'none';
+      } else {
+        const faltando = [result.grauFaltando ? 'grau' : null, result.estadioFaltando ? 'estágio' : null].filter(Boolean).join(' e ');
+        title.textContent = 'Este caso tem indicação provável para testagem pareada';
+        text.textContent = `Carcinoma ${result.histologiaEpitelial} de ovário — histologia compatível com o critério de par somático+germinativo. Confirme ${faltando} no laudo patológico antes de solicitar o teste somático.`;
+        document.getElementById('provisional-caveat-title').textContent = result.grauFaltando && result.estadioFaltando ? 'Grau e estágio não informados' : (result.grauFaltando ? 'Grau não informado' : 'Estágio não informado');
+        document.getElementById('provisional-caveat-text').textContent = `A indicação do teste somático (HRD+BRCA tumoral) abaixo assume que ${faltando} está dentro do critério NCCN (alto grau, estágio III/IV) — o mais comum para esta histologia. Isso não foi confirmado com os dados informados. O germinativo é indicado de qualquer forma.`;
+        caveat.style.display = '';
+      }
       pairedContent.style.display = '';
       nextBtn.textContent = 'Ver programas de acesso →';
       nextBtn.onclick = () => goTo(3);
