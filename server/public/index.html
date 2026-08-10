@@ -975,18 +975,9 @@
 
   <!-- SCREEN 1 - INGESTÃO -->
   <section class="screen active" id="screen-0">
-    <div class="eyebrow">Ginecológico · passo 1 de 4</div>
+    <div class="eyebrow" id="eyebrow-0">Oncologia · passo 1 de 4</div>
     <h1>Descreva o caso</h1>
-    <p class="lede">Use quantas fontes fizer sentido - laudo em PDF, foto, texto livre ou transcrição de consulta - ou converse com o OncoBot se preferir ser guiado por perguntas. Tudo é convertido em iniciais e número de caso antes de qualquer outro processamento.</p>
-
-    <div class="mode-switch subtype-switch" role="tablist" aria-label="Subtipo oncológico" style="margin-bottom:14px;">
-      <button class="mode-btn active" id="subtype-btn-gyn" role="tab" aria-selected="true" onclick="setSubtype('gyn')">
-        <span class="icon">🎗️</span> Ginecológico (Ovário)
-      </button>
-      <button class="mode-btn" id="subtype-btn-prostata" role="tab" aria-selected="false" onclick="setSubtype('prostata')">
-        <span class="icon">🔬</span> Próstata
-      </button>
-    </div>
+    <p class="lede">Descreva o caso com suas palavras ou anexe o laudo - a IA identifica sozinha se é um caso ginecológico ou de próstata e aplica os critérios certos. Use quantas fontes fizer sentido - laudo em PDF, foto, texto livre ou transcrição de consulta - ou converse com o OncoBot se preferir ser guiado por perguntas. Tudo é convertido em iniciais e número de caso antes de qualquer outro processamento.</p>
 
     <div class="mode-switch" role="tablist" aria-label="Como inserir o caso">
       <button class="mode-btn active" id="mode-btn-form" role="tab" aria-selected="true" onclick="setMode('form')">
@@ -1109,8 +1100,10 @@
       <p class="hint" id="fields-hint-prostata" style="display:none;">Extensão da doença (localizado, linfonodo positivo ou metastático) e categoria de risco NCCN são os principais eixos que definem indicação de teste. PSA e Gleason/Grade Group ajudam o motor a inferir a categoria de risco quando ela não vem pronta no laudo. Só a extensão da doença é necessária para rodar a triagem; o resto refina o resultado.</p>
       <div class="field-grid">
         <div class="field">
-          <label>Subtipo oncológico</label>
+          <label>Subtipo oncológico (identificado pela IA)</label>
           <input class="value editable" id="field-subtipo" value="Ginecológico - Ovário" readonly style="cursor:not-allowed;" />
+          <p class="hint" id="tipo-tumor-justificativa" style="margin-top:6px; display:none;"></p>
+          <button class="ghost" type="button" onclick="toggleSubtypeManually()" style="margin-top:8px; font-size:11.5px; padding:6px 10px;">Não é isso? Trocar tipo</button>
         </div>
       </div>
 
@@ -1632,13 +1625,10 @@
   // programas/documentos entre a vertical Ginecológica e a de Próstata.
   let currentSubtype = 'gyn';
 
+  // Chamado automaticamente depois da extração (com base em tipo_tumor
+  // identificado pela IA), não mais por um seletor manual no passo 1.
   function setSubtype(subtype) {
     currentSubtype = subtype;
-    document.getElementById('subtype-btn-gyn').classList.toggle('active', subtype === 'gyn');
-    document.getElementById('subtype-btn-prostata').classList.toggle('active', subtype === 'prostata');
-    document.getElementById('subtype-btn-gyn').setAttribute('aria-selected', subtype === 'gyn');
-    document.getElementById('subtype-btn-prostata').setAttribute('aria-selected', subtype === 'prostata');
-
     document.getElementById('fields-gyn').style.display = subtype === 'gyn' ? '' : 'none';
     document.getElementById('fields-prostata').style.display = subtype === 'prostata' ? '' : 'none';
     document.getElementById('fields-hint-gyn').style.display = subtype === 'gyn' ? '' : 'none';
@@ -1655,17 +1645,29 @@
     });
   }
 
+  // Correção manual pra quando a IA identifica o subtipo errado - troca o
+  // conjunto de campos exibido, mas não reextraí nada (o texto/arquivo já
+  // foi lido pro subtipo anterior); o médico preenche os campos do
+  // subtipo correto manualmente antes de rodar a triagem.
+  function toggleSubtypeManually() {
+    const next = currentSubtype === 'gyn' ? 'prostata' : 'gyn';
+    setSubtype(next);
+    document.getElementById('tipo-tumor-justificativa').style.display = 'none';
+  }
+
   // Código do caso: identificador de sessão, não é o nome do paciente.
-  const caseCode = 'GYN-' + String(Math.floor(1000 + Math.random() * 9000));
+  // Prefixo neutro (não mais "GYN-") - o subtipo só é conhecido depois da
+  // extração, então o código do caso não pode presumir qual é.
+  const caseCode = 'CASO-' + String(Math.floor(1000 + Math.random() * 9000));
   document.querySelectorAll('#case-code-1, #case-code-2, #case-code-3').forEach((el) => { el.textContent = caseCode; });
 
   // Extração real: envia texto + arquivos (PDF/foto) para o backend, que usa a
-  // API da Anthropic com saída estruturada (Camada 3 real, não regex). O
-  // subtipo ativo decide qual schema/prompt o servidor usa.
+  // API da Anthropic com saída estruturada (Camada 3 real, não regex). A
+  // própria extração identifica o subtipo oncológico (tipo_tumor no
+  // retorno) - não é mais escolhido manualmente antes de enviar.
   async function extractCase(text) {
     const formData = new FormData();
     formData.append('text', text || '');
-    formData.append('subtype', currentSubtype);
     pdfFiles.forEach((f) => formData.append('files', f));
     photoFiles.forEach((f) => formData.append('files', f));
 
@@ -1725,7 +1727,24 @@
       const extracted = await extractCase(text);
       extractedPatientName = (extracted.nome_paciente || '').trim();
 
-      if (currentSubtype === 'gyn') {
+      if (extracted.tipo_tumor === 'Não identificado') {
+        errorBox.textContent = '⚠️ Não consegui identificar se este é um caso ginecológico ou de próstata a partir do que foi descrito/anexado. Descreva de forma mais específica (ex.: mencione o órgão, a histologia, PSA ou estágio FIGO) e tente de novo.';
+        errorBox.style.display = '';
+        return;
+      }
+
+      const detectedSubtype = extracted.tipo_tumor === 'Próstata' ? 'prostata' : 'gyn';
+      setSubtype(detectedSubtype);
+
+      const tipoJustEl = document.getElementById('tipo-tumor-justificativa');
+      if (extracted.tipo_tumor_justificativa) {
+        tipoJustEl.textContent = 'Identificado automaticamente: ' + extracted.tipo_tumor_justificativa;
+        tipoJustEl.style.display = '';
+      } else {
+        tipoJustEl.style.display = 'none';
+      }
+
+      if (detectedSubtype === 'gyn') {
         fillField('field-histologia', extracted.histologia);
         fillField('field-grau', extracted.grau);
         fillField('field-estadiamento', extracted.estadiamento);
