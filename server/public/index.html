@@ -694,6 +694,54 @@
   }
   .note-card .script-line .label { color: var(--ink-muted); font-weight: 600; }
 
+  /* note-card como <details> - texto secundário/explicativo fica recolhido
+     por padrão, com um "▾" pra expandir, em vez de sempre poluir a tela. */
+  .note-card { padding: 0; overflow: hidden; }
+  .note-card > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 13px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .note-card > summary::-webkit-details-marker { display: none; }
+  .note-card > summary::marker { content: ''; }
+  .note-card > summary .summary-text { flex: 1; min-width: 0; }
+  .note-card > summary .summary-text .tag { margin-bottom: 3px; }
+  .note-card > summary .summary-text h4 { margin: 0; }
+  .note-card > summary .chevron {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: var(--ink-faint);
+    transition: transform .15s ease;
+    margin-top: 2px;
+  }
+  .note-card[open] > summary .chevron { transform: rotate(180deg); }
+  .note-card .card-body { padding: 0 18px 15px; }
+  .note-card .card-body p:first-child { margin-top: 0; }
+  .note-card .card-body > *:last-child { margin-bottom: 0; }
+
+  /* selo com a contagem de testes - resposta rápida "quantos e quais",
+     sem precisar ler o parágrafo inteiro do veredito. */
+  .verdict-count-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--accent-ink);
+    background: var(--accent);
+    padding: 4px 11px;
+    border-radius: 100px;
+    margin-bottom: 9px;
+  }
+  .verdict-count-pill.zero { background: var(--ink-faint); }
+
   /* ---- voice intake ---- */
   .voice-panel { display: none; margin-top: 14px; }
   .voice-panel.open { display: block; }
@@ -1207,17 +1255,25 @@
     <div class="verdict" id="verdict-box">
       <span class="glyph" id="verdict-glyph">✓</span>
       <div>
+        <span class="verdict-count-pill" id="verdict-count-pill" style="display:none;"></span>
         <h2 id="verdict-title">Este caso tem indicação para testagem molecular</h2>
         <p id="verdict-text">Carcinoma seroso de alto grau de ovário em estágio avançado - perfil com indicação simultânea de teste somático e germinativo, conforme diretrizes internacionais vigentes.</p>
       </div>
     </div>
 
     <div id="verdict-paired-content">
-      <div class="note-card warn" id="provisional-caveat" style="display:none;">
-        <span class="tag">A confirmar no laudo</span>
-        <h4 id="provisional-caveat-title">Grau e/ou estágio não informados</h4>
-        <p id="provisional-caveat-text">Indicação abaixo é a mais provável para este perfil, mas não foi confirmada.</p>
-      </div>
+      <details class="note-card warn" id="provisional-caveat" style="display:none;" open>
+        <summary>
+          <span class="summary-text">
+            <span class="tag">A confirmar no laudo</span>
+            <h4 id="provisional-caveat-title">Grau e/ou estágio não informados</h4>
+          </span>
+          <span class="chevron">▾</span>
+        </summary>
+        <div class="card-body">
+          <p id="provisional-caveat-text">Indicação abaixo é a mais provável para este perfil, mas não foi confirmada.</p>
+        </div>
+      </details>
       <div class="test-steps">
         <div class="test-step primary">
           <div class="step-num">1</div>
@@ -1240,16 +1296,23 @@
         </div>
       </div>
 
-      <div class="note-card">
-        <span class="tag">Indicação concomitante</span>
-        <h4>Germinativo - independente do resultado somático</h4>
-        <p>Não altera a conduta terapêutica atual. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
-        <div class="stats-line">
-          <span><strong>~1/3</strong> dos parentes elegíveis não é informado do risco</span>
-          <span><strong>60–70%</strong> risco vitalício de Ca mama em portadoras BRCA</span>
-          <span><strong>20–30%</strong> risco vitalício de Ca ovário em portadoras BRCA</span>
+      <details class="note-card">
+        <summary>
+          <span class="summary-text">
+            <span class="tag">Indicação concomitante</span>
+            <h4>Germinativo - independente do resultado somático</h4>
+          </span>
+          <span class="chevron">▾</span>
+        </summary>
+        <div class="card-body">
+          <p>Não altera a conduta terapêutica atual. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
+          <div class="stats-line">
+            <span><strong>~1/3</strong> dos parentes elegíveis não é informado do risco</span>
+            <span><strong>60–70%</strong> risco vitalício de Ca mama em portadoras BRCA</span>
+            <span><strong>20–30%</strong> risco vitalício de Ca ovário em portadoras BRCA</span>
+          </div>
         </div>
-      </div>
+      </details>
     </div>
 
     <div id="verdict-germline-content">
@@ -1261,11 +1324,18 @@
           <div class="src">Referência: ASCO Guideline (JCO 2020) · SGO</div>
         </div>
       </div>
-      <div class="note-card">
-        <span class="tag">Somático - critério não atendido</span>
-        <h4>HRD Somático não indicado por esta regra</h4>
-        <p id="germline-only-reason">O protocolo de teste somático (HRD) para elegibilidade a PARP é específico para histologia serosa ou endometrioide de alto grau em estágio III/IV (NCCN). Reavalie se grau, histologia ou estágio forem atualizados.</p>
-      </div>
+      <details class="note-card" open>
+        <summary>
+          <span class="summary-text">
+            <span class="tag">Somático - critério não atendido</span>
+            <h4>HRD Somático não indicado por esta regra</h4>
+          </span>
+          <span class="chevron">▾</span>
+        </summary>
+        <div class="card-body">
+          <p id="germline-only-reason">O protocolo de teste somático (HRD) para elegibilidade a PARP é específico para histologia serosa ou endometrioide de alto grau em estágio III/IV (NCCN). Reavalie se grau, histologia ou estágio forem atualizados.</p>
+        </div>
+      </details>
     </div>
 
     <div class="disclaimer">
@@ -1277,6 +1347,7 @@
     <div class="verdict" id="verdict-box-p">
       <span class="glyph" id="verdict-glyph-p">✓</span>
       <div>
+        <span class="verdict-count-pill" id="verdict-count-pill-p" style="display:none;"></span>
         <h2 id="verdict-title-p">Este caso tem indicação para testagem molecular</h2>
         <p id="verdict-text-p">-</p>
       </div>
@@ -1305,11 +1376,18 @@
         </div>
       </div>
 
-      <div class="note-card">
-        <span class="tag">Indicação concomitante</span>
-        <h4>Germinativo - independente do resultado somático</h4>
-        <p>Cerca de 8-15% das próstatas metastáticas carregam mutação germinativa. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
-      </div>
+      <details class="note-card">
+        <summary>
+          <span class="summary-text">
+            <span class="tag">Indicação concomitante</span>
+            <h4>Germinativo - independente do resultado somático</h4>
+          </span>
+          <span class="chevron">▾</span>
+        </summary>
+        <div class="card-body">
+          <p>Cerca de 8-15% das próstatas metastáticas carregam mutação germinativa. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
+        </div>
+      </details>
     </div>
 
     <div id="verdict-germline-content-p" style="display:none;">
@@ -1321,19 +1399,33 @@
           <div class="src">Referência: NCCN Prostate Cancer Guidelines · EAU</div>
         </div>
       </div>
-      <div class="note-card">
-        <span class="tag">Somático - critério não atendido</span>
-        <h4>Painel somático HRR não indicado por esta regra</h4>
-        <p>O painel somático HRR é um biomarcador de doença metastática (mHSPC/mCRPC) - não indicado para doença localizada nesta versão da regra. Reavalie se a doença progredir para metastática.</p>
-      </div>
+      <details class="note-card" open>
+        <summary>
+          <span class="summary-text">
+            <span class="tag">Somático - critério não atendido</span>
+            <h4>Painel somático HRR não indicado por esta regra</h4>
+          </span>
+          <span class="chevron">▾</span>
+        </summary>
+        <div class="card-body">
+          <p>O painel somático HRR é um biomarcador de doença metastática (mHSPC/mCRPC) - não indicado para doença localizada nesta versão da regra. Reavalie se a doença progredir para metastática.</p>
+        </div>
+      </details>
     </div>
 
     <div id="verdict-none-content-p" style="display:none;">
-      <div class="note-card">
-        <span class="tag">Sem indicação por esta regra</span>
-        <h4>Nenhum teste genético indicado no momento</h4>
-        <p>Doença localizada de risco baixo ou intermediário favorável, sem linfonodo positivo, sem histologia intraductal/cribriforme, sem ascendência Ashkenazi relatada e sem histórico familiar relatado. Reavalie se a categoria de risco, a histologia ou o histórico familiar forem atualizados.</p>
-      </div>
+      <details class="note-card" open>
+        <summary>
+          <span class="summary-text">
+            <span class="tag">Sem indicação por esta regra</span>
+            <h4>Nenhum teste genético indicado no momento</h4>
+          </span>
+          <span class="chevron">▾</span>
+        </summary>
+        <div class="card-body">
+          <p>Doença localizada de risco baixo ou intermediário favorável, sem linfonodo positivo, sem histologia intraductal/cribriforme, sem ascendência Ashkenazi relatada e sem histórico familiar relatado. Reavalie se a categoria de risco, a histologia ou o histórico familiar forem atualizados.</p>
+        </div>
+      </details>
     </div>
 
     <div class="disclaimer">
@@ -2248,6 +2340,16 @@
     if (currentSubtype === 'prostata') runTriageProstata(); else runTriageGyn();
   }
 
+  // Selo "N testes indicados" no topo do resultado - resposta imediata de
+  // "quantos e quais", em vez de exigir ler o parágrafo inteiro do veredito.
+  function setCountPill(pillId, count) {
+    const pill = document.getElementById(pillId);
+    if (count === null) { pill.style.display = 'none'; return; }
+    pill.textContent = count === 0 ? '0 testes indicados' : count === 1 ? '1 teste indicado' : `${count} testes indicados`;
+    pill.classList.toggle('zero', count === 0);
+    pill.style.display = '';
+  }
+
   function runTriageGyn() {
     const histologiaRaw = document.getElementById('field-histologia').value.trim();
     const grauRaw = document.getElementById('field-grau').value.trim();
@@ -2273,6 +2375,7 @@
       text.textContent = 'Histologia não identificada. Volte à revisão do caso e complete o campo antes de rodar a triagem novamente.';
       nextBtn.textContent = '← Completar dados';
       nextBtn.onclick = () => goTo(1);
+      setCountPill('verdict-count-pill', null);
     } else if (result.state === 'nao-reconhecida') {
       box.classList.add('negative');
       glyph.textContent = '!';
@@ -2280,6 +2383,7 @@
       text.textContent = `“${histologiaRaw}” não corresponde a nenhuma histologia epitelial de ovário mapeada nesta versão. Confirme a grafia ou consulte a diretriz correspondente a este perfil.`;
       nextBtn.textContent = '← Completar dados';
       nextBtn.onclick = () => goTo(1);
+      setCountPill('verdict-count-pill', null);
     } else if (result.state === 'pareado' || result.state === 'pareado-provisorio') {
       const caveat = document.getElementById('provisional-caveat');
       glyph.textContent = '✓';
@@ -2298,6 +2402,7 @@
       pairedContent.style.display = '';
       nextBtn.textContent = 'Ver programas de acesso →';
       nextBtn.onclick = () => goTo(3);
+      setCountPill('verdict-count-pill', 2);
     } else {
       glyph.textContent = '✓';
       title.textContent = 'Este caso tem indicação para teste germinativo';
@@ -2305,6 +2410,7 @@
       germlineContent.style.display = '';
       nextBtn.textContent = 'Ver programas de acesso →';
       nextBtn.onclick = () => goTo(3);
+      setCountPill('verdict-count-pill', 1);
     }
 
     applyIndicationVisibility(result);
@@ -2341,6 +2447,7 @@
       text.textContent = 'Extensão da doença (ou categoria de risco) não identificada. Volte à revisão do caso e complete o campo antes de rodar a triagem novamente.';
       nextBtn.textContent = '← Completar dados';
       nextBtn.onclick = () => goTo(1);
+      setCountPill('verdict-count-pill-p', null);
     } else if (result.state === 'pareado') {
       glyph.textContent = '✓';
       title.textContent = 'Este caso tem indicação para 2 testes';
@@ -2348,6 +2455,7 @@
       pairedContent.style.display = '';
       nextBtn.textContent = 'Ver programas de acesso →';
       nextBtn.onclick = () => goTo(3);
+      setCountPill('verdict-count-pill-p', 2);
     } else if (result.state === 'so-germinativo') {
       glyph.textContent = '✓';
       title.textContent = 'Este caso tem indicação para teste germinativo';
@@ -2356,6 +2464,7 @@
       germlineContent.style.display = '';
       nextBtn.textContent = 'Ver programas de acesso →';
       nextBtn.onclick = () => goTo(3);
+      setCountPill('verdict-count-pill-p', 1);
     } else {
       glyph.textContent = '✓';
       title.textContent = 'Sem indicação de teste genético por esta regra';
@@ -2363,6 +2472,7 @@
       noneContent.style.display = '';
       nextBtn.textContent = '← Revisar dados do caso';
       nextBtn.onclick = () => goTo(1);
+      setCountPill('verdict-count-pill-p', 0);
     }
 
     applyIndicationVisibilityProstata(result);
