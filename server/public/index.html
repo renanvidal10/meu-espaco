@@ -358,6 +358,38 @@
   .thumb-row { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
   .thumb-row img { width: 22px; height: 22px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
 
+  .attached-files-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    padding: 5px 6px 5px 10px;
+    border-radius: 100px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--ink-muted);
+    max-width: 240px;
+  }
+  .file-chip .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-chip button {
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--ink-faint);
+    font-size: 13px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+  }
+  .file-chip button:hover { background: var(--warn-soft); color: var(--warn); }
+
   .ocr-disclaimer {
     margin-top: 10px;
     font-size: 12px;
@@ -996,6 +1028,8 @@
         <input type="file" id="input-pdf" accept="application/pdf" multiple style="display:none" onchange="addFiles('pdf', this.files)" />
         <input type="file" id="input-photo" accept="image/*" multiple style="display:none" onchange="addFiles('photo', this.files)" />
 
+        <div class="attached-files-list" id="attached-files-list" style="display:none;"></div>
+
         <div class="ocr-disclaimer" id="ocr-disclaimer" style="display:none;">
           ℹ️ PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto abaixo - tudo é combinado na estruturação do caso.
         </div>
@@ -1029,6 +1063,7 @@
 
       <div class="btn-row">
         <button class="ghost" type="button">Salvar rascunho</button>
+        <button class="ghost" type="button" onclick="clearIntake()">Limpar tudo</button>
         <button class="primary" type="button" id="btn-extract" onclick="runExtraction()">Estruturar caso →</button>
         <span class="note">Nenhum dado de identificação é enviado a modelos externos</span>
       </div>
@@ -1806,40 +1841,122 @@
   let pdfFiles = [];
   let photoFiles = [];
 
+  // Alguns navegadores/SO não preenchem file.type de forma confiável para
+  // todo PDF (fica vazio em vez de "application/pdf") - cair pra extensão
+  // evita que o arquivo seja silenciosamente ignorado no drag-and-drop.
+  function isPdfFile(f) {
+    return f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+  }
+  function isImageFile(f) {
+    return f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|heic|heif|bmp|tiff?)$/i.test(f.name);
+  }
+
   function addFiles(kind, fileList) {
     const files = Array.from(fileList || []);
     if (!files.length) return;
+    if (kind === 'pdf') pdfFiles = pdfFiles.concat(files);
+    else photoFiles = photoFiles.concat(files);
+    refreshFileTiles();
+  }
 
-    if (kind === 'pdf') {
-      pdfFiles = pdfFiles.concat(files);
-      document.getElementById('file-name-pdf').textContent = pdfFiles.length === 1 ? pdfFiles[0].name : `${pdfFiles.length} arquivos anexados`;
-      document.getElementById('tile-pdf').classList.add('selected');
-    } else {
-      photoFiles = photoFiles.concat(files);
-      document.getElementById('file-name-photo').textContent = photoFiles.length === 1 ? photoFiles[0].name : `${photoFiles.length} arquivos anexados`;
-      document.getElementById('tile-photo').classList.add('selected');
+  function removeFile(kind, idx) {
+    if (kind === 'pdf') pdfFiles.splice(idx, 1);
+    else photoFiles.splice(idx, 1);
+    refreshFileTiles();
+  }
 
-      const thumbRow = document.getElementById('thumb-row');
-      files.forEach((f) => {
-        if (f.type.startsWith('image/')) {
-          const img = document.createElement('img');
-          img.src = URL.createObjectURL(f);
-          img.alt = f.name;
-          thumbRow.appendChild(img);
-        }
-      });
-    }
+  // Redesenha os dois tiles (nome/contagem, miniaturas) e a lista de chips
+  // removíveis a partir do estado atual de pdfFiles/photoFiles - chamado
+  // sempre que um arquivo é adicionado ou removido, pra nunca dessincronizar.
+  function refreshFileTiles() {
+    document.getElementById('file-name-pdf').textContent = pdfFiles.length
+      ? (pdfFiles.length === 1 ? pdfFiles[0].name : `${pdfFiles.length} arquivos anexados`)
+      : '';
+    document.getElementById('tile-pdf').classList.toggle('selected', pdfFiles.length > 0);
+
+    document.getElementById('file-name-photo').textContent = photoFiles.length
+      ? (photoFiles.length === 1 ? photoFiles[0].name : `${photoFiles.length} arquivos anexados`)
+      : '';
+    document.getElementById('tile-photo').classList.toggle('selected', photoFiles.length > 0);
+
+    const thumbRow = document.getElementById('thumb-row');
+    thumbRow.innerHTML = '';
+    photoFiles.forEach((f) => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      img.alt = f.name;
+      thumbRow.appendChild(img);
+    });
 
     document.getElementById('ocr-disclaimer').style.display = (pdfFiles.length || photoFiles.length) ? '' : 'none';
+    renderAttachedFiles();
+  }
+
+  function renderAttachedFiles() {
+    const list = document.getElementById('attached-files-list');
+    const all = [
+      ...pdfFiles.map((f, idx) => ({ f, kind: 'pdf', idx })),
+      ...photoFiles.map((f, idx) => ({ f, kind: 'photo', idx })),
+    ];
+    list.style.display = all.length ? 'flex' : 'none';
+    list.innerHTML = '';
+    all.forEach(({ f, kind, idx }) => {
+      const chip = document.createElement('span');
+      chip.className = 'file-chip';
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'name';
+      nameSpan.textContent = (kind === 'pdf' ? '📄 ' : '🖼️ ') + f.name;
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = '×';
+      removeBtn.setAttribute('aria-label', 'Remover ' + f.name);
+      removeBtn.onclick = () => removeFile(kind, idx);
+      chip.appendChild(nameSpan);
+      chip.appendChild(removeBtn);
+      list.appendChild(chip);
+    });
+  }
+
+  // Reseta a tela de ingestão inteira: arquivos, texto, ditado por voz e
+  // conversa com o OncoBot - pra começar um caso do zero sem recarregar a página.
+  function clearIntake() {
+    pdfFiles = [];
+    photoFiles = [];
+    document.getElementById('case-text').value = '';
+    document.getElementById('tile-text').classList.remove('selected');
+    document.getElementById('extract-error').style.display = 'none';
+
+    if (recording) toggleRecording();
+    recSeconds = 0;
+    document.getElementById('voice-time').textContent = '00:00';
+    document.getElementById('tile-voice').classList.remove('selected');
+    document.getElementById('voice-panel').classList.remove('open');
+
+    chatTranscript = [];
+    chatStep = 0;
+    document.getElementById('chat-window').innerHTML = '';
+    appendChatMsg('bot', 'Olá, Dra. Vamos triar um caso. Descreva a histologia (ou tipo tumoral) e o estágio/extensão da doença ao diagnóstico.');
+    document.getElementById('chat-input-row').style.display = '';
+    document.getElementById('chat-finish-row').style.display = 'none';
+
+    refreshFileTiles();
   }
 
   // Rotea arquivo solto por tipo: PDF vira "Laudo em PDF", imagem vira "Foto do laudo".
+  // Arquivo não reconhecido como nenhum dos dois avisa em vez de sumir sem explicação.
   function routeDroppedFiles(fileList) {
     const files = Array.from(fileList || []);
-    const pdfs = files.filter((f) => f.type === 'application/pdf');
-    const images = files.filter((f) => f.type.startsWith('image/'));
+    const pdfs = files.filter(isPdfFile);
+    const images = files.filter((f) => !isPdfFile(f) && isImageFile(f));
+    const unknown = files.filter((f) => !isPdfFile(f) && !isImageFile(f));
     if (pdfs.length) addFiles('pdf', pdfs);
     if (images.length) addFiles('photo', images);
+    if (unknown.length) {
+      const errorBox = document.getElementById('extract-error');
+      const names = unknown.map((f) => f.name).join(', ');
+      errorBox.textContent = `⚠️ Não reconheci "${names}" como PDF ou imagem - anexe pelos tiles "Laudo em PDF" ou "Foto do laudo", ou confira o formato do arquivo.`;
+      errorBox.style.display = '';
+    }
   }
 
   function setupDropzone() {
