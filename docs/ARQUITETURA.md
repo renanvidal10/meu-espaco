@@ -224,9 +224,15 @@ A mesma exigência de "primeiro a diretriz, depois o código" vale para qualquer
 
 | Subtipo | Status |
 |---|---|
+| Ovário | **Implementado (v0.3)** — ver seção 6 |
 | Próstata | **Implementado (v0.5)** — ver seção 6-B |
-| Mama | Levantamento de diretrizes pendente |
-| Pulmão (NSCLC) | Levantamento de diretrizes pendente |
+| Mama | **Implementado (v1.2)** — ver seção 16.1 |
+| Pâncreas | **Implementado (v1.2)** — ver seção 16.2 |
+| Colorretal | **Implementado (v1.2)** — ver seção 16.3 |
+| Endométrio | **Implementado (v1.2)** — ver seção 16.4 |
+| Pulmão (NSCLC) | **Implementado (v1.2)** — ver seção 16.5 |
+| Pulmão de pequenas células | Fora de escopo — o motor recusa explicitamente |
+| Neuroendócrino de pâncreas | Fora de escopo — o motor recusa explicitamente |
 
 O mapeamento **indústria × teste × programa gratuito** (quem oferece HRD, quem oferece germinativo) continua sendo uma camada separada (Camada 5) e uma etapa de validação sua — não faz parte da diretriz clínica em si e não deve influenciá-la (ver regra de ouro da seção 10).
 
@@ -541,3 +547,204 @@ são temporárias — em vez de o médico descobrir sozinho que o acesso sumiu.
 
 Quando houver banco (`DATABASE_URL` de um Neon/Supabase), o aviso desaparece
 sozinho e as contas passam a persistir, sem nenhuma mudança de código.
+
+## 15. Registro único de tumores (v1.2) — `server/public/tumors.js`
+
+Até a v1.1 cada subtipo tinha o seu próprio conjunto de campos no HTML, a sua
+função `classifyCase*`, a sua `renderDocs*` e o seu bloco de programas —
+duplicado por cópia. Com dois tumores isso já era ruim; com sete seria
+insustentável, e pior: o schema de extração do backend e a regra clínica do
+frontend viviam em arquivos diferentes e saíam de sincronia sem ninguém notar.
+
+A v1.2 troca isso por **um registro declarativo único**, `server/public/tumors.js`,
+carregado dos dois lados por um wrapper UMD:
+
+- **servidor** — `require('./public/tumors.js')` monta o `UNIFIED_SCHEMA` da
+  extração e a lista de subtipos do prompt;
+- **navegador** — `<script src="/tumors.js">` monta os campos da revisão, roda a
+  regra, desenha o resultado e gera os documentos de solicitação.
+
+Cada tumor declara `{ id, label, short, detect, fields[], hint, classify(v),
+diagnosis(v) }` e, opcionalmente, `relevance(v)`. **Toda a camada de tela é
+genérica**: ela não sabe o nome de nenhum tumor. Acrescentar um subtipo é
+acrescentar um objeto no registro — o schema de extração, os campos, o motor, os
+cards de programa e os PDFs de solicitação passam a existir sozinhos.
+
+O processo obrigatório continua valendo e não mudou: **diretriz primeiro, código
+depois**. Nenhuma regra entra no registro sem estar nesta documentação, com a
+fonte e o critério exato que a aciona.
+
+## 16. Base de diretrizes — os cinco subtipos da v1.2
+
+Mesmo processo das seções 6 e 6-B: diretriz pesquisada e documentada antes de
+qualquer linha de motor. As fontes abaixo são as sociedades que emitem diretriz
+para cada sítio; na interface elas **não** são citadas por nome (decisão de
+produto da v1.2 — o médico lê "diretrizes nacionais e internacionais vigentes",
+e a rastreabilidade fica aqui, neste documento).
+
+### 16.1 Mama
+
+**Fontes**: NCCN Genetic/Familial High-Risk Assessment: Breast, Ovarian,
+Pancreatic and Prostate (v2.2026); ASCO–SSO "Germline Testing in Patients With
+Breast Cancer" (JCO 2024, DOI 10.1200/JCO.23.02225).
+
+**Eixo central**: subtipo por imuno-histoquímica (RE/RP/HER2) + idade ao
+diagnóstico. Extensão da doença define o teste somático.
+
+**Regra germinativa — indicado quando qualquer um destes é atendido:**
+- Diagnóstico aos 50 anos ou menos, qualquer subtipo.
+- Subtipo triplo-negativo, **em qualquer idade** (o corte etário de 60 anos das
+  versões antigas do NCCN foi removido; hoje o critério é universal para TNBC).
+- Doença metastática, qualquer subtipo — o resultado define elegibilidade a
+  inibidor de PARP.
+- Histórico familiar oncológico relatado.
+
+**Regra somática — indicado quando:** doença metastática **e** subtipo luminal
+(RH+/HER2−). O painel cobre PIK3CA, ESR1 e alvos acionáveis; ESR1 deve ser
+reavaliado à progressão sob terapia endócrina.
+
+> **Divergência conhecida e deliberada**: a ASCO–SSO recomenda oferecer teste
+> germinativo a **todo** paciente com câncer de mama diagnosticado aos 65 anos
+> ou menos, um critério mais largo que o do NCCN. O motor segue a linha do NCCN
+> (≤50 + TNBC + metastático + histórico familiar) por ser a mais usada na prática
+> brasileira. Trocar para o corte de 65 anos é mudar um número em `classify()` —
+> mas é decisão clínica, não de código, e precisa ser tomada aqui primeiro.
+
+### 16.2 Pâncreas
+
+**Fonte**: NCCN Pancreatic Adenocarcinoma Guidelines; NCCN Genetic/Familial
+High-Risk Assessment (v2.2026).
+
+**Regra germinativa — indicação universal.** Todo adenocarcinoma ductal (PDAC)
+tem indicação de teste germinativo ao diagnóstico, **independente de idade,
+estágio ou histórico familiar**. Esta é a regra mais importante da seção e a
+mais desobedecida na prática: em uma série de 854 pacientes com PDAC, apenas 3
+de 33 portadores de mutação deletéria (9%) tinham histórico familiar relevante —
+ou seja, **triar por histórico familiar deixa passar 91% dos portadores**.
+
+**Regra somática — indicado quando:** doença metastática. Perfil tumoral +
+MSI/MMR, para alvos acionáveis e para confirmar alterações em genes de reparo
+quando o germinativo é negativo.
+
+**Fora de escopo**: tumor neuroendócrino de pâncreas segue outra diretriz. O
+motor **recusa explicitamente** em vez de aplicar a regra do PDAC por analogia.
+
+**Nota de impacto terapêutico** (exibida quando metastático + platina): em
+doença metastática com mutação germinativa BRCA1/2 e resposta mantida à platina
+há indicação de manutenção com inibidor de PARP — o resultado muda a conduta
+dentro dessa janela, o que torna o tempo do teste clinicamente relevante.
+
+### 16.3 Colorretal
+
+**Fontes**: NCCN Genetic/Familial High-Risk Assessment: Colorectal, Endometrial
+and Gastric (2025); NCCN Colon/Rectal Cancer Guidelines (2026).
+
+**Regra 1 — pesquisa de MMR/MSI: universal.** Todo carcinoma colorretal recém-
+diagnosticado tem indicação, **independente de idade ou histórico familiar**. Um
+único teste informa três coisas de uma vez: prognóstico, elegibilidade a
+imunoterapia e risco familiar (síndrome de Lynch). Não há evidência que
+favoreça IHQ das proteínas de reparo sobre análise de MSI ou vice-versa — os
+dois métodos são aceitos.
+
+**Regra 2 — confirmação germinativa de Lynch:** indicada quando o tumor é
+dMMR/MSI-alto. Painel MLH1, MSH2, MSH6, PMS2, EPCAM. **Ressalva embutida no
+texto do resultado**: perda isolada de MLH1 exige antes afastar causa esporádica
+(metilação do promotor ou BRAF V600E) — pular esse passo gera encaminhamento
+genético desnecessário.
+
+**Regra 3 — perfil somático:** indicado em doença metastática, antes de definir
+terapia dirigida. RAS mutado contraindica anti-EGFR; BRAF V600E define esquema
+específico; HER2 amplificado abre linha dirigida.
+
+Quando MMR/MSI já foi feito e veio pMMR/MSS em doença não metastática, o motor
+responde **"nenhum teste adicional indicado"** — e diz que reavaliar faz sentido
+se a doença progredir. Não é o mesmo que "sem indicação".
+
+### 16.4 Endométrio
+
+**Fontes**: NCCN Uterine Neoplasms (2025/2026); NCCN Genetic/Familial High-Risk
+Assessment: Colorectal, Endometrial and Gastric (2025).
+
+**Regra 1 — classificação molecular: universal.** Pesquisa de MMR/MSI indicada
+para todo carcinoma de endométrio, independente de idade ou histórico familiar —
+mesma lógica do colorretal, e as duas neoplasias são rastreadas juntas na
+diretriz de Lynch. A classificação molecular completa acrescenta **POLE** e
+**p53**, com impacto prognóstico e de conduta adjuvante. Os quatro grupos são
+POLE-mutado, dMMR, p53-anormal e NSMP; **POLE prevalece sobre os demais
+marcadores** em tumores multi-classificadores.
+
+**Regra 2 — confirmação germinativa de Lynch:** indicada quando dMMR, com a
+mesma ressalva de MLH1 do colorretal.
+
+### 16.5 Pulmão — não pequenas células (NSCLC)
+
+**Fonte**: NCCN Non-Small Cell Lung Cancer Guidelines (2026).
+
+**Eixo central**: ao contrário dos demais sítios, aqui a indicação é
+**predominantemente somática** — não há regra germinativa universal.
+
+**Regra — painel molecular amplo:** indicado em doença **localmente avançada ou
+metastática**, antes de definir a primeira linha. Cobre no mínimo EGFR, ALK,
+ROS1, BRAF V600E, KRAS (incl. G12C), MET (ex14 skipping e amplificação), RET,
+NTRK1/2/3 e ERBB2/HER2.
+
+**Por que amplo e não gene a gene**: a própria diretriz recomenda perfil amplo
+em vez de testagem sequencial, para **minimizar consumo e desperdício de
+tecido** — e, na prática, para não atrasar a decisão terapêutica. Quando o
+tecido é insuficiente, a biópsia líquida é alternativa aceita.
+
+**Doença inicial ressecável**: o motor responde "sem indicação de painel amplo"
+mas registra que cenários iniciais podem ter pesquisa dirigida (ex.: EGFR para
+terapia adjuvante) — e pede reavaliação conforme a conduta.
+
+**Fora de escopo**: carcinoma de **pequenas células** segue via clínica
+distinta. O motor recusa explicitamente em vez de aplicar a regra do NSCLC.
+
+## 17. Modo de acesso simples (v1.2)
+
+A v1.0 implementou autenticação completa por email + senha (seção 11). Ela
+depende de duas coisas que a fase de validação clínica ainda não tem: **domínio
+próprio** (o remetente de sandbox do Resend só entrega ao dono da conta, então
+um médico real nunca receberia o link de redefinição) e **banco persistente**.
+
+A v1.2 introduz `AUTH_MODE`, com dois valores:
+
+| Valor | Comportamento |
+|---|---|
+| `simples` (padrão) | O médico entra com **nome + CRM**. `POST /api/auth/acesso` emite a sessão; as rotas de email/senha respondem 404. |
+| `completo` | O fluxo da seção 11 (cadastro, link por email, senha). `POST /api/auth/acesso` responde 404. |
+
+Decisões relevantes:
+
+- **Não é "sem autenticação".** A sessão emitida é a mesma dos dois modos, com o
+  mesmo TTL e o mesmo armazenamento por hash. `/api/extract` e `/api/chat`
+  continuam protegidos — o que muda é o atrito de entrada, não a proteção. Isso
+  importa porque `/api/extract` consome créditos pagos da API.
+- **Identidade estável por CRM.** O CRM é normalizado em um identificador
+  interno (`crm-123456-sp@acesso.oncogenyx`), então o mesmo CRM sempre cai na
+  mesma conta e o histórico é recuperado quando há banco. O nome é atualizado a
+  cada entrada: é ele que vai impresso na solicitação assinada, então vale
+  sempre o que o médico acabou de digitar.
+- **As rotas do modo desligado somem de verdade** (404), em vez de ficarem de pé
+  prometendo um email de recuperação que ninguém enviaria.
+- **Voltar para o modo completo é uma variável de ambiente**, não um refactor: o
+  código dos dois fluxos convive.
+
+## 18. Diretrizes na interface (v1.2)
+
+Decisão de produto: a interface **não cita sociedades por nome**. Onde antes
+aparecia "conforme NCCN Ovarian Cancer Guideline e ESMO (2026)", hoje aparece
+"com base em diretrizes clínicas nacionais e internacionais vigentes".
+
+Motivos:
+
+- Citar seis siglas em toda tela polui a leitura sem ajudar a decisão.
+- A rastreabilidade continua existindo — ela mora **aqui**, com a fonte e o
+  critério exato, que é onde alguém que precise auditar vai procurar.
+- Evita a leitura de endosso: a plataforma **aplica** critérios publicados, não
+  fala em nome de nenhuma sociedade.
+
+As citações permanecem nos prompts de extração quando são instrução técnica ao
+modelo (ex.: a definição das categorias de risco na próstata), porque ali o nome
+da diretriz é o que ancora a resposta correta — e esse texto nunca é exibido ao
+médico.

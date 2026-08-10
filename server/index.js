@@ -14,6 +14,17 @@ const plaud = require('./plaud');
 
 const app = express();
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+// Modo de acesso.
+//   'simples'  -> o médico entra só com nome e CRM. Não depende de domínio
+//                 próprio, de provedor de email nem de banco persistente, e é
+//                 o modo adequado para a fase de validação clínica.
+//   'completo' -> cadastro por email com senha e link de definição (o fluxo
+//                 já implementado abaixo), a ser ligado quando houver domínio.
+// A sessão é emitida do mesmo jeito nos dois modos, então /api/extract e
+// /api/chat continuam protegidos - o modo simples reduz o atrito de entrada,
+// não remove a autenticação.
+const AUTH_MODE = process.env.AUTH_MODE === 'completo' ? 'completo' : 'simples';
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -35,126 +46,134 @@ app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
-// Schema unificado — a IA identifica o subtipo oncológico a partir do
-// próprio material (não é mais escolhido manualmente pelo médico) e só
-// preenche os campos relevantes ao subtipo identificado; os campos do
-// outro subtipo ficam vazios.
-const UNIFIED_SCHEMA = {
-  type: 'object',
-  properties: {
+// Schema e prompt de extração são GERADOS a partir do registro de tumores
+// (public/tumors.js). Adicionar um tumor lá passa a valer aqui automaticamente,
+// sem editar o schema à mão — que era a fonte de divergência antiga entre a
+// lista de campos do backend e as regras clínicas do frontend.
+const TUMORS = require('./public/tumors.js');
+
+function buildSchema() {
+  const properties = {
     tipo_tumor: {
       type: 'string',
-      enum: ['Ginecológico - Ovário', 'Próstata', 'Não identificado'],
-      description: 'Subtipo oncológico identificado a partir do conteúdo do material (histologia, termos clínicos, órgão mencionado). "Não identificado" apenas se o material realmente não permitir determinar com segurança.',
+      enum: [...TUMORS.labels(), 'Não identificado'],
+      description: 'Subtipo oncológico identificado a partir do conteúdo do material. "Não identificado" apenas se não for possível determinar com segurança.',
     },
     tipo_tumor_justificativa: {
       type: 'string',
-      description: 'Em 1 frase curta, o que no material levou a identificar esse subtipo (ex.: "menciona adenocarcinoma de próstata e PSA"). Vazio se tipo_tumor for "Não identificado".',
+      description: 'Em 1 frase curta, o que no material levou a identificar esse subtipo. Vazio se "Não identificado".',
     },
-    histologia: {
-      type: 'string',
-      description: 'Histologia do tumor. Ginecológico: ex. "Seroso", "Endometrioide", "Células claras", "Mucinoso". Próstata: ex. "Adenocarcinoma acinar", "Intraductal/cribriforme", "Neuroendócrino/pequenas células". Vazio se não identificável.',
-    },
-    grau: {
-      type: 'string',
-      enum: ['Alto grau', 'Baixo grau', ''],
-      description: '[Só para Ginecológico] Grau histopatológico, se explicitamente informado ou claramente descrito no material (ex.: "carcinoma de alto grau", "G3" → "Alto grau"). Não inferir a partir do estágio — grau e estágio são eixos independentes. Deixe vazio se tipo_tumor for Próstata.',
-    },
-    estadiamento: {
-      type: 'string',
-      description: '[Só para Ginecológico] Estágio FIGO (ex.: "IIIA1", "IVC"), sempre no formato canônico romano. Se não estiver escrito literalmente, infira a partir dos achados cirúrgicos/patológicos (lateralidade do tumor, integridade da cápsula, envolvimento de superfície, contagem de linfonodos positivos/negativos por sítio, achados peritoneais/omentais) e explique em estadiamento_justificativa. Deixe vazio se tipo_tumor for Próstata.',
-    },
-    estadiamento_justificativa: {
-      type: 'string',
-      description: 'Se o estágio FIGO foi inferido (não escrito literalmente), explique em 1-2 frases os achados usados. Vazio se já estava explícito ou se não se aplica.',
-    },
-    gleason_grade_group: {
-      type: 'string',
-      description: '[Só para Próstata] Escore de Gleason e/ou Grade Group (ISUP), como relatado (ex.: "Gleason 4+3=7, Grade Group 3"). Deixe vazio se tipo_tumor for Ginecológico.',
-    },
-    psa: {
-      type: 'string',
-      description: '[Só para Próstata] PSA em ng/mL, como relatado (ex.: "18,4 ng/mL"). Deixe vazio se tipo_tumor for Ginecológico.',
-    },
-    extensao_doenca: {
-      type: 'string',
-      enum: ['Localizado', 'Linfonodo positivo (N1)', 'Metastático hormônio-sensível (mHSPC)', 'Metastático resistente à castração (mCRPC)', ''],
-      description: '[Só para Próstata] Extensão da doença. Se não estiver escrita literalmente, infira do TNM e do contexto clínico (ex.: "M1b, iniciando bloqueio hormonal" → mHSPC; "progressão de PSA em uso de enzalutamida" → mCRPC; linfonodo pélvico positivo sem metástase à distância → "Linfonodo positivo (N1)"). Explique em extensao_justificativa quando inferir. Deixe vazio se tipo_tumor for Ginecológico.',
-    },
-    extensao_justificativa: {
-      type: 'string',
-      description: 'Se a extensão da doença (próstata) foi inferida, explique em 1-2 frases os achados usados. Vazio se já estava explícita ou se não se aplica.',
-    },
-    categoria_risco_localizado: {
-      type: 'string',
-      enum: ['Baixo', 'Intermediário favorável', 'Intermediário desfavorável', 'Alto', 'Muito alto', ''],
-      description: '[Só para Próstata] Categoria de risco NCCN — só preencher quando extensao_doenca for "Localizado" ou "Linfonodo positivo (N1)". Infira de PSA + Gleason/Grade Group + estágio clínico T (ver tabela nas instruções do sistema), só quando tiver os três dados com confiança. Vazio se não der pra classificar com segurança ou se não se aplica.',
-    },
-    categoria_risco_justificativa: {
-      type: 'string',
-      description: 'Se a categoria de risco foi inferida, explique em 1-2 frases (PSA + Gleason/Grade Group + estágio T usados). Vazio se já estava explícita ou se não se aplica.',
-    },
-    ascendencia_ashkenazi: {
-      type: 'string',
-      enum: ['Sim', 'Não relatado', ''],
-      description: '[Só para Próstata] "Sim" se ascendência judaica Ashkenazi for mencionada, "Não relatado" se explicitamente negada/perguntada e ausente, vazio se não mencionada ou não se aplica.',
-    },
-    idade_faixa: {
-      type: 'string',
-      description: 'Faixa etária de 5 anos (ex.: "60–64 anos"). Vazio se não informado.',
-    },
-    historico_familiar: {
-      type: 'string',
-      description: 'Resumo do histórico familiar oncológico relatado. "Não relatado" se explicitamente negado, vazio se não mencionado.',
-    },
-    testes_previos: {
-      type: 'string',
-      description: 'Testes genéticos já realizados e seus resultados, se houver (ex.: "BRCA germinativo negativo"). "Nenhum relatado" se explicitamente negado, vazio se não mencionado.',
-    },
-    fontes_usadas: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'Lista curta descrevendo quais fontes (texto, PDF, imagem) contribuíram com dado real para a extração.',
-    },
-    nome_paciente: {
-      type: 'string',
-      description: 'Nome completo do paciente, apenas se estiver literalmente escrito no material (ex.: cabeçalho de um laudo em PDF/foto). Vazio se não identificável. Este campo é usado só para pré-preencher o documento de solicitação ao final — nunca é usado na triagem clínica.',
-    },
-  },
-  required: [
-    'tipo_tumor', 'tipo_tumor_justificativa', 'histologia', 'grau', 'estadiamento', 'estadiamento_justificativa',
-    'gleason_grade_group', 'psa', 'extensao_doenca', 'extensao_justificativa',
-    'categoria_risco_localizado', 'categoria_risco_justificativa', 'ascendencia_ashkenazi',
-    'idade_faixa', 'historico_familiar', 'testes_previos', 'fontes_usadas', 'nome_paciente',
-  ],
-  additionalProperties: false,
-};
+  };
 
-const UNIFIED_SYSTEM_PROMPT = `Você é o motor de extração clínica do OncoGenYX, uma ferramenta de triagem genética para oncologia. Hoje ela cobre duas verticais: Ginecológico (câncer de ovário) e Próstata.
+  TUMORS.allFields().forEach((field) => {
+    const escopo = `[Preencher apenas para: ${field.tumors.join(', ')}]`;
+    const prop = { type: 'string', description: `${escopo} ${field.ai}` };
+    // enum com string vazia permite ao modelo deixar o campo em branco quando
+    // o tumor identificado não usa aquele campo.
+    if (field.options) prop.enum = [...field.options, ''];
+    properties[field.key] = prop;
+  });
+
+  properties.fontes_usadas = {
+    type: 'array',
+    items: { type: 'string' },
+    description: 'Lista curta descrevendo quais fontes (texto, PDF, imagem) contribuíram com dado real para a extração.',
+  };
+  properties.nome_paciente = {
+    type: 'string',
+    description: 'Nome completo do paciente, apenas se estiver literalmente escrito no material. Vazio se não identificável. Usado só para pré-preencher o documento de solicitação — nunca entra na triagem clínica.',
+  };
+
+  return {
+    type: 'object',
+    properties,
+    required: Object.keys(properties),
+    additionalProperties: false,
+  };
+}
+
+const UNIFIED_SCHEMA = buildSchema();
+
+const UNIFIED_SYSTEM_PROMPT = `Você é o motor de extração clínica do OncoGenYX, uma ferramenta de triagem genética em oncologia.
 
 Sua tarefa tem duas etapas, nessa ordem:
-1. Identifique, a partir do próprio material (texto digitado, laudo em PDF, foto de laudo), qual das duas verticais está sendo descrita — preencha tipo_tumor e tipo_tumor_justificativa. Use termos como órgão mencionado, histologia (ex.: "adenocarcinoma de próstata" vs "carcinoma seroso de ovário"), marcadores específicos (PSA é próstata; CA-125/FIGO é ginecológico), Gleason/Grade Group (próstata) vs grau/estadiamento FIGO (ginecológico). Só use "Não identificado" se o material realmente não permitir determinar com segurança — nesse caso deixe os demais campos vazios.
-2. Extraia SOMENTE os campos relevantes ao subtipo identificado (marcados "[Só para Ginecológico]" ou "[Só para Próstata]" no schema) — deixe os campos do outro subtipo vazios. Os campos comuns (idade, histórico familiar, testes prévios, fontes, nome) preencha sempre que disponíveis, independente do subtipo.
 
-Você NÃO decide qual teste pedir, NÃO dá conduta terapêutica — só estrutura o que está no material.
+1. IDENTIFIQUE o subtipo oncológico a partir do próprio material (texto digitado, laudo em PDF, foto de laudo) e preencha tipo_tumor e tipo_tumor_justificativa. Pistas por subtipo:
+${TUMORS.list().map((t) => `   - ${t.label}: ${t.detect}`).join('\n')}
+   Use "Não identificado" apenas se o material realmente não permitir determinar com segurança — nesse caso deixe todos os demais campos vazios.
 
-Regras importantes:
-- Interprete o SENTIDO clínico do que foi escrito — nunca faça transcrição literal ingênua. Normalize toda a informação para a nomenclatura padrão, mesmo quando o médico escrever de um jeito não-canônico: numeral arábico em vez de romano ("estadiamento 3C" → "IIIC"), abreviação, sinônimo, jargão comum em prontuário brasileiro, ou notação TNM ("T3a N0 M0" descrevendo doença local avançada).
-- Estadiamento FIGO (ginecológico) frequentemente não está escrito por extenso — precisa ser inferido a partir dos achados cirúrgicos e patológicos (lateralidade do tumor, integridade da cápsula, envolvimento de superfície, contagem de linfonodos positivos/negativos por sítio, achados peritoneais/omentais). Faça essa inferência com o mesmo rigor clínico que um oncologista ginecológico usaria, e explique o raciocínio em estadiamento_justificativa quando inferir.
-- Grau histopatológico e estadiamento (ginecológico) são eixos clínicos independentes — nunca deduza um a partir do outro. Só preencha "grau" se estiver de fato relatado ou claramente descrito ("G3"/"grau 3" → "Alto grau"; "G1"/"grau 1" → "Baixo grau").
-- Extensão da doença (próstata) frequentemente precisa ser inferida do contexto clínico e do TNM: metástase à distância M1 = doença metastática; início de bloqueio hormonal/ADT pela primeira vez = hormônio-sensível (mHSPC); progressão de PSA ou da doença em uso de enzalutamida/abiraterona = resistente à castração (mCRPC); linfonodo regional positivo sem metástase à distância = "Linfonodo positivo (N1)", sem ser metastático. Explique o raciocínio em extensao_justificativa quando inferir.
-- Categoria de risco NCCN (próstata, só doença localizada/N1) combina três eixos - PSA, Gleason/Grade Group e estágio clínico T:
-  - Baixo: cT1-cT2a, Grade Group 1 (Gleason ≤6), PSA <10 ng/mL.
-  - Intermediário favorável: Grade Group 2 (Gleason 3+4=7) predominância de padrão 3, <50% dos fragmentos positivos, no máximo 1 fator de risco intermediário (PSA 10-20, Gleason 7, ou cT2b-c).
-  - Intermediário desfavorável: Grade Group 2-3 (Gleason 7) com ≥50% dos fragmentos positivos, ou 2-3 fatores de risco intermediário.
-  - Alto: cT3a, ou Grade Group 4-5 (Gleason 8-10), ou PSA >20 ng/mL (qualquer um isolado já qualifica).
-  - Muito alto: cT3b-T4, ou padrão primário de Gleason 5, ou mais de 4 fragmentos com Gleason 8-10.
-  - Só classifique quando tiver os três dados disponíveis com razoável confiança - campo vazio é melhor que chute quando faltar algum.
-- O material pode estar em português, com abreviações e jargão médico brasileiro comuns em laudos de anatomopatológico e evolução clínica.
+2. EXTRAIA somente os campos marcados para o subtipo que você identificou. Cada campo traz, na própria descrição, para quais tumores ele deve ser preenchido. Campos de outros tumores ficam vazios. Os campos comuns (faixa etária, histórico familiar, testes prévios, fontes, nome) preencha sempre que disponíveis.
+
+Você NÃO decide qual teste pedir e NÃO dá conduta terapêutica — apenas estrutura o que está no material. A decisão de indicação é do motor de regras da plataforma.
+
+Regras de interpretação:
+- Interprete o SENTIDO clínico, nunca faça transcrição literal ingênua. Normalize para a nomenclatura padrão mesmo quando a escrita for não-canônica: numeral arábico em vez de romano ("estadiamento 3C" para "IIIC"), abreviação, sinônimo, jargão de prontuário brasileiro, ou notação TNM.
+- Estadiamento frequentemente não está escrito por extenso e precisa ser inferido dos achados cirúrgicos e patológicos (lateralidade, integridade da cápsula, envolvimento de superfície, contagem de linfonodos por sítio, achados peritoneais/omentais). Faça a inferência com o rigor de um oncologista da especialidade e explique o raciocínio no campo de justificativa correspondente.
+- Grau histopatológico e estadiamento são eixos independentes — nunca deduza um a partir do outro.
+- Extensão da doença costuma vir do contexto: metástase à distância (M1) indica doença metastática; início de bloqueio hormonal pela primeira vez sugere hormônio-sensível; progressão sob terapia hormonal sugere resistência à castração.
+- O material pode estar em português, com abreviações e jargão médico brasileiro de laudos anatomopatológicos e evoluções clínicas.
 - Não invente dado que não está no material. Campo vazio é melhor que chute — mas normalizar a grafia de um dado que está lá não é chutar, é interpretar corretamente.
-- Extraia nome_paciente somente se estiver literalmente escrito no material. Nunca infira ou deduza um nome — campo vazio é o padrão seguro.`;
+- Extraia nome_paciente somente se estiver literalmente escrito no material. Nunca infira um nome.`;
 
 /* ============================ AUTENTICAÇÃO ============================ */
+
+// No modo simples as rotas de email/senha ficam desligadas: deixá-las de pé
+// prometeria ao médico um email de recuperação que ninguém enviaria.
+function requireFullAuthMode(req, res, next) {
+  if (AUTH_MODE !== 'completo') {
+    return res.status(404).json({ error: 'Este acesso não está habilitado nesta instalação.' });
+  }
+  next();
+}
+
+// Identidade estável a partir do CRM: o mesmo CRM sempre cai na mesma conta,
+// então voltar em outro dia recupera o histórico (quando há banco) em vez de
+// criar uma conta nova a cada login.
+function crmIdentity(crm) {
+  const slug = crm.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return `crm-${slug}@acesso.oncogenyx`;
+}
+
+app.post('/api/auth/acesso', async (req, res, next) => {
+  try {
+    if (AUTH_MODE !== 'simples') {
+      return res.status(404).json({ error: 'Este acesso não está habilitado nesta instalação.' });
+    }
+
+    const name = String(req.body.name || '').trim().replace(/\s+/g, ' ');
+    const crm = String(req.body.crm || '').trim().replace(/\s+/g, ' ');
+
+    if (name.length < 3) return res.status(400).json({ error: 'Informe seu nome completo.' });
+    if (name.length > 120) return res.status(400).json({ error: 'Nome longo demais.' });
+    // Formato livre porque o CRM brasileiro varia por conselho regional
+    // (número, UF, com ou sem separador) - validar demais barraria médico real.
+    if (!/^[A-Za-z0-9][A-Za-z0-9 .\/-]{2,29}$/.test(crm)) {
+      return res.status(400).json({ error: 'Informe um CRM válido (números e, se quiser, a UF).' });
+    }
+
+    const limit = auth.rateLimit(`acesso:${req.ip}`, { max: 20, windowMs: 15 * 60 * 1000 });
+    if (!limit.allowed) {
+      return res.status(429).json({ error: 'Muitas tentativas deste dispositivo. Aguarde alguns minutos.' });
+    }
+
+    const email = crmIdentity(crm);
+    let user = await store.findUserByEmail(email);
+    if (!user) {
+      user = await store.createUser({ id: crypto.randomUUID(), email, name, crm });
+    } else if (user.name !== name) {
+      // O nome vai impresso na solicitação assinada: vale sempre o que o
+      // médico acabou de digitar, não o que ficou salvo de uma sessão antiga.
+      await store.updateUserProfile(user.id, { name, crm });
+      user = { ...user, name, crm };
+    }
+
+    await store.touchLogin(user.id);
+    const session = await auth.issueSession(user.id);
+    res.json({ ok: true, token: session, user: auth.publicUser(user) });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Resposta deliberadamente idêntica exista ou não a conta: a tela de login não
 // pode virar um oráculo que confirma "este médico usa a plataforma".
@@ -179,7 +198,7 @@ async function deliverResetLink({ req, user, isFirstAccess }) {
 }
 
 // Cadastro/primeiro acesso: cria a conta e dispara o link de definição de senha.
-app.post('/api/auth/register', async (req, res, next) => {
+app.post('/api/auth/register', requireFullAuthMode, async (req, res, next) => {
   try {
     const email = auth.normalizeEmail(req.body.email);
     const name = String(req.body.name || '').trim();
@@ -214,7 +233,7 @@ app.post('/api/auth/register', async (req, res, next) => {
 });
 
 // Pedido de redefinição (também cobre "esqueci minha senha").
-app.post('/api/auth/request-reset', async (req, res, next) => {
+app.post('/api/auth/request-reset', requireFullAuthMode, async (req, res, next) => {
   try {
     const email = auth.normalizeEmail(req.body.email);
     if (!auth.isValidEmail(email)) return res.status(400).json({ error: 'Informe um email válido.' });
@@ -235,7 +254,7 @@ app.post('/api/auth/request-reset', async (req, res, next) => {
 });
 
 // Define a senha a partir do token do email e já entrega a sessão.
-app.post('/api/auth/set-password', async (req, res, next) => {
+app.post('/api/auth/set-password', requireFullAuthMode, async (req, res, next) => {
   try {
     const token = String(req.body.token || '');
     const password = String(req.body.password || '');
@@ -260,7 +279,7 @@ app.post('/api/auth/set-password', async (req, res, next) => {
   }
 });
 
-app.post('/api/auth/login', async (req, res, next) => {
+app.post('/api/auth/login', requireFullAuthMode, async (req, res, next) => {
   try {
     const email = auth.normalizeEmail(req.body.email);
     const password = String(req.body.password || '');
@@ -409,13 +428,9 @@ app.get('/api/plaud/transcript/:id', auth.requireAuth(), async (req, res, next) 
 
 /* =============================== GENA =============================== */
 
-// Assistente conversacional. Diferente do roteiro fixo anterior, aqui é diálogo
-// real: a Gena pergunta o que falta, entende resposta em linguagem natural e
-// devolve o caso reunido em texto corrido, que alimenta o mesmo motor de
-// extração estruturada do modo formulário. Ela nunca dá conduta terapêutica.
-const GENA_SYSTEM_PROMPT = `Você é a Gena, assistente de triagem genômica do OncoGenYX. Fala com médicos oncologistas e urologistas no Brasil.
+const GENA_SYSTEM_PROMPT = `Você é a Gena, assistente de triagem genômica do OncoGenYX. Fala com médicos oncologistas, urologistas e cirurgiões no Brasil.
 
-Seu papel é reunir, por conversa, os dados clínicos necessários para a triagem de indicação de teste genético (germinativo e somático) em câncer de ovário e de próstata.
+Seu papel é reunir, por conversa, os dados clínicos necessários para a triagem de indicação de teste genético (germinativo e somático).
 
 Como você se comporta:
 - Tom profissional, direto e cordial. Você fala com um colega de trabalho, não com um leigo. Nada de formalidade excessiva, emoji ou entusiasmo artificial.
@@ -423,16 +438,14 @@ Como você se comporta:
 - Aceite resposta em linguagem natural, abreviada ou fora de ordem, e normalize internamente ("3C" é estágio IIIC, "G3" é alto grau, "PSA 225" é PSA de 225 ng/mL).
 - Se o médico já der vários dados de uma vez, reconheça o que recebeu e pergunte só o que ainda falta.
 
-O que você precisa reunir:
-- Ovário: histologia, grau, estadiamento FIGO, idade, histórico familiar, testes genéticos prévios.
-- Próstata: histologia, Gleason/Grade Group, PSA, extensão da doença (localizado, linfonodo positivo, metastático hormônio-sensível ou resistente à castração), categoria de risco se localizado, ascendência Ashkenazi, idade, histórico familiar, testes prévios.
-- Identifique sozinha de qual dos dois tumores se trata pelo que o médico descrever. Se não der pra saber ainda, pergunte.
+Primeiro identifique de qual tumor se trata, pelo que o médico descrever. Se ainda não der para saber, pergunte. Os tumores cobertos e o que reunir em cada um:
+${TUMORS.list().map((t) => `- ${t.label}: ${t.fields.map((f) => f.label).join(', ')}.`).join('\n')}
 
 Limites que você não ultrapassa:
-- Você NÃO decide qual teste pedir e NÃO dá conduta terapêutica. Quem faz a triagem é o motor de regras da plataforma, ancorado em NCCN, ASCO, ESMO, SGO, AUA/SUO e EAU. Se perguntarem qual teste pedir, diga que vai reunir o caso e rodar a triagem.
+- Você NÃO decide qual teste pedir e NÃO dá conduta terapêutica. Quem faz a triagem é o motor de regras da plataforma, ancorado em diretrizes nacionais e internacionais vigentes. Se perguntarem qual teste pedir, diga que vai reunir o caso e rodar a triagem.
 - Você NUNCA pede nome do paciente, CPF, data de nascimento ou qualquer dado que identifique a pessoa. Se o médico mencionar espontaneamente, ignore o dado e siga sem repeti-lo.
 
-Quando tiver o suficiente para rodar a triagem (no mínimo: histologia no caso de ovário, ou extensão da doença no caso de próstata), responda normalmente e termine a mensagem com uma linha isolada exatamente neste formato:
+Quando tiver o suficiente para rodar a triagem, responda normalmente e termine a mensagem com uma linha isolada exatamente neste formato:
 
 CASO_PRONTO: <resumo do caso em uma frase corrida, com todos os dados coletados>
 
@@ -551,6 +564,7 @@ app.get('/api/health', (req, res) => {
 // descobrir sozinho que a conta sumiu.
 app.get('/api/config', (req, res) => {
   res.json({
+    authMode: AUTH_MODE,
     ephemeralAccounts: !store.usingPostgres,
     emailEnabled: mailer.isConfigured(),
     plaudEnabled: plaud.isConfigured(),
