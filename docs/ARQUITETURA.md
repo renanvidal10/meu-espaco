@@ -474,3 +474,70 @@ Detalhes de implementação que importam:
   não quebra a cada ajuste do provedor.
 - Os endpoints são sobrescrevíveis por variável de ambiente, para o caso de o
   beta publicar caminhos diferentes dos previstos.
+
+---
+
+## 13. Gena — assistente conversacional flutuante (v1.1)
+
+A via conversacional era uma aba dentro do passo 1, com um roteiro fixo de três
+perguntas e respostas pré-escritas. Duas limitações sérias: só existia na tela
+de ingestão, e não era conversa — era um formulário disfarçado que ignorava o
+que o médico realmente escrevia.
+
+A v1.1 substitui isso pela **Gena**: assistente com nome, rosto e presença
+permanente, acessível de qualquer tela por um botão flutuante no canto inferior.
+
+### Conversa real
+
+`POST /api/chat` conversa com o modelo de verdade (`GENA_SYSTEM_PROMPT` em
+`server/index.js`). A Gena entende resposta em linguagem natural, aceita vários
+dados de uma vez, normaliza notação ("3C" → IIIC, "G3" → alto grau) e pergunta
+só o que ainda falta.
+
+**Handoff estruturado**: quando reúne o mínimo necessário, a Gena encerra a
+mensagem com uma linha `CASO_PRONTO: <resumo>`. O frontend separa essa linha do
+texto exibido e a usa para preencher o caso e disparar a mesma extração
+estruturada do modo formulário. Ou seja: a conversa é outra porta de entrada
+para o mesmo motor — nunca um segundo motor de decisão paralelo.
+
+### Limites embutidos no prompt
+
+- Não decide qual teste pedir nem dá conduta terapêutica; se perguntarem, ela
+  diz que vai reunir o caso e rodar a triagem no motor de regras.
+- Nunca pede nome, CPF ou data de nascimento. Se o médico mencionar
+  espontaneamente, ela ignora e não repete o dado.
+- Respostas de 1 a 3 frases, uma pergunta por vez — tom de colega, não de
+  chatbot entusiasmado.
+
+### Personagem e comportamento visual
+
+O rosto é SVG inline desenhado com `currentColor`, então a Gena herda a cor do
+contexto (branca sobre o botão flutuante, verde sobre o cabeçalho claro do
+painel) sem precisar de dois arquivos. A piscada é esporádica (a cada ~6,5s) e
+some sob `prefers-reduced-motion`: movimento constante puxaria atenção de uma
+tela de decisão clínica.
+
+No celular o painel ocupa a tela inteira — um cartão de 380px numa viewport de
+390px vira uma caixa apertada assim que o teclado abre.
+
+### Custo e contexto
+
+O endpoint trunca a conversa nas últimas 24 mensagens e cada mensagem em 4000
+caracteres. Sem esse limite, uma conversa longa (ou um cliente malicioso)
+inflaria a fatura da API sem teto.
+
+---
+
+## 14. Nota sobre persistência na fase beta
+
+A v1.0 fazia o servidor **encerrar no boot** em produção sem `DATABASE_URL`,
+para não perder contas em silêncio. Essa trava foi removida na v1.1 por decisão
+de produto: nesta fase o app precisa rodar sem depender de provisionar banco, e
+perder conta entre versões é aceitável.
+
+O comportamento honesto foi preservado de outra forma: `GET /api/config` expõe
+`ephemeralAccounts`, e a tela de login mostra um aviso explícito de que as contas
+são temporárias — em vez de o médico descobrir sozinho que o acesso sumiu.
+
+Quando houver banco (`DATABASE_URL` de um Neon/Supabase), o aviso desaparece
+sozinho e as contas passam a persistir, sem nenhuma mudança de código.

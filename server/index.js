@@ -20,13 +20,13 @@ if (!process.env.ANTHROPIC_API_KEY) {
   console.warn('AVISO: ANTHROPIC_API_KEY não está definida. Configure um arquivo .env (veja .env.example).');
 }
 
-// Em produção o armazenamento em arquivo é uma armadilha: o disco do Render é
-// efêmero e as contas dos médicos sumiriam no próximo deploy, sem erro visível.
-// Falhar aqui, no boot, é muito melhor do que perder dado de usuário depois.
+// Sem DATABASE_URL o armazenamento é o disco local, que no Render é efêmero:
+// some a cada deploy e a cada hibernação por inatividade. Decisão consciente
+// para a fase beta — o app precisa rodar sem depender de provisionar banco.
+// A UI avisa o médico de que a conta é temporária (ver /api/health -> ephemeral).
 if (IS_PRODUCTION && !store.usingPostgres) {
-  console.error('ERRO FATAL: em produção é obrigatório definir DATABASE_URL.');
-  console.error('Sem banco, as contas seriam apagadas a cada deploy. Veja server/.env.example.');
-  process.exit(1);
+  console.warn('AVISO: rodando sem DATABASE_URL. As contas são temporárias e');
+  console.warn('serão perdidas no próximo deploy ou hibernação do serviço.');
 }
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -407,6 +407,72 @@ app.get('/api/plaud/transcript/:id', auth.requireAuth(), async (req, res, next) 
   }
 });
 
+/* =============================== GENA =============================== */
+
+// Assistente conversacional. Diferente do roteiro fixo anterior, aqui é diálogo
+// real: a Gena pergunta o que falta, entende resposta em linguagem natural e
+// devolve o caso reunido em texto corrido, que alimenta o mesmo motor de
+// extração estruturada do modo formulário. Ela nunca dá conduta terapêutica.
+const GENA_SYSTEM_PROMPT = `Você é a Gena, assistente de triagem genômica do OncoGenYX. Fala com médicos oncologistas e urologistas no Brasil.
+
+Seu papel é reunir, por conversa, os dados clínicos necessários para a triagem de indicação de teste genético (germinativo e somático) em câncer de ovário e de próstata.
+
+Como você se comporta:
+- Tom profissional, direto e cordial. Você fala com um colega de trabalho, não com um leigo. Nada de formalidade excessiva, emoji ou entusiasmo artificial.
+- Respostas curtas: 1 a 3 frases. Uma pergunta por vez. Nunca despeje um questionário inteiro de uma vez.
+- Aceite resposta em linguagem natural, abreviada ou fora de ordem, e normalize internamente ("3C" é estágio IIIC, "G3" é alto grau, "PSA 225" é PSA de 225 ng/mL).
+- Se o médico já der vários dados de uma vez, reconheça o que recebeu e pergunte só o que ainda falta.
+
+O que você precisa reunir:
+- Ovário: histologia, grau, estadiamento FIGO, idade, histórico familiar, testes genéticos prévios.
+- Próstata: histologia, Gleason/Grade Group, PSA, extensão da doença (localizado, linfonodo positivo, metastático hormônio-sensível ou resistente à castração), categoria de risco se localizado, ascendência Ashkenazi, idade, histórico familiar, testes prévios.
+- Identifique sozinha de qual dos dois tumores se trata pelo que o médico descrever. Se não der pra saber ainda, pergunte.
+
+Limites que você não ultrapassa:
+- Você NÃO decide qual teste pedir e NÃO dá conduta terapêutica. Quem faz a triagem é o motor de regras da plataforma, ancorado em NCCN, ASCO, ESMO, SGO, AUA/SUO e EAU. Se perguntarem qual teste pedir, diga que vai reunir o caso e rodar a triagem.
+- Você NUNCA pede nome do paciente, CPF, data de nascimento ou qualquer dado que identifique a pessoa. Se o médico mencionar espontaneamente, ignore o dado e siga sem repeti-lo.
+
+Quando tiver o suficiente para rodar a triagem (no mínimo: histologia no caso de ovário, ou extensão da doença no caso de próstata), responda normalmente e termine a mensagem com uma linha isolada exatamente neste formato:
+
+CASO_PRONTO: <resumo do caso em uma frase corrida, com todos os dados coletados>
+
+Essa linha é lida pela plataforma para preencher o caso. Só a inclua quando realmente tiver dado suficiente.`;
+
+app.post('/api/chat', auth.requireAuth(), async (req, res, next) => {
+  try {
+    const history = Array.isArray(req.body.messages) ? req.body.messages : [];
+    if (!history.length) return res.status(400).json({ error: 'Conversa vazia.' });
+
+    // Trava de custo e de contexto: uma conversa de triagem não passa disso,
+    // e sem limite um cliente malicioso poderia inflar a fatura da API.
+    const messages = history
+      .slice(-24)
+      .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+
+    if (!messages.length || messages[messages.length - 1].role !== 'user') {
+      return res.status(400).json({ error: 'A última mensagem precisa ser do médico.' });
+    }
+
+    const response = await client.messages.create({
+      model: 'claude-opus-5',
+      max_tokens: 600,
+      system: GENA_SYSTEM_PROMPT,
+      messages,
+    });
+
+    const raw = response.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+
+    // Separa o marcador de caso pronto do texto que o médico vê.
+    const match = raw.match(/^CASO_PRONTO:\s*(.+)$/m);
+    const reply = raw.replace(/^CASO_PRONTO:.*$/m, '').trim();
+
+    res.json({ reply, caseReady: match ? match[1].trim() : null });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /* ============================== EXTRAÇÃO ============================== */
 
 app.post('/api/extract', auth.requireAuth(), upload.array('files', 10), async (req, res) => {
@@ -477,6 +543,17 @@ app.get('/api/health', (req, res) => {
     storage: store.usingPostgres ? 'postgres' : 'arquivo (efêmero)',
     email: mailer.isConfigured() ? 'configurado' : 'não configurado',
     plaud: plaud.isConfigured() ? 'configurado' : 'aguardando credenciais',
+  });
+});
+
+// Configuração pública consumida pela tela de login para avisar, com todas as
+// letras, quando as contas são temporárias — em vez de deixar o médico
+// descobrir sozinho que a conta sumiu.
+app.get('/api/config', (req, res) => {
+  res.json({
+    ephemeralAccounts: !store.usingPostgres,
+    emailEnabled: mailer.isConfigured(),
+    plaudEnabled: plaud.isConfigured(),
   });
 });
 
