@@ -7,7 +7,7 @@
     --border: #cdd7d2;
     --ink: #1b2420;
     --ink-muted: #56645d;
-    --ink-faint: #8a968f;
+    --ink-faint: #6f7d76;
     --accent: #0f6b5c;
     --accent-ink: #ffffff;
     --accent-soft: #dcebe6;
@@ -73,6 +73,21 @@
   }
 
   * { box-sizing: border-box; }
+
+  /* Ícones SVG inline (traço Lucide): herdam cor do texto via currentColor,
+     escalam limpo e ficam consistentes entre plataformas - regra "sem emoji
+     como ícone estrutural" do checklist de entrega. */
+  svg.ic {
+    width: 1em; height: 1em;
+    stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    flex-shrink: 0;
+    vertical-align: -0.125em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
 
   body {
     margin: 0;
@@ -1029,10 +1044,10 @@
 
     <div class="mode-switch" role="tablist" aria-label="Como inserir o caso">
       <button class="mode-btn active" id="mode-btn-form" role="tab" aria-selected="true" onclick="setMode('form')">
-        <span class="icon">🗂️</span> Formulário / upload
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg> Formulário / upload
       </button>
       <button class="mode-btn" id="mode-btn-bot" role="tab" aria-selected="false" onclick="setMode('bot')">
-        <span class="icon">💬</span> Conversar com o OncoBot
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg> Conversar com o OncoBot
       </button>
     </div>
 
@@ -1043,22 +1058,22 @@
         <div class="dropzone" id="dropzone">
           <div class="intake-grid">
             <button class="intake-tile" id="tile-pdf" type="button" onclick="document.getElementById('input-pdf').click()">
-              <span class="row"><span class="icon">📄</span><span class="title">Laudo em PDF</span></span>
+              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span><span class="title">Laudo em PDF</span></span>
               <span class="desc">Anatomopatológico, prontuário.</span>
               <span class="file-name" id="file-name-pdf"></span>
             </button>
             <button class="intake-tile" id="tile-photo" type="button" onclick="document.getElementById('input-photo').click()">
-              <span class="row"><span class="icon">🖼️</span><span class="title">Foto do laudo</span></span>
+              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span><span class="title">Foto do laudo</span></span>
               <span class="desc">Foto ou print do documento.</span>
               <span class="file-name" id="file-name-photo"></span>
               <div class="thumb-row" id="thumb-row"></div>
             </button>
             <button class="intake-tile" id="tile-text" type="button" onclick="document.getElementById('case-text').focus()">
-              <span class="row"><span class="icon">✍️</span><span class="title">Texto ou transcrição</span></span>
+              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg></span><span class="title">Texto ou transcrição</span></span>
               <span class="desc">Escreva ou cole uma transcrição.</span>
             </button>
             <button class="intake-tile" id="tile-voice" type="button" onclick="toggleVoicePanel()">
-              <span class="row"><span class="icon">🎤</span><span class="title">Ditado por voz</span></span>
+              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span><span class="title">Ditado por voz</span></span>
               <span class="desc">Grave o caso falando.</span>
             </button>
           </div>
@@ -1070,7 +1085,7 @@
         <div class="attached-files-list" id="attached-files-list" style="display:none;"></div>
 
         <div class="ocr-disclaimer" id="ocr-disclaimer" style="display:none;">
-          ℹ️ PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto abaixo - tudo é combinado na estruturação do caso.
+          PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto abaixo - tudo é combinado na estruturação do caso.
         </div>
         <div class="ocr-disclaimer" id="extract-error" style="display:none; background:#fde2e2; color:#7a1f1f;"></div>
 
@@ -1085,7 +1100,7 @@
             <span class="voice-time mono" id="voice-time">00:00</span>
           </div>
           <p class="hint" style="margin:8px 0 0;">O texto falado aparece direto no campo abaixo, em tempo real, à medida que você fala - o áudio nunca sai do seu navegador. Funciona no Chrome e no Edge; peça permissão de microfone quando o navegador solicitar.</p>
-          <p class="hint" id="voice-unsupported" style="display:none; margin-top:8px; color:var(--warn);">⚠️ Seu navegador não suporta ditado por voz nativo. Tente no Chrome ou Edge, ou digite/cole o texto diretamente.</p>
+          <p class="hint" id="voice-unsupported" style="display:none; margin-top:8px; color:var(--warn);">Seu navegador não suporta ditado por voz nativo. Tente no Chrome ou Edge, ou digite/cole o texto diretamente.</p>
         </div>
 
         <div class="plaud-row">
@@ -1115,7 +1130,7 @@
 
         <div class="chat-window" id="chat-window">
           <div class="chat-msg bot">
-            <span class="chat-avatar">🧬</span>
+            <span class="chat-avatar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 16 1.5 1.5"/><path d="m14 8-1.5-1.5"/><path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993"/><path d="m16.5 10.5 1 1"/><path d="m17 6-2.891-2.891"/><path d="M2 15c6.667-6 13.333 0 20-6"/><path d="m20 9 .891.891"/><path d="M3.109 14.109 4 15"/><path d="m6.5 12.5 1 1"/><path d="m7 18 2.891 2.891"/><path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993"/></svg></span>
             <div class="chat-bubble">Olá, Dra. Vamos triar um caso. Descreva a histologia (ou tipo tumoral) e o estágio/extensão da doença ao diagnóstico.</div>
           </div>
         </div>
@@ -1135,7 +1150,7 @@
   <section class="screen" id="screen-1">
     <div class="case-banner">
       <span>Identificação removida automaticamente</span>
-      <span class="code lock">🔒 Caso <span class="mono" id="case-code-1">-</span></span>
+      <span class="code lock"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Caso <span class="mono" id="case-code-1">-</span></span>
     </div>
 
     <div class="eyebrow">Ginecológico · passo 2 de 4</div>
@@ -1245,7 +1260,7 @@
   <section class="screen" id="screen-2">
     <div class="case-banner">
       <span>Triagem baseada em diretrizes - não é indicação terapêutica</span>
-      <span class="code lock">🔒 Caso <span class="mono" id="case-code-2">-</span></span>
+      <span class="code lock"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Caso <span class="mono" id="case-code-2">-</span></span>
     </div>
 
     <div class="eyebrow">Ginecológico · passo 3 de 4</div>
@@ -1447,7 +1462,7 @@
     <p class="hint" id="programs-note" style="display:none; margin: -10px 0 20px;"></p>
 
     <div class="validate-flag">
-      ⚠️ Dado de exemplo - critérios de elegibilidade e disponibilidade mudam por programa. Requer sua validação antes de ir ao ar.
+      Dado de exemplo - critérios de elegibilidade e disponibilidade mudam por programa. Requer sua validação antes de ir ao ar.
     </div>
 
     <div class="card name-card">
@@ -1458,7 +1473,7 @@
       <button class="primary" type="button" onclick="updateDocs()">Atualizar documentos</button>
     </div>
     <div class="reident-note">
-      <span class="reident-icon">🔒</span>
+      <span class="reident-icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
       <span class="reident-text">O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não entra no motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono" id="case-code-3">-</span>) e não sai desta tela. Quando identificável em um PDF/foto anexado, ele já vem preenchido - confira e corrija se preciso.</span>
     </div>
 
@@ -1467,7 +1482,7 @@
       <h3>HRD Somático <span class="pill ok" id="pill-somatico">indicado neste caso</span></h3>
       <div class="program-row">
         <div class="who">
-          <span class="logo">🧪</span>
+          <span class="logo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg></span>
           <div>
             <div class="name">ProgramAID</div>
             <div class="test">Laboratório parceiro · a confirmar critérios atuais</div>
@@ -1477,7 +1492,7 @@
       </div>
       <div class="program-row">
         <div class="who">
-          <span class="logo">🧪</span>
+          <span class="logo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg></span>
           <div>
             <div class="name">Myriad myChoice CDx</div>
             <div class="test">Companion diagnostic parceiro GSK · a confirmar critérios atuais</div>
@@ -1519,7 +1534,7 @@
       <h3>Painel germinativo BRCA1/2 <span class="pill ok">indicado neste caso</span></h3>
       <div class="program-row">
         <div class="who">
-          <span class="logo">🧬</span>
+          <span class="logo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 16 1.5 1.5"/><path d="m14 8-1.5-1.5"/><path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993"/><path d="m16.5 10.5 1 1"/><path d="m17 6-2.891-2.891"/><path d="M2 15c6.667-6 13.333 0 20-6"/><path d="m20 9 .891.891"/><path d="M3.109 14.109 4 15"/><path d="m6.5 12.5 1 1"/><path d="m7 18 2.891 2.891"/><path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993"/></svg></span>
           <div>
             <div class="name">Life Genomics</div>
             <div class="test">Laboratório parceiro · a confirmar critérios atuais</div>
@@ -1563,7 +1578,7 @@
       <h3>Painel somático HRR <span class="pill ok" id="pill-somatico-p">indicado neste caso</span></h3>
       <div class="program-row">
         <div class="who">
-          <span class="logo">🧪</span>
+          <span class="logo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg></span>
           <div>
             <div class="name">ProgramAID (AstraZeneca)</div>
             <div class="test">Teste gratuito em tecido tumoral · se inconclusivo/cancelado, permite reteste por biópsia líquida (ctDNA) sem custo</div>
@@ -1573,7 +1588,7 @@
       </div>
       <div class="program-row">
         <div class="who">
-          <span class="logo">🧪</span>
+          <span class="logo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg></span>
           <div>
             <div class="name">Cuidar Mais - PAF (Pfizer)</div>
             <div class="test">Programa de apoio diagnóstico ligado a Talzenna + Xtandi (HRR) · a confirmar critérios atuais</div>
@@ -1615,7 +1630,7 @@
       <h3>Painel germinativo <span class="pill ok" id="pill-germinativo-p">indicado neste caso</span></h3>
       <div class="program-row">
         <div class="who">
-          <span class="logo">🧬</span>
+          <span class="logo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 16 1.5 1.5"/><path d="m14 8-1.5-1.5"/><path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993"/><path d="m16.5 10.5 1 1"/><path d="m17 6-2.891-2.891"/><path d="M2 15c6.667-6 13.333 0 20-6"/><path d="m20 9 .891.891"/><path d="M3.109 14.109 4 15"/><path d="m6.5 12.5 1 1"/><path d="m7 18 2.891 2.891"/><path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993"/></svg></span>
           <div>
             <div class="name">Life Genomics</div>
             <div class="test">Laboratório parceiro · a confirmar critérios atuais</div>
@@ -1820,7 +1835,7 @@
       extractedPatientName = (extracted.nome_paciente || '').trim();
 
       if (extracted.tipo_tumor === 'Não identificado') {
-        errorBox.textContent = '⚠️ Não consegui identificar se este é um caso ginecológico ou de próstata a partir do que foi descrito/anexado. Descreva de forma mais específica (ex.: mencione o órgão, a histologia, PSA ou estágio FIGO) e tente de novo.';
+        errorBox.textContent = 'Não consegui identificar se este é um caso ginecológico ou de próstata a partir do que foi descrito/anexado. Descreva de forma mais específica (ex.: mencione o órgão, a histologia, PSA ou estágio FIGO) e tente de novo.';
         errorBox.style.display = '';
         return;
       }
@@ -1882,7 +1897,7 @@
       renderSources();
       goTo(1);
     } catch (err) {
-      errorBox.textContent = '⚠️ ' + (err.message || 'Não foi possível extrair o caso. Tente novamente.');
+      errorBox.textContent = (err.message || 'Não foi possível extrair o caso. Tente novamente.');
       errorBox.style.display = '';
     } finally {
       btn.disabled = false;
@@ -1908,7 +1923,7 @@
     if (role === 'bot') {
       const avatar = document.createElement('span');
       avatar.className = 'chat-avatar';
-      avatar.textContent = '🧬';
+      avatar.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 16 1.5 1.5"/><path d="m14 8-1.5-1.5"/><path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993"/><path d="m16.5 10.5 1 1"/><path d="m17 6-2.891-2.891"/><path d="M2 15c6.667-6 13.333 0 20-6"/><path d="m20 9 .891.891"/><path d="M3.109 14.109 4 15"/><path d="m6.5 12.5 1 1"/><path d="m7 18 2.891 2.891"/><path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993"/></svg>';
       msg.appendChild(avatar);
     }
     const bubble = document.createElement('div');
@@ -2016,7 +2031,7 @@
       chip.className = 'file-chip';
       const nameSpan = document.createElement('span');
       nameSpan.className = 'name';
-      nameSpan.textContent = (kind === 'pdf' ? '📄 ' : '🖼️ ') + f.name;
+      nameSpan.textContent = f.name;
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.textContent = '×';
@@ -2065,7 +2080,7 @@
     if (unknown.length) {
       const errorBox = document.getElementById('extract-error');
       const names = unknown.map((f) => f.name).join(', ');
-      errorBox.textContent = `⚠️ Não reconheci "${names}" como PDF ou imagem - anexe pelos tiles "Laudo em PDF" ou "Foto do laudo", ou confira o formato do arquivo.`;
+      errorBox.textContent = `Não reconheci "${names}" como PDF ou imagem - anexe pelos tiles "Laudo em PDF" ou "Foto do laudo", ou confira o formato do arquivo.`;
       errorBox.style.display = '';
     }
   }
@@ -2543,7 +2558,7 @@
       };
       speechRecognition.onerror = (event) => {
         if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-          document.getElementById('voice-unsupported').textContent = '⚠️ Permissão de microfone negada - autorize o acesso ao microfone no navegador e tente de novo.';
+          document.getElementById('voice-unsupported').textContent = 'Permissão de microfone negada - autorize o acesso ao microfone no navegador e tente de novo.';
           document.getElementById('voice-unsupported').style.display = '';
         }
       };
