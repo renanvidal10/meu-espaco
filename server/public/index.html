@@ -1011,7 +1011,8 @@
             </div>
             <span class="voice-time mono" id="voice-time">00:00</span>
           </div>
-          <p class="hint" style="margin:8px 0 0;">A transcrição é gerada e pseudonimizada antes de qualquer outro processamento - mesma regra da Camada 2.</p>
+          <p class="hint" style="margin:8px 0 0;">O texto falado aparece direto no campo abaixo, em tempo real, à medida que você fala - o áudio nunca sai do seu navegador. Funciona no Chrome e no Edge; peça permissão de microfone quando o navegador solicitar.</p>
+          <p class="hint" id="voice-unsupported" style="display:none; margin-top:8px; color:var(--warn);">⚠️ Seu navegador não suporta ditado por voz nativo. Tente no Chrome ou Edge, ou digite/cole o texto diretamente.</p>
         </div>
 
         <div class="plaud-row">
@@ -2245,17 +2246,29 @@
   let recording = false;
   let recTimer = null;
   let recSeconds = 0;
+  let speechRecognition = null;
+  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   function toggleVoicePanel() {
     document.getElementById('voice-panel').classList.toggle('open');
   }
 
+  // Ditado por voz real via reconhecimento de fala nativo do navegador
+  // (Web Speech API) - roda só no dispositivo do médico, sem enviar áudio
+  // a nenhum servidor. Funciona em Chrome/Edge; navegadores sem suporte
+  // (ex.: Firefox) recebem um aviso em vez de um botão que não faz nada.
   function toggleRecording() {
+    if (!SpeechRecognitionAPI) {
+      document.getElementById('voice-unsupported').style.display = '';
+      return;
+    }
+
     recording = !recording;
     const wave = document.getElementById('voice-wave');
     const btn = document.getElementById('rec-btn');
     wave.classList.toggle('recording', recording);
     btn.textContent = recording ? '■' : '●';
+
     if (recording) {
       recSeconds = 0;
       recTimer = setInterval(() => {
@@ -2264,9 +2277,35 @@
         const s = String(recSeconds % 60).padStart(2, '0');
         document.getElementById('voice-time').textContent = `${m}:${s}`;
       }, 1000);
+
+      const textarea = document.getElementById('case-text');
+      const baseText = textarea.value.trim();
+      let finalTranscript = '';
+
+      speechRecognition = new SpeechRecognitionAPI();
+      speechRecognition.lang = 'pt-BR';
+      speechRecognition.continuous = true;
+      speechRecognition.interimResults = false;
+      speechRecognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' ';
+          }
+        }
+        textarea.value = (baseText ? baseText + ' ' : '') + finalTranscript.trim();
+        textarea.dispatchEvent(new Event('input'));
+      };
+      speechRecognition.onerror = (event) => {
+        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+          document.getElementById('voice-unsupported').textContent = '⚠️ Permissão de microfone negada - autorize o acesso ao microfone no navegador e tente de novo.';
+          document.getElementById('voice-unsupported').style.display = '';
+        }
+      };
+      speechRecognition.start();
     } else {
       clearInterval(recTimer);
       document.getElementById('tile-voice').classList.toggle('selected', recSeconds > 0);
+      if (speechRecognition) { speechRecognition.stop(); speechRecognition = null; }
     }
   }
 
