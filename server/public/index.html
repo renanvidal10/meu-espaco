@@ -561,8 +561,9 @@
   .field input.value.missing { color: var(--warn); border-style: dashed; background: var(--warn-soft); }
   .field input.value.missing::placeholder { color: var(--warn); opacity: 0.75; }
 
-  .verdict.negative { background: var(--warn-soft); border-color: var(--warn); }
-  .verdict.negative .glyph { background: var(--warn); }
+  .verdict.negative { background: var(--warn); }
+  .verdict.negative .glyph { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.4); }
+  .verdict.negative .verdict-count-pill { color: var(--warn); }
 
   .pill {
     display: inline-flex;
@@ -579,22 +580,23 @@
   /* ---- result screen ---- */
   .verdict {
     display: flex;
-    gap: 14px;
+    gap: 16px;
     align-items: flex-start;
-    padding: 20px 22px;
-    border-radius: 12px;
-    background: var(--accent-soft);
-    border: 1px solid var(--accent-soft-border);
+    padding: 24px 26px;
+    border-radius: 18px;
+    background: var(--accent);
+    box-shadow: 0 12px 32px -16px rgba(15, 107, 92, 0.55);
   }
   .verdict .glyph {
-    width: 34px; height: 34px; border-radius: 9px;
-    background: var(--accent);
-    color: var(--accent-ink);
+    width: 38px; height: 38px; border-radius: 11px;
+    background: rgba(255,255,255,0.2);
+    border: 1.5px solid rgba(255,255,255,0.38);
+    color: #fff;
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px; flex-shrink: 0;
+    font-size: 17px; font-weight: 700; flex-shrink: 0;
   }
-  .verdict h2 { font-size: 17px; margin-bottom: 4px; color: var(--ink); }
-  .verdict p { margin: 0; font-size: 13.5px; color: var(--ink-muted); line-height: 1.55; }
+  .verdict h2 { font-size: 19px; margin-bottom: 6px; color: #fff; letter-spacing: -0.01em; }
+  .verdict p { margin: 0; font-size: 13.5px; color: rgba(255,255,255,0.86); line-height: 1.55; }
 
   .test-pair {
     display: grid;
@@ -627,20 +629,21 @@
     gap: 14px;
     align-items: flex-start;
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px 18px;
+    border-radius: 14px;
+    padding: 18px 20px;
     background: var(--surface);
+    box-shadow: var(--shadow);
   }
-  .test-step.primary { border-color: var(--accent-soft-border); background: var(--accent-soft); }
+  .test-step.primary { border-color: var(--accent-soft-border); border-left: 4px solid var(--accent); }
   .test-step .step-num {
     flex-shrink: 0;
-    width: 30px; height: 30px; border-radius: 50%;
+    width: 32px; height: 32px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 14px; font-weight: 700;
     background: var(--surface-2); color: var(--ink-muted);
     border: 1px solid var(--border);
   }
-  .test-step.primary .step-num { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .test-step.primary .step-num { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: 0 3px 8px -2px rgba(15, 107, 92, 0.5); }
   .test-step .step-body { flex: 1; min-width: 0; }
   .test-step .order { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
   .test-step h4 { font-size: 15.5px; font-weight: 700; margin: 4px 0 8px; }
@@ -659,10 +662,10 @@
   .test-step .src { font-size: 11px; color: var(--ink-faint); }
 
   .note-card {
-    margin-top: 16px;
+    margin-top: 12px;
     border: 1px solid var(--border);
     border-left: 3px solid var(--warm);
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--surface);
     padding: 14px 18px;
   }
@@ -734,13 +737,13 @@
     font-size: 11.5px;
     font-weight: 700;
     letter-spacing: 0.02em;
-    color: var(--accent-ink);
-    background: var(--accent);
+    color: var(--accent);
+    background: #ffffff;
     padding: 4px 11px;
     border-radius: 100px;
-    margin-bottom: 9px;
+    margin-bottom: 10px;
   }
-  .verdict-count-pill.zero { background: var(--ink-faint); }
+  .verdict-count-pill.zero { color: var(--ink-muted); }
 
   /* ---- voice intake ---- */
   .voice-panel { display: none; margin-top: 14px; }
