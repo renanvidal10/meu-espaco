@@ -255,6 +255,10 @@
     border: 1px solid var(--border);
     margin-bottom: 20px;
   }
+  /* inline-flex faz duas .mode-switch consecutivas ficarem lado a lado na
+     mesma linha (subtipo + modo de entrada) - força a de subtipo a quebrar
+     linha, mantendo a largura compacta do pill-group. */
+  .subtype-switch { display: flex; width: fit-content; }
   .mode-btn {
     display: flex;
     align-items: center;
@@ -796,6 +800,8 @@
     margin-top: 12px;
     line-height: 1.5;
   }
+  .reident-note .reident-icon { flex-shrink: 0; }
+  .reident-note .reident-text { flex: 1; min-width: 0; }
 
   .doc-preview-wrap {
     margin-top: 16px;
@@ -852,6 +858,8 @@
     cursor: text;
   }
   @media print {
+    @page { margin: 14mm; }
+    body.printing { background: #fff !important; }
     body.printing > .topbar,
     body.printing > .steps,
     body.printing .screen > .eyebrow,
@@ -861,15 +869,37 @@
     body.printing .screen > .validate-flag,
     body.printing .name-card,
     body.printing .reident-note,
-    body.printing .card > h3,
+    body.printing #card-somatico > h3,
+    body.printing #card-germinativo > h3,
+    body.printing #card-somatico-p > h3,
+    body.printing #card-germinativo-p > h3,
     body.printing .program-row,
     body.printing .screen > .disclaimer,
     body.printing .foot-nav {
       display: none !important;
     }
+    /* Mostra um documento por vez, sem a caixa/cartão que o envolve na
+       tela (evita moldura dupla: cartão + papel do documento). */
+    body.printing .card {
+      background: #fff !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
     body.printing .doc-preview-wrap { display: none !important; }
-    body.printing .doc-preview-wrap.print-target { display: block !important; }
+    body.printing .doc-preview-wrap.print-target {
+      display: block !important;
+      margin: 0 !important;
+    }
     body.printing .doc-preview-wrap.print-target .doc-actions { display: none !important; }
+    body.printing .doc-preview { box-shadow: none !important; }
+    /* Labels claros o suficiente na tela ficam ilegíveis impressos - escurece só no papel. */
+    body.printing .doc-preview .k,
+    body.printing .doc-preview .doc-type,
+    body.printing .doc-preview .label,
+    body.printing .doc-preview .doc-sign {
+      color: #444 !important;
+    }
   }
 </style>
 
@@ -917,7 +947,7 @@
     <h1>Descreva o caso</h1>
     <p class="lede">Use quantas fontes fizer sentido - laudo em PDF, foto, texto livre ou transcrição de consulta - ou converse com o OncoBot se preferir ser guiado por perguntas. Tudo é convertido em iniciais e número de caso antes de qualquer outro processamento.</p>
 
-    <div class="mode-switch" role="tablist" aria-label="Subtipo oncológico" style="margin-bottom:14px;">
+    <div class="mode-switch subtype-switch" role="tablist" aria-label="Subtipo oncológico" style="margin-bottom:14px;">
       <button class="mode-btn active" id="subtype-btn-gyn" role="tab" aria-selected="true" onclick="setSubtype('gyn')">
         <span class="icon">🎗️</span> Ginecológico (Ovário)
       </button>
@@ -1307,7 +1337,8 @@
       <button class="primary" type="button" onclick="updateDocs()">Atualizar documentos</button>
     </div>
     <div class="reident-note">
-      🔒 O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não entra no motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono" id="case-code-3">-</span>) e não sai desta tela. Quando identificável em um PDF/foto anexado, ele já vem preenchido - confira e corrija se preciso.
+      <span class="reident-icon">🔒</span>
+      <span class="reident-text">O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não entra no motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono" id="case-code-3">-</span>) e não sai desta tela. Quando identificável em um PDF/foto anexado, ele já vem preenchido - confira e corrija se preciso.</span>
     </div>
 
     <div id="programs-gyn">
