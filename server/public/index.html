@@ -154,6 +154,19 @@
     font-size: 13px;
     color: var(--ink-muted);
   }
+  .chip-signout {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-size: 15px;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .chip-signout:hover { background: var(--surface-2); border-color: var(--border); color: var(--ink); }
+  .chip-signout:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
   .doctor-chip .avatar {
     width: 26px; height: 26px; border-radius: 50%;
     background: var(--surface-2);
@@ -162,25 +175,128 @@
     font-size: 11px; font-weight: 600; color: var(--ink-muted);
   }
 
-  /* ---- gate (identificação do médico) ---- */
-  .gate { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 24px; }
+  /* ---- tela de autenticação ---- */
+  .gate { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 20px; }
   body.gate-active .gate { display: flex; }
-  body.gate-active .topbar, body.gate-active .steps, body.gate-active main { display: none; }
-  .gate-card { max-width: 380px; width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 30px; }
-  .gate-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 17px; color: var(--ink); }
-  .gate-brand .mark {
+  /* Filho direto apenas: o formulário de login também é um <main>, e um seletor
+     solto "body.gate-active main" esconderia a própria tela de login. */
+  body.gate-active > .topbar,
+  body.gate-active > .steps,
+  body.gate-active > main { display: none; }
+
+  .gate-shell {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    width: 100%;
+    max-width: 940px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px -32px rgba(20, 30, 26, 0.4);
+  }
+  .gate-aside {
+    background: var(--accent);
+    color: #fff;
+    padding: 38px 34px;
+    display: flex;
+    flex-direction: column;
+  }
+  .gate-aside-brand { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 700; margin-bottom: 30px; }
+  .gate-aside-brand .mark {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px;
+  }
+  .gate-aside h2 { font-size: 22px; line-height: 1.3; color: #fff; margin: 0 0 12px; letter-spacing: -0.015em; text-wrap: balance; }
+  .gate-aside > p { font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,0.82); margin: 0 0 26px; }
+  .gate-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 13px; }
+  .gate-points li { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,0.9); }
+  .gate-points .ic { width: 15px; height: 15px; margin-top: 2px; color: rgba(255,255,255,0.75); }
+  .gate-aside-foot { margin: auto 0 0; padding-top: 26px; font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+  .gate-main { padding: 38px 34px; display: flex; flex-direction: column; }
+  .gate-brand-mobile { display: none; align-items: center; gap: 9px; font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 24px; }
+  .gate-brand-mobile .mark {
     width: 30px; height: 30px; border-radius: 9px;
     background: var(--accent); color: var(--accent-ink);
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: 15px;
   }
+
+  .gate-view { display: none; flex-direction: column; }
+  .gate-view.active { display: flex; }
+  .gate-view h1 { font-size: 21px; margin: 0 0 6px; letter-spacing: -0.015em; }
+  .gate-sub { font-size: 13px; line-height: 1.55; color: var(--ink-muted); margin: 0 0 22px; text-wrap: pretty; }
+
+  /* Rótulo sempre visível: placeholder-como-rótulo some ao digitar e quebra
+     a revisão do formulário (regra "visible labels" do checklist de forms). */
+  .fld { display: block; margin-bottom: 15px; }
+  .fld-label { display: block; font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  .fld-help { display: block; font-size: 11.5px; color: var(--ink-faint); margin-top: 5px; line-height: 1.45; }
   .gate input {
     width: 100%; box-sizing: border-box;
-    border: 1px solid var(--border); border-radius: 8px;
-    background: var(--surface-2); color: var(--ink);
-    font-family: inherit; font-size: 13.5px; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 9px;
+    background: var(--surface); color: var(--ink);
+    font-family: inherit; font-size: 14px; padding: 11px 13px;
+    min-height: 44px;
+    transition: border-color .15s ease, box-shadow .15s ease;
   }
+  .gate input::placeholder { color: var(--ink-faint); }
+  .gate input:hover { border-color: var(--ink-faint); }
+  .gate input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .gate input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  .pw-wrap { position: relative; display: block; }
+  .pw-wrap input { padding-right: 46px; }
+  .pw-toggle {
+    position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent; border-radius: 7px;
+    color: var(--ink-faint); cursor: pointer; font-size: 15px;
+    transition: color .15s ease, background .15s ease;
+  }
+  .pw-toggle:hover { color: var(--ink); background: var(--surface-2); }
+  .pw-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  .pw-meter { display: block; height: 4px; border-radius: 100px; background: var(--surface-2); margin-top: 8px; overflow: hidden; }
+  .pw-meter i { display: block; height: 100%; width: 0; border-radius: 100px; background: var(--warn); transition: width .2s ease, background .2s ease; }
+
+  .gate-submit { width: 100%; margin-top: 6px; min-height: 46px; font-size: 14px; }
+  .gate-submit[disabled] { opacity: .6; cursor: not-allowed; }
+
+  .gate-links { display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: space-between; margin-top: 16px; }
+  .linklike {
+    background: none; border: none; padding: 6px 0;
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
+    color: var(--accent); cursor: pointer; text-decoration: none;
+    min-height: 32px;
+  }
+  .linklike:hover { text-decoration: underline; }
+  .linklike:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+
+  .gate-alert {
+    display: flex; gap: 9px; align-items: flex-start;
+    font-size: 12.5px; line-height: 1.5;
+    padding: 11px 13px; border-radius: 10px; margin-bottom: 18px;
+  }
+  .gate-alert.error { background: var(--warn-soft); border: 1px solid var(--warn-soft-border, var(--warn)); color: var(--warn); }
+  .gate-alert.success { background: var(--accent-soft); border: 1px solid var(--accent-soft-border); color: var(--accent); }
+
+  .gate-legal { margin: auto 0 0; padding-top: 26px; font-size: 11px; line-height: 1.5; color: var(--ink-faint); }
+
+  /* Painel de valor só faz sentido com espaço horizontal; abaixo de 860px ele
+     empurraria o formulário (a tarefa real da tela) para fora da primeira dobra.
+     Precisa vir depois das regras base: media query não aumenta especificidade. */
+  @media (max-width: 860px) {
+    .gate { padding: 16px; }
+    .gate-shell { grid-template-columns: 1fr; max-width: 440px; }
+    .gate-aside { display: none; }
+    .gate-brand-mobile { display: flex; }
+    .gate-main { padding: 30px 24px; }
+  }
 
   .steps {
     display: flex;
@@ -247,7 +363,16 @@
     margin-bottom: 6px;
   }
   .screen h1 { font-size: 26px; margin-bottom: 6px; }
-  .screen > .lede { color: var(--ink-muted); font-size: 14.5px; max-width: 62ch; line-height: 1.55; margin: 0 0 28px; }
+  /* text-wrap: pretty evita "rios" e linhas órfãs no rag à direita; a medida
+     fica larga o bastante pra não formar uma coluna estreita ao lado dos cards. */
+  .screen > .lede {
+    color: var(--ink-muted);
+    font-size: 14.5px;
+    max-width: 78ch;
+    line-height: 1.6;
+    margin: 0 0 26px;
+    text-wrap: pretty;
+  }
 
   .card {
     background: var(--surface);
@@ -481,9 +606,21 @@
     background: var(--surface-2);
   }
   .plaud-row .left { display: flex; align-items: center; gap: 10px; }
-  .plaud-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-faint); }
+  .plaud-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-faint); flex-shrink: 0; }
+  .plaud-row .dot.on { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .plaud-row .name { font-size: 13px; font-weight: 600; }
-  .plaud-row .sub { font-size: 11.5px; color: var(--ink-faint); }
+  .plaud-row .sub { font-size: 11.5px; color: var(--ink-faint); line-height: 1.45; }
+  .plaud-action { padding: 8px 14px; font-size: 12.5px; min-height: 40px; white-space: nowrap; }
+
+  .plaud-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .plaud-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 13px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface);
+  }
+  .plaud-item .meta { min-width: 0; }
+  .plaud-item .t { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .plaud-item .d { font-size: 11px; color: var(--ink-faint); }
+  .plaud-item button { flex-shrink: 0; padding: 7px 12px; font-size: 12px; min-height: 36px; }
   .toggle {
     width: 38px; height: 22px; border-radius: 20px;
     background: var(--border);
@@ -715,26 +852,34 @@
   .note-card > summary {
     list-style: none;
     cursor: pointer;
-    padding: 10px 14px;
+    padding: 10px 12px 10px 14px;
+    min-height: 44px;
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    align-items: center;
+    gap: 10px;
     -webkit-tap-highlight-color: transparent;
+    transition: background .15s ease;
   }
+  .note-card > summary:hover { background: var(--surface-2); }
+  .note-card > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: 11px; }
   .note-card > summary::-webkit-details-marker { display: none; }
   .note-card > summary::marker { content: ''; }
   .note-card > summary .summary-text { flex: 1; min-width: 0; }
   .note-card > summary .summary-text .tag { margin-bottom: 2px; }
   .note-card > summary .summary-text h4 { margin: 0; }
+  /* Affordance explícita: o alvo de toque é a linha inteira (>=44px), mas o
+     chevron precisa ser visível como controle - um ícone de 16px solto some. */
   .note-card > summary .chevron {
     flex-shrink: 0;
-    width: 16px; height: 16px;
+    width: 28px; height: 28px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 9px;
-    color: var(--ink-faint);
-    transition: transform .15s ease;
-    margin-top: 1px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--ink-muted);
+    transition: transform .18s ease, background .15s ease, color .15s ease;
   }
+  .note-card > summary .chevron svg { width: 14px; height: 14px; }
+  .note-card > summary:hover .chevron { background: var(--accent-soft); border-color: var(--accent-soft-border); color: var(--accent); }
   .note-card[open] > summary .chevron { transform: rotate(180deg); }
   .note-card .card-body { padding: 0 14px 11px; }
   .note-card .card-body p:first-child { margin-top: 0; }
@@ -813,16 +958,19 @@
   /* ---- programs screen ---- */
   .validate-flag {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    border-radius: 8px;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 11px 14px;
+    border-radius: 10px;
     background: var(--warn-soft);
     border: 1px solid var(--warn-soft-border, var(--warn));
     color: var(--warn);
-    font-size: 12.5px;
-    margin-bottom: 20px;
+    font-size: 12px;
+    line-height: 1.45;
+    margin-bottom: 18px;
   }
+  .validate-flag .ic { width: 15px; height: 15px; margin-top: 1px; }
+  .validate-flag span { flex: 1; min-width: 0; }
   .program-row {
     display: flex;
     align-items: center;
@@ -999,19 +1147,146 @@
 </style>
 
 <div class="gate" id="gate">
-  <div class="gate-card">
-    <div class="gate-brand"><span class="mark">O</span><strong>OncoGenYX</strong></div>
-    <p class="hint" style="margin:4px 0 20px;">Identifique-se para começar - isso preenche automaticamente os documentos de solicitação gerados nesta sessão.</p>
-    <div class="field">
-      <label style="font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Nome do médico</label>
-      <input id="gate-name" type="text" placeholder="Ex.: Dra. Ana Ferreira" />
-    </div>
-    <div class="field" style="margin-top:12px;">
-      <label style="font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">CRM</label>
-      <input id="gate-crm" type="text" placeholder="Ex.: 52-1198 / RJ" />
-    </div>
-    <p class="hint" id="gate-error" style="display:none;color:var(--warn);margin-top:10px;">Preencha os dois campos para entrar.</p>
-    <button class="primary" type="button" onclick="submitGate()" style="margin-top:18px;width:100%;">Entrar</button>
+  <div class="gate-shell">
+
+    <aside class="gate-aside">
+      <div class="gate-aside-brand">
+        <span class="mark">O</span>
+        <strong>OncoGenYX</strong>
+      </div>
+      <h2>A triagem genômica que cabe na sua consulta.</h2>
+      <p>Leia o laudo, identifique a indicação e gere a solicitação assinável — em minutos, com rastreabilidade de diretriz.</p>
+      <ul class="gate-points">
+        <li>
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          <span>Critérios ancorados em NCCN, ASCO, ESMO, SGO, AUA/SUO e EAU</span>
+        </li>
+        <li>
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          <span>Leitura automática de laudo em PDF, foto ou ditado por voz</span>
+        </li>
+        <li>
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          <span>Caso pseudonimizado por padrão, conforme a LGPD</span>
+        </li>
+      </ul>
+      <p class="gate-aside-foot">Uso restrito a profissionais de saúde habilitados.</p>
+    </aside>
+
+    <main class="gate-main">
+      <div class="gate-brand-mobile">
+        <span class="mark">O</span><strong>OncoGenYX</strong>
+      </div>
+
+      <div class="gate-alert" id="gate-alert" style="display:none;" role="status"></div>
+
+      <!-- ENTRAR -->
+      <form class="gate-view active" id="view-login" onsubmit="return doLogin(event)">
+        <h1>Entrar na plataforma</h1>
+        <p class="gate-sub">Acesse com o email cadastrado no seu registro profissional.</p>
+
+        <label class="fld">
+          <span class="fld-label">Email profissional</span>
+          <input id="login-email" type="email" autocomplete="username" required placeholder="voce@clinica.com.br" />
+        </label>
+
+        <label class="fld">
+          <span class="fld-label">Senha</span>
+          <span class="pw-wrap">
+            <input id="login-password" type="password" autocomplete="current-password" required placeholder="Sua senha" />
+            <button type="button" class="pw-toggle" onclick="togglePw('login-password', this)" aria-label="Mostrar senha">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </span>
+        </label>
+
+        <button class="primary gate-submit" type="submit" id="login-submit">Entrar</button>
+
+        <div class="gate-links">
+          <button type="button" class="linklike" onclick="showView('forgot')">Esqueci minha senha</button>
+          <button type="button" class="linklike" onclick="showView('register')">Criar acesso</button>
+        </div>
+      </form>
+
+      <!-- CRIAR ACESSO -->
+      <form class="gate-view" id="view-register" onsubmit="return doRegister(event)">
+        <h1>Criar acesso</h1>
+        <p class="gate-sub">Enviamos um link para você definir sua senha. Depois disso, o acesso é sempre por email e senha.</p>
+
+        <label class="fld">
+          <span class="fld-label">Nome completo</span>
+          <input id="reg-name" type="text" autocomplete="name" required placeholder="Dra. Ana Ferreira" />
+        </label>
+
+        <label class="fld">
+          <span class="fld-label">CRM</span>
+          <input id="reg-crm" type="text" required placeholder="52-1198 / RJ" />
+          <span class="fld-help">Aparece nos documentos de solicitação que você gerar.</span>
+        </label>
+
+        <label class="fld">
+          <span class="fld-label">Email profissional</span>
+          <input id="reg-email" type="email" autocomplete="username" required placeholder="voce@clinica.com.br" />
+        </label>
+
+        <button class="primary gate-submit" type="submit" id="reg-submit">Criar acesso e receber link</button>
+
+        <div class="gate-links">
+          <button type="button" class="linklike" onclick="showView('login')">Já tenho acesso</button>
+        </div>
+      </form>
+
+      <!-- ESQUECI A SENHA -->
+      <form class="gate-view" id="view-forgot" onsubmit="return doForgot(event)">
+        <h1>Redefinir senha</h1>
+        <p class="gate-sub">Informe seu email cadastrado. Enviamos um link válido por 60 minutos.</p>
+
+        <label class="fld">
+          <span class="fld-label">Email profissional</span>
+          <input id="forgot-email" type="email" autocomplete="username" required placeholder="voce@clinica.com.br" />
+        </label>
+
+        <button class="primary gate-submit" type="submit" id="forgot-submit">Enviar link de redefinição</button>
+
+        <div class="gate-links">
+          <button type="button" class="linklike" onclick="showView('login')">Voltar para o login</button>
+        </div>
+      </form>
+
+      <!-- DEFINIR SENHA (via link do email) -->
+      <form class="gate-view" id="view-set" onsubmit="return doSetPassword(event)">
+        <h1 id="set-title">Defina sua senha</h1>
+        <p class="gate-sub">Escolha uma senha com pelo menos 10 caracteres. Prefira uma frase que só você lembre.</p>
+
+        <label class="fld">
+          <span class="fld-label">Nova senha</span>
+          <span class="pw-wrap">
+            <input id="set-password" type="password" autocomplete="new-password" required minlength="10" placeholder="Mínimo de 10 caracteres" oninput="scorePassword()" />
+            <button type="button" class="pw-toggle" onclick="togglePw('set-password', this)" aria-label="Mostrar senha">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </span>
+          <span class="pw-meter" aria-hidden="true"><i id="pw-bar"></i></span>
+          <span class="fld-help" id="pw-hint">Use no mínimo 10 caracteres.</span>
+        </label>
+
+        <label class="fld">
+          <span class="fld-label">Confirme a senha</span>
+          <input id="set-password2" type="password" autocomplete="new-password" required placeholder="Repita a senha" />
+        </label>
+
+        <button class="primary gate-submit" type="submit" id="set-submit">Definir senha e entrar</button>
+
+        <div class="gate-links">
+          <button type="button" class="linklike" onclick="showView('login')">Voltar para o login</button>
+        </div>
+      </form>
+
+      <p class="gate-legal">
+        Ferramenta de apoio à decisão clínica. Não substitui julgamento médico, laudo laboratorial ou aconselhamento genético.
+      </p>
+    </main>
+
   </div>
 </div>
 
@@ -1019,11 +1294,14 @@
   <div class="brand">
     <span class="mark">O</span>
     <strong>OncoGenYX</strong>
-    <span>· mockup de fluxo, não é produto final</span>
+    <span>· Triagem genômica em oncologia</span>
   </div>
   <div class="doctor-chip">
     <span id="doctor-chip-text">-</span>
     <span class="avatar" id="doctor-chip-avatar">--</span>
+    <button class="chip-signout" type="button" onclick="signOut()" aria-label="Sair da conta" title="Sair">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+    </button>
   </div>
 </div>
 
@@ -1105,18 +1383,19 @@
 
         <div class="plaud-row">
           <div class="left">
-            <span class="dot"></span>
+            <span class="dot" id="plaud-dot"></span>
             <div>
-              <div class="name">Conectar ao Plaud</div>
-              <div class="sub">Requer cadastro no Plaud Developer Platform (dev.plaud.ai) - acesso em beta privado, aguardando aprovação</div>
+              <div class="name">Gravador Plaud</div>
+              <div class="sub" id="plaud-sub">Verificando disponibilidade...</div>
             </div>
           </div>
-          <button class="toggle" id="plaud-toggle" aria-label="Conectar ao Plaud" aria-pressed="false" disabled style="opacity:.5;cursor:not-allowed;"></button>
+          <button class="ghost plaud-action" type="button" id="plaud-action" onclick="plaudAction()" style="display:none;"></button>
         </div>
+
+        <div class="plaud-list" id="plaud-list" style="display:none;"></div>
       </div>
 
       <div class="btn-row">
-        <button class="ghost" type="button">Salvar rascunho</button>
         <button class="ghost" type="button" onclick="clearIntake()">Limpar tudo</button>
         <button class="primary" type="button" id="btn-extract" onclick="runExtraction()">Estruturar caso →</button>
         <span class="note">Nenhum dado de identificação é enviado a modelos externos</span>
@@ -1126,7 +1405,7 @@
     <div class="mode-panel" id="mode-bot">
       <div class="card chat-card">
         <h3>OncoBot - triagem por conversa</h3>
-        <p class="hint">Mesmo motor de triagem da Camada 4 - o bot só pergunta o que falta para completar o caso. Nunca pede nome, CPF ou dado que identifique a paciente.</p>
+        <p class="hint">Mesmo motor de triagem do modo formulário - o bot só pergunta o que falta para completar o caso. Nunca pede nome, CPF ou dado que identifique o paciente.</p>
 
         <div class="chat-window" id="chat-window">
           <div class="chat-msg bot">
@@ -1283,7 +1562,7 @@
             <span class="tag">A confirmar no laudo</span>
             <h4 id="provisional-caveat-title">Grau e/ou estágio não informados</h4>
           </span>
-          <span class="chevron">▾</span>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
         </summary>
         <div class="card-body">
           <p id="provisional-caveat-text">Indicação abaixo é a mais provável para este perfil, mas não foi confirmada.</p>
@@ -1317,7 +1596,7 @@
             <span class="tag">Indicação concomitante</span>
             <h4>Germinativo - independente do resultado somático</h4>
           </span>
-          <span class="chevron">▾</span>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
         </summary>
         <div class="card-body">
           <p>Não altera a conduta terapêutica atual. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
@@ -1345,7 +1624,7 @@
             <span class="tag">Somático - critério não atendido</span>
             <h4>HRD Somático não indicado por esta regra</h4>
           </span>
-          <span class="chevron">▾</span>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
         </summary>
         <div class="card-body">
           <p id="germline-only-reason">O protocolo de teste somático (HRD) para elegibilidade a PARP é específico para histologia serosa ou endometrioide de alto grau em estágio III/IV (NCCN). Reavalie se grau, histologia ou estágio forem atualizados.</p>
@@ -1397,7 +1676,7 @@
             <span class="tag">Indicação concomitante</span>
             <h4>Germinativo - independente do resultado somático</h4>
           </span>
-          <span class="chevron">▾</span>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
         </summary>
         <div class="card-body">
           <p>Cerca de 8-15% das próstatas metastáticas carregam mutação germinativa. Habilita rastreio e prevenção antecipada em parentes de primeiro grau via teste em cascata.</p>
@@ -1420,7 +1699,7 @@
             <span class="tag">Somático - critério não atendido</span>
             <h4>Painel somático HRR não indicado por esta regra</h4>
           </span>
-          <span class="chevron">▾</span>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
         </summary>
         <div class="card-body">
           <p>O painel somático HRR é um biomarcador de doença metastática (mHSPC/mCRPC) - não indicado para doença localizada nesta versão da regra. Reavalie se a doença progredir para metastática.</p>
@@ -1435,7 +1714,7 @@
             <span class="tag">Sem indicação por esta regra</span>
             <h4>Nenhum teste genético indicado no momento</h4>
           </span>
-          <span class="chevron">▾</span>
+          <span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
         </summary>
         <div class="card-body">
           <p>Doença localizada de risco baixo ou intermediário favorável, sem linfonodo positivo, sem histologia intraductal/cribriforme, sem ascendência Ashkenazi relatada e sem histórico familiar relatado. Reavalie se a categoria de risco, a histologia ou o histórico familiar forem atualizados.</p>
@@ -1462,7 +1741,8 @@
     <p class="hint" id="programs-note" style="display:none; margin: -10px 0 20px;"></p>
 
     <div class="validate-flag">
-      Dado de exemplo - critérios de elegibilidade e disponibilidade mudam por programa. Requer sua validação antes de ir ao ar.
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+      <span>Critérios de elegibilidade e disponibilidade variam por programa e podem mudar sem aviso. Confirme as condições vigentes no portal oficial antes de encaminhar o paciente.</span>
     </div>
 
     <div class="card name-card">
@@ -1682,11 +1962,41 @@
 </main>
 
 <script>
-  // Identificação do médico: nome + CRM, guardados no navegador (localStorage)
-  // pra não pedir de novo a cada visita. Nunca é enviado pro motor de triagem -
-  // só preenche o cabeçalho e os documentos de solicitação.
+  // ===================== AUTENTICAÇÃO =====================
+  // O token de sessão fica em localStorage e acompanha toda chamada à API.
+  // Nome e CRM vêm da conta no servidor - não são mais digitados por sessão.
+  const TOKEN_KEY = 'oncogenyx.session';
   let doctorName = '';
   let doctorCRM = '';
+
+  function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+  function setToken(token) { localStorage.setItem(TOKEN_KEY, token); }
+  function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+
+  // Wrapper único de API: injeta o Bearer e trata 401 num só lugar, para uma
+  // sessão expirada nunca virar erro genérico no meio de um fluxo clínico.
+  async function api(path, { method = 'GET', body, isForm = false } = {}) {
+    const headers = {};
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (body && !isForm) headers['Content-Type'] = 'application/json';
+
+    const response = await fetch(path, {
+      method,
+      headers,
+      body: isForm ? body : (body ? JSON.stringify(body) : undefined),
+    });
+
+    if (response.status === 401 && !path.startsWith('/api/auth/')) {
+      clearToken();
+      showGate('login');
+      throw new Error('Sua sessão expirou. Entre novamente.');
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Não foi possível completar a operação.');
+    return payload;
+  }
 
   function applyDoctorInfo() {
     document.getElementById('doctor-chip-text').textContent = `${doctorName} · CRM ${doctorCRM}`;
@@ -1696,36 +2006,203 @@
     ['doc-crm-1', 'doc-crm-2', 'doc-crm-1p', 'doc-crm-2p'].forEach((id) => { document.getElementById(id).textContent = `CRM ${doctorCRM}`; });
   }
 
-  function submitGate() {
-    const name = document.getElementById('gate-name').value.trim();
-    const crm = document.getElementById('gate-crm').value.trim();
-    const error = document.getElementById('gate-error');
-    if (!name || !crm) {
-      error.style.display = '';
-      return;
-    }
-    error.style.display = 'none';
-    doctorName = name;
-    doctorCRM = crm;
-    localStorage.setItem('oncogenyx-doctor', JSON.stringify({ name, crm }));
-    applyDoctorInfo();
-    document.body.classList.remove('gate-active');
+  function showGate(view) {
+    document.body.classList.add('gate-active');
+    showView(view || 'login');
   }
 
-  (function initGate() {
-    const saved = localStorage.getItem('oncogenyx-doctor');
-    if (saved) {
-      try {
-        const { name, crm } = JSON.parse(saved);
-        if (name && crm) {
-          doctorName = name;
-          doctorCRM = crm;
-          applyDoctorInfo();
-          return;
-        }
-      } catch (e) { /* dado salvo inválido - pede login de novo */ }
+  function showView(view) {
+    document.querySelectorAll('.gate-view').forEach((el) => el.classList.remove('active'));
+    const target = document.getElementById(`view-${view}`);
+    if (target) target.classList.add('active');
+    clearAlert();
+    const firstInput = target && target.querySelector('input');
+    if (firstInput) setTimeout(() => firstInput.focus(), 40);
+  }
+
+  function alertGate(message, kind) {
+    const box = document.getElementById('gate-alert');
+    box.className = `gate-alert ${kind}`;
+    box.textContent = message;
+    box.style.display = '';
+  }
+  function clearAlert() {
+    const box = document.getElementById('gate-alert');
+    box.style.display = 'none';
+    box.textContent = '';
+  }
+
+  function togglePw(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.setAttribute('aria-label', showing ? 'Mostrar senha' : 'Ocultar senha');
+  }
+
+  // Feedback de força: comprimento domina o score (recomendação do NIST),
+  // variedade de caracteres é bônus e não requisito.
+  function scorePassword() {
+    const value = document.getElementById('set-password').value;
+    const variety = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((re) => re.test(value)).length;
+    const score = Math.min(100, (Math.min(value.length, 16) / 16) * 75 + variety * 6);
+    const bar = document.getElementById('pw-bar');
+    bar.style.width = `${score}%`;
+    bar.style.background = score < 45 ? 'var(--warn)' : score < 75 ? '#b8860b' : 'var(--accent)';
+    document.getElementById('pw-hint').textContent =
+      value.length < 10 ? `Faltam ${10 - value.length} caractere(s).`
+      : score < 75 ? 'Boa. Uma frase mais longa deixa a senha ainda mais forte.'
+      : 'Senha forte.';
+  }
+
+  function busy(btnId, isBusy, busyLabel) {
+    const btn = document.getElementById(btnId);
+    if (isBusy) {
+      btn.dataset.label = btn.textContent;
+      btn.textContent = busyLabel;
+      btn.disabled = true;
+    } else {
+      btn.textContent = btn.dataset.label || btn.textContent;
+      btn.disabled = false;
     }
-    document.body.classList.add('gate-active');
+  }
+
+  function enterApp(user) {
+    doctorName = user.name;
+    doctorCRM = user.crm;
+    applyDoctorInfo();
+    document.body.classList.remove('gate-active');
+    refreshPlaudStatus();
+  }
+
+  async function doLogin(event) {
+    event.preventDefault();
+    clearAlert();
+    busy('login-submit', true, 'Entrando...');
+    try {
+      const out = await api('/api/auth/login', {
+        method: 'POST',
+        body: {
+          email: document.getElementById('login-email').value,
+          password: document.getElementById('login-password').value,
+        },
+      });
+      setToken(out.token);
+      enterApp(out.user);
+    } catch (err) {
+      alertGate(err.message, 'error');
+    } finally {
+      busy('login-submit', false);
+    }
+    return false;
+  }
+
+  async function doRegister(event) {
+    event.preventDefault();
+    clearAlert();
+    busy('reg-submit', true, 'Enviando...');
+    try {
+      const out = await api('/api/auth/register', {
+        method: 'POST',
+        body: {
+          name: document.getElementById('reg-name').value,
+          crm: document.getElementById('reg-crm').value,
+          email: document.getElementById('reg-email').value,
+        },
+      });
+      showView('login');
+      alertGate(out.message, 'success');
+      // Sem provedor de email (ambiente de desenvolvimento), o servidor devolve
+      // o link para o fluxo não travar. Em produção esse campo nunca vem.
+      if (out.devUrl) console.info('[dev] Link de definição de senha:', out.devUrl);
+    } catch (err) {
+      alertGate(err.message, 'error');
+    } finally {
+      busy('reg-submit', false);
+    }
+    return false;
+  }
+
+  async function doForgot(event) {
+    event.preventDefault();
+    clearAlert();
+    busy('forgot-submit', true, 'Enviando...');
+    try {
+      const out = await api('/api/auth/request-reset', {
+        method: 'POST',
+        body: { email: document.getElementById('forgot-email').value },
+      });
+      showView('login');
+      alertGate(out.message, 'success');
+      if (out.devUrl) console.info('[dev] Link de redefinição:', out.devUrl);
+    } catch (err) {
+      alertGate(err.message, 'error');
+    } finally {
+      busy('forgot-submit', false);
+    }
+    return false;
+  }
+
+  async function doSetPassword(event) {
+    event.preventDefault();
+    clearAlert();
+    const password = document.getElementById('set-password').value;
+    if (password !== document.getElementById('set-password2').value) {
+      alertGate('As duas senhas não coincidem.', 'error');
+      return false;
+    }
+    busy('set-submit', true, 'Salvando...');
+    try {
+      const out = await api('/api/auth/set-password', {
+        method: 'POST',
+        body: { token: pendingResetToken, password },
+      });
+      setToken(out.token);
+      history.replaceState(null, '', location.pathname);
+      pendingResetToken = '';
+      enterApp(out.user);
+    } catch (err) {
+      alertGate(err.message, 'error');
+    } finally {
+      busy('set-submit', false);
+    }
+    return false;
+  }
+
+  async function signOut() {
+    try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) { /* segue mesmo se falhar */ }
+    clearToken();
+    location.reload();
+  }
+
+  let pendingResetToken = '';
+
+  (async function initAuth() {
+    const params = new URLSearchParams(location.search);
+
+    // Retorno do OAuth do Plaud, se houver.
+    const plaudStatus = params.get('plaud');
+    if (plaudStatus) {
+      history.replaceState(null, '', location.pathname);
+      setTimeout(() => reportPlaudReturn(plaudStatus), 400);
+    }
+
+    // Link de definição/redefinição de senha vindo do email.
+    const token = params.get('definir-senha');
+    if (token) {
+      pendingResetToken = token;
+      showGate('set');
+      return;
+    }
+
+    if (!getToken()) { showGate('login'); return; }
+
+    try {
+      const out = await api('/api/auth/me');
+      enterApp(out.user);
+    } catch (err) {
+      clearToken();
+      showGate('login');
+    }
   })();
 
   // Subtipo oncológico ativo - troca campos, motor de regra, resultado e
@@ -1778,11 +2255,7 @@
     pdfFiles.forEach((f) => formData.append('files', f));
     photoFiles.forEach((f) => formData.append('files', f));
 
-    const response = await fetch('/api/extract', { method: 'POST', body: formData });
-    const body = await response.json();
-    if (!response.ok) {
-      throw new Error(body.error || 'Falha na extração do caso.');
-    }
+    const body = await api('/api/extract', { method: 'POST', body: formData, isForm: true });
     return body.extracted;
   }
 
@@ -2592,13 +3065,145 @@
   document.getElementById('field-histologia').addEventListener('input', updateGrauEstadioRelevance);
   document.getElementById('field-grau').addEventListener('input', updateGrauEstadioRelevance);
   document.getElementById('field-estadiamento').addEventListener('input', updateGrauEstadioRelevance);
-  ['gate-name', 'gate-crm'].forEach((id) => {
-    document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitGate(); } });
-  });
   setupDropzone();
-  const plaudToggle = document.getElementById('plaud-toggle');
-  plaudToggle.addEventListener('click', () => {
-    const on = plaudToggle.classList.toggle('on');
-    plaudToggle.setAttribute('aria-pressed', on);
-  });
+
+  // ===================== PLAUD =====================
+  // Três estados possíveis, todos honestos - nunca simulamos uma transcrição:
+  //   indisponível  -> credenciais ainda não liberadas para esta instalação
+  //   desconectado  -> disponível, o médico precisa autorizar via OAuth
+  //   conectado     -> lista as gravações reais e importa a transcrição
+  let plaudState = { configured: false, connected: false };
+
+  async function refreshPlaudStatus() {
+    const sub = document.getElementById('plaud-sub');
+    const dot = document.getElementById('plaud-dot');
+    const action = document.getElementById('plaud-action');
+    const list = document.getElementById('plaud-list');
+
+    try {
+      plaudState = await api('/api/plaud/status');
+    } catch (err) {
+      sub.textContent = 'Não foi possível verificar o status da integração.';
+      action.style.display = 'none';
+      return;
+    }
+
+    dot.classList.toggle('on', plaudState.connected);
+    list.style.display = 'none';
+    list.innerHTML = '';
+
+    if (!plaudState.configured) {
+      sub.textContent = 'Integração ainda não liberada para esta instalação. O acesso ao Plaud Developer Platform está em aprovação.';
+      action.style.display = 'none';
+      return;
+    }
+
+    action.style.display = '';
+    if (plaudState.connected) {
+      sub.textContent = 'Conectado. Importe a transcrição de uma gravação direto para o caso.';
+      action.textContent = 'Ver gravações';
+    } else {
+      sub.textContent = 'Conecte sua conta Plaud para importar transcrições de consulta sem digitar.';
+      action.textContent = 'Conectar';
+    }
+  }
+
+  async function plaudAction() {
+    if (!plaudState.connected) {
+      try {
+        const out = await api('/api/plaud/connect');
+        window.location.href = out.url;
+      } catch (err) {
+        showExtractError(err.message);
+      }
+      return;
+    }
+    await loadPlaudRecordings();
+  }
+
+  async function loadPlaudRecordings() {
+    const list = document.getElementById('plaud-list');
+    list.style.display = '';
+    list.innerHTML = '<div class="plaud-item"><span class="d">Carregando gravações...</span></div>';
+
+    try {
+      const out = await api('/api/plaud/recordings');
+      list.innerHTML = '';
+
+      if (!out.recordings.length) {
+        list.innerHTML = '<div class="plaud-item"><span class="d">Nenhuma gravação encontrada na sua conta Plaud.</span></div>';
+        return;
+      }
+
+      out.recordings.forEach((rec) => {
+        const row = document.createElement('div');
+        row.className = 'plaud-item';
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const title = document.createElement('div');
+        title.className = 't';
+        title.textContent = rec.title;
+        const date = document.createElement('div');
+        date.className = 'd';
+        date.textContent = rec.createdAt ? new Date(rec.createdAt).toLocaleString('pt-BR') : 'Data não informada';
+        meta.appendChild(title);
+        meta.appendChild(date);
+
+        const btn = document.createElement('button');
+        btn.className = 'ghost';
+        btn.type = 'button';
+        btn.textContent = 'Importar';
+        btn.onclick = () => importPlaudTranscript(rec.id, btn);
+
+        row.appendChild(meta);
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+    } catch (err) {
+      list.innerHTML = '';
+      const row = document.createElement('div');
+      row.className = 'plaud-item';
+      row.innerHTML = `<span class="d">${err.message}</span>`;
+      list.appendChild(row);
+      if (/expirou/i.test(err.message)) refreshPlaudStatus();
+    }
+  }
+
+  async function importPlaudTranscript(recordingId, btn) {
+    const original = btn.textContent;
+    btn.textContent = 'Importando...';
+    btn.disabled = true;
+    try {
+      const out = await api(`/api/plaud/transcript/${encodeURIComponent(recordingId)}`);
+      const textarea = document.getElementById('case-text');
+      textarea.value = (textarea.value.trim() ? textarea.value.trim() + '\n\n' : '') + out.text;
+      textarea.dispatchEvent(new Event('input'));
+      document.getElementById('plaud-list').style.display = 'none';
+      btn.textContent = original;
+    } catch (err) {
+      showExtractError(err.message);
+      btn.textContent = original;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function showExtractError(message) {
+    const box = document.getElementById('extract-error');
+    box.textContent = message;
+    box.style.display = '';
+  }
+
+  function reportPlaudReturn(status) {
+    const messages = {
+      conectado: 'Conta Plaud conectada. Suas gravações já podem ser importadas.',
+      negado: 'Você cancelou a conexão com o Plaud.',
+      falha: 'Não foi possível concluir a conexão com o Plaud. Tente novamente.',
+      'estado-invalido': 'O link de retorno do Plaud expirou. Inicie a conexão novamente.',
+      'sem-codigo': 'O Plaud não retornou o código de autorização. Tente novamente.',
+    };
+    showExtractError(messages[status] || 'Retorno inesperado do Plaud.');
+    refreshPlaudStatus();
+  }
 </script>

@@ -391,3 +391,86 @@ O mockup já mostra a estrutura da tela de programas (AstraZeneca e GSK como exe
 4. Depois do GYN, qual subtipo entra em seguida — Mama (exemplo TNBC + idade <45) ou outro?
 5. Sobre o modelo de negócio (seção 10): qual das quatro opções faz mais sentido como ponto de partida — patrocínio direto da indústria, assinatura institucional, freemium individual, ou uma combinação? Isso muda o que priorizamos construir a seguir.
 6. Os templates reais de formulário de solicitação (AstraZeneca para HRD, por exemplo) — você tem acesso a eles hoje para eu estruturar os campos com precisão, ou isso também entra na rodada de validação conjunta?
+
+---
+
+## 11. Autenticação e contas de médico (v1.0)
+
+Até a v0.7 a "entrada" era um formulário local de nome + CRM guardado em
+`localStorage` — suficiente para preencher documentos num protótipo, mas sem
+nenhuma noção de conta, credencial ou sessão. A v1.0 substitui isso por
+autenticação real, porque a plataforma passa a tratar dado de saúde sob
+responsabilidade de um profissional identificável.
+
+### Fluxo
+
+1. **Criar acesso** — o médico informa nome, CRM e email. A conta é criada sem
+   senha e um link de definição é enviado por email.
+2. **Definir senha** — o link (válido por 60 min, uso único) abre a tela de
+   definição de senha e, ao concluir, já entrega a sessão autenticada.
+3. **Login** — a partir daí, email + senha. A sessão dura 12 horas.
+4. **Redefinir** — "Esqueci minha senha" está sempre disponível e usa
+   exatamente o mesmo mecanismo do primeiro acesso.
+
+### Decisões de segurança
+
+| Decisão | Motivo |
+|---|---|
+| Senha via **scrypt** (KDF nativo do Node), salt por usuário, comparação em tempo constante | Sem dependência nativa a compilar no deploy; resistente a GPU |
+| Token de sessão e de reset gerados por CSPRNG e guardados **apenas como hash SHA-256** | Um vazamento do banco não entrega sessões ativas nem links de reset |
+| Token de reset de **uso único**, invalidado ao emitir um novo | Link reenviado ou interceptado depois do uso não vale mais |
+| Respostas **neutras** em "criar acesso" e "esqueci a senha" | A tela não vira oráculo que confirma "este médico usa a plataforma" |
+| Mensagem única para email inexistente / senha errada / conta sem senha | Não revela em qual dos casos o atacante caiu |
+| **Rate limiting** por IP+email no login e por email no envio de link | Trava força bruta oportunista |
+| Mínimo de **10 caracteres**, sem exigir símbolo/maiúscula | NIST SP 800-63B: comprimento supera complexidade, que só empurra o usuário para padrões previsíveis |
+| Validação de senha **antes** de consumir o token de reset | Digitar uma senha fraca não queima o link do médico |
+| `/api/extract` exige sessão | Antes, qualquer um com a URL consumia crédito de API |
+
+### Persistência — e por que o servidor recusa subir sem banco
+
+`server/store.js` tem dois back-ends com a mesma interface: Postgres (quando
+`DATABASE_URL` existe) e arquivo JSON (desenvolvimento local).
+
+O disco do Render free tier é **efêmero**: zera a cada deploy e a cada restart.
+Um arquivo JSON ali daria a impressão de funcionar e apagaria as contas dos
+médicos sem erro visível. Por isso `index.js` **encerra o processo no boot** se
+`NODE_ENV=production` e `DATABASE_URL` estiver ausente. Falhar alto no deploy é
+muito melhor do que perder conta de usuário em silêncio semanas depois.
+
+Postgres gratuito e permanente: **Neon** (neon.tech) ou **Supabase**. O free
+tier de Postgres do próprio Render expira em 30 dias — não serve aqui.
+
+### Email
+
+`server/email.js` usa a API do **Resend**. Sem `RESEND_API_KEY` o link cai no
+console do servidor (aceitável em desenvolvimento) e a resposta da API traz um
+campo `devUrl` para o fluxo não travar — campo que nunca aparece em produção,
+já que lá a chave é obrigatória.
+
+---
+
+## 12. Integração Plaud (v1.0)
+
+`server/plaud.js` implementa o fluxo OAuth 2.0 completo: `authorize` →
+`callback` → troca de código por token → refresh automático → listagem de
+gravações → importação da transcrição direto para o campo de texto do caso.
+
+**Estado atual**: a API do Plaud Developer Platform está em **beta privado**. O
+código está pronto e se ativa sozinho assim que `PLAUD_CLIENT_ID` e
+`PLAUD_CLIENT_SECRET` existirem no ambiente — nenhuma mudança de código será
+necessária. Enquanto isso, a UI mostra o estado honesto ("integração ainda não
+liberada para esta instalação") em vez de um toggle decorativo que não faz nada,
+que era o comportamento anterior.
+
+Detalhes de implementação que importam:
+
+- O parâmetro `state` do OAuth é um **HMAC assinado** que amarra o callback ao
+  médico que iniciou a conexão e expira em 10 minutos — sem isso, o retorno do
+  provedor não teria como ser atribuído com segurança a uma conta.
+- O `redirect_uri` respeita `x-forwarded-proto`: o Render termina o TLS no proxy
+  e, sem isso, o callback seria montado como `http://` e o provedor recusaria.
+- As respostas do Plaud passam por normalização (`normalizeRecording`,
+  `extractTranscriptText`) porque o formato de um beta ainda pode mudar; a UI
+  não quebra a cada ajuste do provedor.
+- Os endpoints são sobrescrevíveis por variável de ambiente, para o caso de o
+  beta publicar caminhos diferentes dos previstos.

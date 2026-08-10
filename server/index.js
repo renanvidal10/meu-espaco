@@ -1,22 +1,39 @@
 require('dotenv').config();
 
 const path = require('path');
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const Anthropic = require('@anthropic-ai/sdk');
 
+const store = require('./store');
+const auth = require('./auth');
+const mailer = require('./email');
+const plaud = require('./plaud');
+
 const app = express();
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.warn('AVISO: ANTHROPIC_API_KEY não está definida. Configure um arquivo .env (veja .env.example).');
 }
 
+// Em produção o armazenamento em arquivo é uma armadilha: o disco do Render é
+// efêmero e as contas dos médicos sumiriam no próximo deploy, sem erro visível.
+// Falhar aqui, no boot, é muito melhor do que perder dado de usuário depois.
+if (IS_PRODUCTION && !store.usingPostgres) {
+  console.error('ERRO FATAL: em produção é obrigatório definir DATABASE_URL.');
+  console.error('Sem banco, as contas seriam apagadas a cada deploy. Veja server/.env.example.');
+  process.exit(1);
+}
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+app.set('trust proxy', 1);
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // Schema unificado — a IA identifica o subtipo oncológico a partir do
 // próprio material (não é mais escolhido manualmente pelo médico) e só
@@ -137,7 +154,262 @@ Regras importantes:
 - Não invente dado que não está no material. Campo vazio é melhor que chute — mas normalizar a grafia de um dado que está lá não é chutar, é interpretar corretamente.
 - Extraia nome_paciente somente se estiver literalmente escrito no material. Nunca infira ou deduza um nome — campo vazio é o padrão seguro.`;
 
-app.post('/api/extract', upload.array('files', 10), async (req, res) => {
+/* ============================ AUTENTICAÇÃO ============================ */
+
+// Resposta deliberadamente idêntica exista ou não a conta: a tela de login não
+// pode virar um oráculo que confirma "este médico usa a plataforma".
+const NEUTRAL_RESET_RESPONSE = {
+  ok: true,
+  message: 'Se este email estiver cadastrado, você receberá um link para definir a senha em instantes.',
+};
+
+function appOrigin(req) {
+  if (process.env.APP_ORIGIN) return process.env.APP_ORIGIN.replace(/\/$/, '');
+  const proto = req.get('x-forwarded-proto') || req.protocol;
+  return `${proto}://${req.get('host')}`;
+}
+
+async function deliverResetLink({ req, user, isFirstAccess }) {
+  const token = await auth.issueResetToken(user.id);
+  const url = `${appOrigin(req)}/?definir-senha=${token}`;
+  const result = await mailer.sendPasswordSetup({ to: user.email, name: user.name, url, isFirstAccess });
+  // Sem provedor de email configurado (dev), devolve o link para o fluxo não travar.
+  // Em produção isso nunca acontece: o boot já exige a chave via /api/health.
+  return { delivered: result.delivered, devUrl: result.delivered ? null : url };
+}
+
+// Cadastro/primeiro acesso: cria a conta e dispara o link de definição de senha.
+app.post('/api/auth/register', async (req, res, next) => {
+  try {
+    const email = auth.normalizeEmail(req.body.email);
+    const name = String(req.body.name || '').trim();
+    const crm = String(req.body.crm || '').trim();
+
+    if (!auth.isValidEmail(email)) return res.status(400).json({ error: 'Informe um email válido.' });
+    if (name.length < 3) return res.status(400).json({ error: 'Informe seu nome completo.' });
+    if (crm.length < 3) return res.status(400).json({ error: 'Informe seu CRM.' });
+
+    const limit = auth.rateLimit(`register:${req.ip}`, { max: 5, windowMs: 60 * 60 * 1000 });
+    if (!limit.allowed) {
+      return res.status(429).json({ error: 'Muitas tentativas. Tente novamente mais tarde.' });
+    }
+
+    const existing = await store.findUserByEmail(email);
+    if (existing) {
+      // Conta já existe: não confirmamos isso. Se ainda não tem senha, é um
+      // primeiro acesso interrompido — reenviamos o link em vez de barrar.
+      if (!existing.password_hash) {
+        const out = await deliverResetLink({ req, user: existing, isFirstAccess: true });
+        return res.json({ ...NEUTRAL_RESET_RESPONSE, devUrl: out.devUrl });
+      }
+      return res.json(NEUTRAL_RESET_RESPONSE);
+    }
+
+    const user = await store.createUser({ id: crypto.randomUUID(), email, name, crm });
+    const out = await deliverResetLink({ req, user, isFirstAccess: true });
+    res.json({ ...NEUTRAL_RESET_RESPONSE, devUrl: out.devUrl });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Pedido de redefinição (também cobre "esqueci minha senha").
+app.post('/api/auth/request-reset', async (req, res, next) => {
+  try {
+    const email = auth.normalizeEmail(req.body.email);
+    if (!auth.isValidEmail(email)) return res.status(400).json({ error: 'Informe um email válido.' });
+
+    const limit = auth.rateLimit(`reset:${email}`, { max: 5, windowMs: 60 * 60 * 1000 });
+    if (!limit.allowed) {
+      return res.status(429).json({ error: 'Muitos pedidos para este email. Aguarde alguns minutos.' });
+    }
+
+    const user = await store.findUserByEmail(email);
+    if (!user) return res.json(NEUTRAL_RESET_RESPONSE);
+
+    const out = await deliverResetLink({ req, user, isFirstAccess: !user.password_hash });
+    res.json({ ...NEUTRAL_RESET_RESPONSE, devUrl: out.devUrl });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Define a senha a partir do token do email e já entrega a sessão.
+app.post('/api/auth/set-password', async (req, res, next) => {
+  try {
+    const token = String(req.body.token || '');
+    const password = String(req.body.password || '');
+
+    const invalid = auth.validatePassword(password);
+    if (invalid) return res.status(400).json({ error: invalid });
+
+    const reset = await auth.consumeResetToken(token);
+    if (!reset) {
+      return res.status(400).json({ error: 'Este link expirou ou já foi usado. Peça um novo link de acesso.' });
+    }
+
+    const user = await store.findUserById(reset.user_id);
+    if (!user) return res.status(400).json({ error: 'Conta não encontrada.' });
+
+    await store.setUserPassword(user.id, auth.hashPassword(password));
+    await store.touchLogin(user.id);
+    const session = await auth.issueSession(user.id);
+    res.json({ ok: true, token: session, user: auth.publicUser(user) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/auth/login', async (req, res, next) => {
+  try {
+    const email = auth.normalizeEmail(req.body.email);
+    const password = String(req.body.password || '');
+    if (!auth.isValidEmail(email) || !password) {
+      return res.status(400).json({ error: 'Informe email e senha.' });
+    }
+
+    const limit = auth.rateLimit(`login:${req.ip}:${email}`, { max: 8, windowMs: 15 * 60 * 1000 });
+    if (!limit.allowed) {
+      return res.status(429).json({
+        error: `Muitas tentativas de login. Tente novamente em ${Math.ceil(limit.retryAfterSec / 60)} minutos.`,
+      });
+    }
+
+    const user = await store.findUserByEmail(email);
+    // Mesma mensagem para email inexistente, senha errada e conta sem senha
+    // definida: nenhuma delas revela em qual dos casos o atacante caiu.
+    const genericFail = { error: 'Email ou senha incorretos.' };
+
+    if (!user || !user.password_hash) return res.status(401).json(genericFail);
+    if (!auth.verifyPassword(password, user.password_hash)) return res.status(401).json(genericFail);
+
+    await store.touchLogin(user.id);
+    const session = await auth.issueSession(user.id);
+    res.json({ ok: true, token: session, user: auth.publicUser(user) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/auth/logout', async (req, res, next) => {
+  try {
+    await auth.revokeSession(auth.bearerToken(req));
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/api/auth/me', auth.requireAuth(), (req, res) => {
+  res.json({ user: auth.publicUser(req.user) });
+});
+
+app.patch('/api/auth/me', auth.requireAuth(), async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    const crm = String(req.body.crm || '').trim();
+    if (name.length < 3) return res.status(400).json({ error: 'Informe seu nome completo.' });
+    if (crm.length < 3) return res.status(400).json({ error: 'Informe seu CRM.' });
+    await store.updateUserProfile(req.user.id, { name, crm });
+    res.json({ ok: true, user: { ...auth.publicUser(req.user), name, crm } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* =============================== PLAUD =============================== */
+
+// state assinado: amarra o callback ao médico que iniciou a conexão, sem
+// precisar de sessão em cookie no retorno do provedor.
+const PLAUD_STATE_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+
+function signState(userId) {
+  const payload = `${userId}.${Date.now()}`;
+  const sig = crypto.createHmac('sha256', PLAUD_STATE_SECRET).update(payload).digest('base64url');
+  return `${Buffer.from(payload).toString('base64url')}.${sig}`;
+}
+
+function verifyState(state) {
+  const [encoded, sig] = String(state || '').split('.');
+  if (!encoded || !sig) return null;
+  const payload = Buffer.from(encoded, 'base64url').toString('utf8');
+  const expected = crypto.createHmac('sha256', PLAUD_STATE_SECRET).update(payload).digest('base64url');
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  const [userId, issuedAt] = payload.split('.');
+  if (Date.now() - Number(issuedAt) > 10 * 60 * 1000) return null;
+  return userId;
+}
+
+app.get('/api/plaud/status', auth.requireAuth(), async (req, res, next) => {
+  try {
+    const configured = plaud.isConfigured();
+    const tokens = configured ? await store.getPlaudTokens(req.user.id) : null;
+    res.json({ configured, connected: Boolean(tokens) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/api/plaud/connect', auth.requireAuth(), (req, res) => {
+  if (!plaud.isConfigured()) {
+    return res.status(503).json({
+      error: 'A integração com o Plaud ainda não foi liberada para esta instalação.',
+    });
+  }
+  res.json({ url: plaud.authorizeUrl({ req, state: signState(req.user.id) }) });
+});
+
+// Callback do OAuth: o provedor redireciona o navegador para cá, então a
+// resposta é um redirect para a home com o resultado na query string.
+app.get('/api/plaud/callback', async (req, res) => {
+  const back = (status) => res.redirect(`/?plaud=${status}`);
+  try {
+    if (req.query.error) return back('negado');
+    const userId = verifyState(req.query.state);
+    if (!userId) return back('estado-invalido');
+    if (!req.query.code) return back('sem-codigo');
+
+    const tokens = await plaud.exchangeCode({ req, code: String(req.query.code) });
+    await store.savePlaudTokens(userId, tokens);
+    back('conectado');
+  } catch (err) {
+    console.error('Erro no callback do Plaud:', err);
+    back('falha');
+  }
+});
+
+app.post('/api/plaud/disconnect', auth.requireAuth(), async (req, res, next) => {
+  try {
+    await store.deletePlaudTokens(req.user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/api/plaud/recordings', auth.requireAuth(), async (req, res, next) => {
+  try {
+    res.json({ recordings: await plaud.listRecordings(req.user.id) });
+  } catch (err) {
+    if (err.code === 'PLAUD_REAUTH') return res.status(409).json({ error: err.message, reauth: true });
+    next(err);
+  }
+});
+
+app.get('/api/plaud/transcript/:id', auth.requireAuth(), async (req, res, next) => {
+  try {
+    res.json({ text: await plaud.fetchTranscript(req.user.id, req.params.id) });
+  } catch (err) {
+    if (err.code === 'PLAUD_REAUTH') return res.status(409).json({ error: err.message, reauth: true });
+    next(err);
+  }
+});
+
+/* ============================== EXTRAÇÃO ============================== */
+
+app.post('/api/extract', auth.requireAuth(), upload.array('files', 10), async (req, res) => {
   try {
     const text = (req.body.text || '').trim();
     const files = req.files || [];
@@ -199,12 +471,37 @@ app.post('/api/extract', upload.array('files', 10), async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, hasApiKey: Boolean(process.env.ANTHROPIC_API_KEY) });
+  res.json({
+    ok: true,
+    hasApiKey: Boolean(process.env.ANTHROPIC_API_KEY),
+    storage: store.usingPostgres ? 'postgres' : 'arquivo (efêmero)',
+    email: mailer.isConfigured() ? 'configurado' : 'não configurado',
+    plaud: plaud.isConfigured() ? 'configurado' : 'aguardando credenciais',
+  });
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`OncoGenYX server rodando em http://localhost:${PORT}`);
+// Handler de erro final: registra o detalhe no servidor mas nunca devolve stack
+// trace nem mensagem interna para o cliente em produção.
+app.use((err, req, res, _next) => {
+  console.error('Erro não tratado:', err);
+  if (res.headersSent) return;
+  res.status(500).json({ error: 'Erro interno. Tente novamente em instantes.' });
 });
+
+const PORT = process.env.PORT || 3000;
+
+store.init()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`OncoGenYX rodando em http://localhost:${PORT}`);
+      console.log(`  Armazenamento: ${store.usingPostgres ? 'Postgres' : 'arquivo local (efêmero)'}`);
+      console.log(`  Email:         ${mailer.isConfigured() ? 'Resend configurado' : 'NÃO configurado (links vão para o console)'}`);
+      console.log(`  Plaud:         ${plaud.isConfigured() ? 'credenciais presentes' : 'aguardando credenciais'}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Falha ao inicializar o armazenamento:', err);
+    process.exit(1);
+  });
