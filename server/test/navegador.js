@@ -1,9 +1,92 @@
 // Bateria de navegador: todas as formas de entrada, no aparelho e no desktop.
-const { chromium, devices } = require('playwright');
 const fs = require('fs');
-const TUMORS = require('/home/user/meu-espaco/server/public/tumors.js');
+const path = require('path');
+const { execFileSync } = require('child_process');
 
-const BASE = 'http://localhost:3311';
+// O playwright pode estar instalado no projeto (devDependency) ou só
+// globalmente, que é como vários ambientes de CI e contêiner o entregam. A
+// auditoria pegou esta bateria INTEIRA sem rodar por causa disso: o
+// `require('playwright')` estourava MODULE_NOT_FOUND, o script saía com
+// código 1, e ninguém percebeu que a camada de interface estava sem
+// verificação nenhuma. Um teste que não roda é pior que teste ausente, porque
+// aparece na lista como se existisse.
+function carregarPlaywright() {
+  try {
+    return require('playwright');
+  } catch (err) {
+    if (err.code !== 'MODULE_NOT_FOUND') throw err;
+  }
+  try {
+    const raizGlobal = execFileSync('npm', ['root', '-g'], { encoding: 'utf8' }).trim();
+    return require(path.join(raizGlobal, 'playwright'));
+  } catch {
+    console.error([
+      'playwright não encontrado — a bateria de navegador NÃO rodou.',
+      '',
+      'Instale com:  npm install --save-dev playwright',
+      'Ou, se já houver instalação global, garanta que ela esteja no caminho:',
+      '  NODE_PATH=$(npm root -g) npm run test:navegador',
+      '',
+      'O Chromium já vem pronto neste ambiente (PLAYWRIGHT_BROWSERS_PATH).',
+      'Não rode "playwright install".',
+    ].join('\n'));
+    process.exit(1);
+  }
+}
+
+const { chromium, devices } = carregarPlaywright();
+const TUMORS = require(path.join(__dirname, '..', 'public', 'tumors.js'));
+
+// A bateria sobe o próprio servidor, com a API simulada por trás. Antes ela
+// dependia de alguém ter deixado um servidor de pé na 3311: quem rodasse o
+// comando sozinho recebia ERR_CONNECTION_REFUSED, e a suíte de interface na
+// prática não existia.
+let BASE = '';
+let servidor = null;
+let stub = null;
+
+async function subirServidor() {
+  const { criarStub } = require('./stub-anthropic.js');
+  const os = require('os');
+  stub = criarStub();
+  const portaStub = await stub.ouvir(0);
+  const porta = 5700 + Math.floor(Math.random() * 300);
+  BASE = `http://127.0.0.1:${porta}`;
+
+  servidor = require('child_process').spawn(
+    process.execPath,
+    [path.join(__dirname, '..', 'index.js')],
+    {
+      env: {
+        ...process.env,
+        PORT: String(porta),
+        NODE_ENV: 'test',
+        DATA_FILE: path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'oncogenyx-nav-')), 'dados.json'),
+        ANTHROPIC_API_KEY: 'chave-de-teste',
+        ANTHROPIC_BASE_URL: `http://127.0.0.1:${portaStub}`,
+        DATABASE_URL: '',
+        RESEND_API_KEY: '',
+        APP_ORIGIN: '',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+  servidor.stderr.on('data', (d) => {
+    const t = String(d);
+    if (!/DeprecationWarning|punycode/.test(t)) process.stderr.write('[app] ' + t);
+  });
+
+  for (let i = 0; i < 100; i++) {
+    try { if ((await fetch(BASE + '/api/health')).ok) return; } catch { /* ainda subindo */ }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  throw new Error('o servidor não subiu a tempo para a bateria de navegador');
+}
+
+function derrubarServidor() {
+  if (servidor) servidor.kill('SIGTERM');
+  if (stub && stub.fechar) stub.fechar();
+}
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
 const falhas = [];
@@ -294,8 +377,13 @@ async function rodar(nome, dispositivo) {
 }
 
 (async () => {
-  await rodar('CELULAR (iPhone 14 Pro)', devices['iPhone 14 Pro']);
-  await rodar('DESKTOP (1280x900)', { viewport: { width: 1280, height: 900 } });
+  try {
+    await subirServidor();
+    await rodar('CELULAR (iPhone 14 Pro)', devices['iPhone 14 Pro']);
+    await rodar('DESKTOP (1280x900)', { viewport: { width: 1280, height: 900 } });
+  } finally {
+    derrubarServidor();
+  }
 
   console.log('\n' + '='.repeat(60));
   if (falhas.length) {
@@ -304,4 +392,5 @@ async function rodar(nome, dispositivo) {
     process.exit(1);
   }
   console.log('Todas as entradas passaram, no celular e no desktop.');
+  process.exit(0);
 })();

@@ -292,8 +292,33 @@ test('nome longo ou com caractere de controle é recusado no perfil', async () =
     headers: { 'content-type': 'application/json', Authorization: 'Bearer ' + token },
     body: JSON.stringify({ name: comControle, crm: '339324' }),
   });
+  // A asserção estava correta no conteúdo mas nunca era avaliada: rodava só
+  // dentro de `if (status === 200)`, e o status nunca é 200. Um teste que não
+  // executa nenhuma asserção passa igual, e foi por baixo dele que um achado da
+  // auditoria anterior escapou. Agora o próprio status é verificado, e o
+  // conteúdo continua verificado quando a rota aceita. Os bytes de controle da
+  // classe também estavam crus no arquivo, o que fazia git e grep tratarem esta
+  // suíte como binária.
+  assert.ok(controle.status === 200 || controle.status === 400,
+    'resposta inesperada para nome com caractere de controle');
   if (controle.status === 200) {
     const j = await controle.json();
-    assert.ok(!/[ -]/.test(j.user.name), 'caractere de controle gravado no nome');
+    assert.ok(!/[\x00-\x1F\x7F]/.test(j.user.name), 'caractere de controle gravado no nome');
   }
+});
+
+test('a suite nunca fala com o Postgres nem escreve no arquivo de dados real', () => {
+  // Este teste chama limparExpirados(), que e DELETE. Numa maquina com
+  // DATABASE_URL apontando para producao, rodar `npm test` apagaria as sessoes
+  // de medicos reais. A decisao de recusar Postgres mora em store.js, e nao no
+  // script de teste, para que esquecer de exportar a variavel certa nao cause
+  // estrago.
+  const codigo = fonte('store.js');
+  assert.match(codigo, /NODE_TEST_CONTEXT/, 'store.js nao detecta contexto de teste');
+  assert.match(codigo, /Boolean\(process\.env\.DATABASE_URL\) && !EM_TESTE/,
+    'store.js ainda abriria pool de Postgres durante o teste');
+  assert.strictEqual(store.usandoPostgres(), false, 'a suite esta conectada a um Postgres');
+  const sep = require('path').sep;
+  assert.ok(!store.arquivoDeDados().includes(sep + '.data' + sep),
+    'a suite esta escrevendo no arquivo de dados real');
 });

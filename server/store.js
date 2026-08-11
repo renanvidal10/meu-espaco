@@ -16,10 +16,35 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, '.data', 'oncogenyx.json');
+// A suíte roda DELETE. `robustez.test.js` carrega este módulo NO PRÓPRIO
+// processo do teste e chama limparExpirados(), que é
+// `DELETE FROM sessions/resets WHERE expires_at < now()`. Os testes que sobem
+// o servidor em subprocesso já limpam DATABASE_URL no env do filho, mas o que
+// carrega em processo não tem como. Resultado medido: numa máquina com
+// DATABASE_URL apontando para o banco de produção, `npm test` apaga sessões de
+// médicos reais — todos deslogados sem explicação.
+//
+// Por isso a decisão é aqui, no módulo, e não no script de teste: quem esquecer
+// de exportar a variável certa não consegue causar o estrago. Em contexto de
+// teste este módulo NUNCA fala com Postgres e NUNCA escreve no arquivo de
+// dados real, mesmo que o ambiente mande.
+const EM_TESTE = process.env.NODE_TEST_CONTEXT !== undefined || process.env.NODE_ENV === 'test';
+
+const DATA_FILE = process.env.DATA_FILE
+  || (EM_TESTE
+    ? path.join(require('os').tmpdir(), `oncogenyx-teste-${process.pid}.json`)
+    : path.join(__dirname, '.data', 'oncogenyx.json'));
+
+// O arquivo de teste é descartável e some junto com o processo. Sem isto, cada
+// `npm test` deixava lixo em /tmp para sempre.
+if (EM_TESTE && !process.env.DATA_FILE) {
+  process.on('exit', () => {
+    try { fs.rmSync(DATA_FILE, { force: true }); } catch { /* nada a fazer no exit */ }
+  });
+}
 
 let pool = null;
-const usingPostgres = Boolean(process.env.DATABASE_URL);
+const usingPostgres = Boolean(process.env.DATABASE_URL) && !EM_TESTE;
 
 if (usingPostgres) {
   const { Pool } = require('pg');
@@ -343,6 +368,11 @@ module.exports = {
   ping,
   init,
   usingPostgres,
+  // Acessores para a suíte conseguir provar, e não presumir, que está isolada
+  // do banco e do arquivo de dados reais. Ler as constantes direto de fora não
+  // dá: o módulo é carregado uma única vez por processo.
+  usandoPostgres: () => usingPostgres,
+  arquivoDeDados: () => DATA_FILE,
   findUserByEmail,
   findUserById,
   createUser,
