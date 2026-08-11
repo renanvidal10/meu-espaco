@@ -1,4 +1,27 @@
-<title>OncoGenYX - Mockup: Triagem GYN</title>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<!-- Sem esta linha o Safari do iPhone assume uma tela de 980px e encolhe a
+     página inteira - foi o que fazia tudo aparecer minúsculo no celular.
+     viewport-fit=cover deixa o fundo ir até a borda; o recuo do notch e do
+     indicador de home é devolvido pelo env(safe-area-inset-*) no CSS. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>OncoGenYX - Triagem genômica em oncologia</title>
+<meta name="description" content="Triagem de indicação de teste genético germinativo e somático em oncologia, com base em diretrizes nacionais e internacionais vigentes." />
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" content="#0f6b5c" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#121a17" media="(prefers-color-scheme: dark)" />
+<meta name="format-detection" content="telephone=no" />
+
+<!-- Instalação na tela de início: abre sem barra de endereço, como aplicativo. -->
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="OncoGenYX" />
+<link rel="apple-touch-icon" href="/icone-180.png" />
+<link rel="icon" href="/icone-192.png" />
 <style>
   :root {
     --bg: #eef2f0;
@@ -1194,7 +1217,7 @@
   /* No celular o painel ocupa a tela: um cartão flutuante de 380px numa
      viewport de 390px vira uma caixa apertada com o teclado aberto. */
   @media (max-width: 520px) {
-    .gena { right: 14px; bottom: 14px; }
+    .gena { right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); }
     .gena-panel {
       position: fixed; inset: 0;
       width: 100%; height: 100%;
@@ -1214,9 +1237,99 @@
     border-radius: 3px;
     cursor: text;
   }
+  .step-curto { display: none; }
+
+  /* ==================== CELULAR / APLICATIVO INSTALADO ====================
+     Três problemas distintos resolvidos aqui:
+     1. Zoom automático do iOS: o Safari dá zoom sozinho ao tocar em qualquer
+        campo com fonte menor que 16px - e não volta ao normal depois. Num
+        formulário clínico inteiro isso é insuportável, então no celular os
+        campos vão para 16px. Só os campos: o resto da tipografia não muda.
+     2. Recuo do notch e do indicador de home, devolvido pelo safe-area-inset
+        (necessário porque o viewport está em viewport-fit=cover).
+     3. Respiro lateral: 24px de padding numa tela de 390px desperdiça 12% da
+        largura útil. */
+  @media (max-width: 560px) {
+    input, select, textarea,
+    .field input.value, .field select.value,
+    .name-card input, .gena-compose input {
+      font-size: 16px;
+    }
+    /* Cabeçalho enxuto: numa tela de 390px, marca + tagline + nome do médico
+       na mesma linha vira três blocos quebrados em quatro linhas cada. Fica
+       só o essencial - a marca e as iniciais com o botão de sair. */
+    .topbar { padding: 12px 16px; gap: 10px; }
+    .brand > span { display: none; }
+    .doctor-chip #doctor-chip-text { display: none; }
+
+    /* Rótulos curtos: os quatro passos passam a caber sem rolagem lateral,
+       então o médico enxerga em que ponto do fluxo está sem arrastar a barra. */
+    .step-longo { display: none; }
+    .step-curto { display: inline; }
+    .steps { padding: 0 8px; gap: 0; }
+    .step-btn { padding-left: 9px; padding-right: 9px; font-size: 12.5px; }
+    main { padding: 22px 16px 88px; }
+    h1 { font-size: 24px; }
+    .card { padding: 16px 15px; }
+    /* Alvo de toque de 44px nos botões de rodapé, e empilhados quando não
+       cabem lado a lado - dois botões apertados numa linha erram o dedo. */
+    .btn-row, .foot-nav, .doc-actions { flex-wrap: wrap; gap: 10px; }
+    .btn-row button, .foot-nav button, .doc-actions button { min-height: 44px; }
+    .name-card { flex-direction: column; align-items: stretch; }
+    .name-card button { min-height: 44px; }
+
+    /* Linhas de duas colunas viram duas linhas. Numa tela estreita, "rótulo à
+       esquerda / valor à direita" espreme os dois em colunas de ~14 caracteres
+       e o texto quebra palavra a palavra - fica ilegível justamente no
+       documento que o médico vai assinar. */
+    .case-banner { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .program-row { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .program-row .who { width: 100%; }
+    .program-row a.link { width: 100%; justify-content: center; min-height: 44px; }
+    .doc-preview .doc-row { flex-direction: column; gap: 2px; }
+    .doc-preview .doc-row .v { text-align: left; }
+    .doc-preview .doc-sign { flex-direction: column; align-items: flex-start; gap: 6px; }
+  }
+
+  /* Recuos de área segura: valem em qualquer largura, porque o iPhone em
+     modo paisagem também tem notch lateral. max() garante que a margem
+     normal continue valendo em aparelho sem recorte. */
+  .topbar {
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+  .steps {
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+  }
+  main {
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  .gate { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  @media (max-width: 560px) {
+    .topbar { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+    .steps { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+    main { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  }
+
   @media print {
     @page { margin: 14mm; }
     body.printing { background: #fff !important; }
+
+    /* A tela ativa entra com "animation: rise ... both". Na paginação da
+       impressão o Chromium reinicia essa animação e captura o quadro inicial,
+       que é opacity:0 - resultado: folha em branco. Zerar a animação no papel
+       é obrigatório, não cosmético. */
+    .screen.active {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    /* A Gena é um controle de tela; não faz sentido no documento assinado. */
+    body.printing .gena { display: none !important; }
     body.printing > .topbar,
     body.printing > .steps,
     body.printing .screen > .eyebrow,
@@ -1256,6 +1369,9 @@
     }
   }
 </style>
+</head>
+
+<body>
 
 <div class="gate" id="gate">
   <div class="gate-shell">
@@ -1442,10 +1558,10 @@
 </div>
 
 <div class="steps" id="steps">
-  <button class="step-btn active" data-step="0"><span class="num">1</span>Novo caso</button>
-  <button class="step-btn" data-step="1"><span class="num">2</span>Revisão do caso</button>
-  <button class="step-btn" data-step="2"><span class="num">3</span>Resultado da triagem</button>
-  <button class="step-btn" data-step="3"><span class="num">4</span>Programas e solicitação</button>
+  <button class="step-btn active" data-step="0"><span class="num">1</span><span class="step-longo">Novo caso</span><span class="step-curto">Caso</span></button>
+  <button class="step-btn" data-step="1"><span class="num">2</span><span class="step-longo">Revisão do caso</span><span class="step-curto">Revisão</span></button>
+  <button class="step-btn" data-step="2"><span class="num">3</span><span class="step-longo">Resultado da triagem</span><span class="step-curto">Resultado</span></button>
+  <button class="step-btn" data-step="3"><span class="num">4</span><span class="step-longo">Programas e solicitação</span><span class="step-curto">Programas</span></button>
 </div>
 
 <main>
@@ -2755,6 +2871,12 @@
     document.querySelectorAll('.step-btn').forEach((el, idx) => {
       el.classList.toggle('active', idx === i);
       el.classList.toggle('done', idx < i);
+      // Se a barra de passos estiver rolando (telas estreitas), traz o passo
+      // atual para a área visível - senão o médico avança e o indicador de
+      // onde ele está fica fora da tela.
+      if (idx === i && el.scrollIntoView) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -2914,3 +3036,6 @@
     refreshPlaudStatus();
   }
 </script>
+
+</body>
+</html>

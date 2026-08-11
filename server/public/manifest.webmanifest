@@ -1,0 +1,18 @@
+{
+  "name": "OncoGenYX - Triagem genômica em oncologia",
+  "short_name": "OncoGenYX",
+  "description": "Triagem de indicação de teste genético germinativo e somático em oncologia, com base em diretrizes nacionais e internacionais vigentes.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef2f0",
+  "theme_color": "#0f6b5c",
+  "categories": ["medical", "health", "productivity"],
+  "icons": [
+    { "src": "/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icone-512-mascara.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
