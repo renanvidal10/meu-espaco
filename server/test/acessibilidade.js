@@ -10,6 +10,7 @@
 // produzi-lo do nada.
 
 const path = require('path');
+const { arquivoDeDadosTemporario } = require('./temporario.js');
 const fs = require('fs');
 const os = require('os');
 const { execFileSync, spawn } = require('child_process');
@@ -45,7 +46,7 @@ async function subir() {
       ...process.env,
       PORT: String(porta),
       NODE_ENV: 'test',
-      DATA_FILE: path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'oncogenyx-a11y-')), 'dados.json'),
+      DATA_FILE: arquivoDeDadosTemporario('a11y'),
       ANTHROPIC_API_KEY: 'chave-de-teste',
       ANTHROPIC_BASE_URL: `http://127.0.0.1:${portaStub}`,
       DATABASE_URL: '', RESEND_API_KEY: '', APP_ORIGIN: '',

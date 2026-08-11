@@ -134,6 +134,39 @@ rodar('Ovário', [
     valores: { estadiamento: 'IIIC', grau: 'Alto grau' },
     estado: 'insuficiente',
   },
+
+  /* --- A FRONTEIRA DO ESTÁGIO -------------------------------------- *
+   * O par somático depende de estágio III ou IV. Nenhum caso da bateria
+   * usava estágio II, em nenhum tumor: o limite `<= 2` de estadioInicial
+   * podia virar `< 2` sem quebrar nada, e com isso um seroso de alto grau
+   * em estágio II passava a receber HRD somático — teste tumoral em doença
+   * inicial, fora do critério FIGO. Estes quatro casos travam os dois lados
+   * da fronteira.
+   * ----------------------------------------------------------------- */
+  {
+    nome: 'seroso alto grau estágio II — inicial, sem somático (fronteira)',
+    tumor: 'ovario',
+    valores: { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'II' },
+    estado: 'parcial', testes: ['germinativo-brca'],
+  },
+  {
+    nome: 'seroso alto grau estágio IIB — ainda inicial (fronteira)',
+    tumor: 'ovario',
+    valores: { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIB' },
+    estado: 'parcial', testes: ['germinativo-brca'],
+  },
+  {
+    nome: 'seroso alto grau estágio III — primeiro avançado (fronteira)',
+    tumor: 'ovario',
+    valores: { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'III' },
+    estado: 'completo', testes: ['hrd', 'germinativo-brca'],
+  },
+  {
+    nome: 'seroso alto grau estágio 2 em arábico — inicial (fronteira)',
+    tumor: 'ovario',
+    valores: { histologia: 'Seroso', grau: 'Alto grau', estadiamento: '2' },
+    estado: 'parcial', testes: ['germinativo-brca'],
+  },
 ]);
 
 /* ====================================================================== *
@@ -661,5 +694,37 @@ test('diagnóstico impresso nunca sai com defeito de forma', () => {
         }
       }
     }
+  }
+});
+
+test('dMMR é reconhecido nas grafias que o médico digita à mão', () => {
+  // O campo é editável. O valor de enum ("dMMR / MSI-alto") contém "dmmr", o
+  // que fazia a regra passar nos testes mesmo reconhecendo só essa forma. Um
+  // laudo digitado como "MSI alto" perdia a indicação de painel germinativo
+  // de Lynch e caía em "sem indicação" no colorretal localizado.
+  const grafias = ['dMMR / MSI-alto', 'dMMR', 'MSI alto', 'MSI-alto', 'MSI-H', 'MMR deficiente'];
+  for (const grafia of grafias) {
+    const crc = TUMORS.get('colorretal').classify({
+      histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado',
+      mmr_msi: grafia, idade: '62', historico_familiar: '', testes_previos: '',
+    });
+    assert.ok(
+      nomesDosTestes(crc).includes('germinativo-lynch'),
+      `colorretal com "${grafia}" perdeu a indicação de Lynch`,
+    );
+
+    const endo = TUMORS.get('endometrio').classify({
+      histologia: 'Endometrioide', estadiamento: 'IA',
+      mmr_msi: grafia, idade: '58', historico_familiar: '', testes_previos: '',
+    });
+    assert.ok(
+      nomesDosTestes(endo).includes('germinativo-lynch-endo'),
+      `endométrio com "${grafia}" perdeu a indicação de Lynch`,
+    );
+  }
+
+  // E o contrário: proficiente nunca pode ser lido como deficiente.
+  for (const grafia of ['pMMR / MSS', 'pMMR', 'MSS', 'MMR proficiente', 'Não realizado']) {
+    assert.strictEqual(TUMORS.helpers.ehDmmr(grafia), false, `"${grafia}" nao e dMMR`);
   }
 });

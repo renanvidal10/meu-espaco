@@ -169,10 +169,20 @@ async function extrairTexto(buffer) {
   return { texto: partes.join('\n').trim(), paginas: documento.numPages };
 }
 
-/** Reconhece a recusa específica da API para documento ilegível. */
+/**
+ * Reconhece a recusa específica da API para documento ilegível.
+ *
+ * As duas condições são obrigatórias, e a conjunção importa em dinheiro: um
+ * `||` no lugar do `&&` faria "invalid x-api-key" (erro 401, sem nenhum PDF
+ * envolvido) ser lido como recusa de documento, disparando extração local e
+ * UMA SEGUNDA CHAMADA PAGA a cada erro de autenticação. Nenhum teste pegava
+ * isso, porque os casos negativos não casavam nem um lado nem o outro.
+ */
 function ehRecusaDePdf(err) {
   const msg = String((err && err.message) || '');
-  return /pdf/i.test(msg) && /not valid|invalid|could not|unable|corrupt/i.test(msg);
+  const falaDePdf = /pdf/i.test(msg);
+  const falaDeFalha = /not valid|invalid|could not|unable|corrupt/i.test(msg);
+  return falaDePdf && falaDeFalha;
 }
 
 module.exports = { preparar, desembrulhar, extrairTexto, ehRecusaDePdf, MAX_BYTES, MAX_PAGINAS };

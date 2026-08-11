@@ -12,6 +12,7 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { arquivoDeDadosTemporario } = require('./temporario.js');
 
 const { criarStub } = require('./stub-anthropic.js');
 const { criaPdf, ENVELOPE_ASSINATURA } = require('./util-pdf.js');
@@ -43,7 +44,7 @@ test.before(async () => {
   stub = criarStub();
   const portaStub = await stub.ouvir(0);
 
-  const dataFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'oncogenyx-teste-')), 'dados.json');
+  const dataFile = arquivoDeDadosTemporario('int');
   const porta = 4300 + Math.floor(Math.random() * 500);
   base = `http://127.0.0.1:${porta}`;
 

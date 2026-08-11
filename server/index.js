@@ -437,6 +437,11 @@ app.post('/api/auth/set-password', requireFullAuthMode, async (req, res, next) =
     if (!user) return res.status(400).json({ error: 'Conta não encontrada.' });
 
     await store.setUserPassword(user.id, auth.hashPassword(password));
+    // Quem redefine a senha em geral o faz porque perdeu o acesso ou suspeita
+    // de invasão. Sem revogar as sessões antigas, o invasor continua logado
+    // depois da troca — a tela diz que a conta foi protegida e ela não foi.
+    // A função existia em store.js e não era chamada de lugar nenhum.
+    await store.deleteSessionsByUser(user.id);
     await store.touchLogin(user.id);
     const session = await auth.issueSession(user.id);
     res.json({ ok: true, token: session, user: auth.publicUser(user) });
@@ -1037,20 +1042,17 @@ store.init()
       console.log(`  Email:         ${mailer.isConfigured() ? 'Resend configurado' : 'NÃO configurado (links vão para o console)'}`);
       console.log(`  Plaud:         ${plaud.isConfigured() ? 'credenciais presentes' : 'aguardando credenciais'}`);
     });
+    // Porta ocupada não pode virar stack crua no log do Render. Este listener
+    // vivia num bloco no fim do arquivo protegido por um teste de nulidade e
+    // agendado com process.nextTick, que NUNCA rodava: o nextTick dispara
+    // antes do `.then()` de store.init(), então o servidor ainda não existia e
+    // o bloco interno pulava fora. Provado com repro isolado na auditoria.
+    servidor.on('error', (e) => {
+      console.error('Não consegui escutar na porta', PORT, '-', e.code);
+      process.exit(1);
+    });
   })
   .catch((err) => {
     console.error('Falha ao inicializar o armazenamento:', err);
     process.exit(1);
   });
-
-if (servidor === null) {
-  // listener de erro do socket: porta ocupada não pode virar stack crua
-  process.nextTick(() => {
-    if (servidor) {
-      servidor.on('error', (e) => {
-        console.error('Não consegui escutar na porta', PORT, '-', e.code);
-        process.exit(1);
-      });
-    }
-  });
-}

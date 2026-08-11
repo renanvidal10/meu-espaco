@@ -33,6 +33,15 @@
     const v = norm(value);
     return terms.some((t) => v.includes(norm(t)));
   }
+  // Deficiencia de reparo escrita do jeito que o medico digita no campo
+  // editavel. O valor de enum ("dMMR / MSI-alto") ja contem "dmmr", entao a
+  // regra passava nos testes mesmo reconhecendo so essa forma — e um laudo
+  // digitado como "MSI alto" ou "MSI-H" perdia a indicacao de painel
+  // germinativo de Lynch, caindo em "sem indicacao" no colorretal localizado.
+  function ehDmmr(value) {
+    return has(value, 'dmmr', 'd-mmr', 'mmr deficiente', 'deficiencia de reparo',
+      'msi-alto', 'msi alto', 'msi-h', 'msi h', 'instabilidade alta');
+  }
   function filled(value) {
     const v = norm(value);
     return v !== '' && v !== '-' && v !== 'nao relatado' && v !== 'nenhum relatado';
@@ -81,13 +90,6 @@
       if (arabico) return parseInt(arabico[1], 10);
     }
     return null;
-  }
-
-  // Estádio preenchido mas em notação que não sabemos ler. Diferente de vazio:
-  // aqui existe informação, só não conseguimos interpretá-la — e o texto do
-  // resultado não pode dizer "não informado".
-  function estadioIlegivel(value) {
-    return filled(value) && estadioNumero(value) === null;
   }
 
   function estadioAvancado(value) {
@@ -798,7 +800,7 @@
         return { state: 'insuficiente', message: 'Informe ao menos a histologia ou a extensão da doença.' };
       }
       const metastatico = has(v.extensao_doenca, 'metastatico');
-      const dmmr = has(v.mmr_msi, 'dmmr', 'msi-alto', 'msi alto');
+      const dmmr = ehDmmr(v.mmr_msi);
       const mmrFeito = filled(v.mmr_msi) && !has(v.mmr_msi, 'nao realizado');
       const idade = num(v.idade);
       // O colorretal de início precoce é o cenário que mais cresce, e era
@@ -909,7 +911,7 @@
       if (!filled(v.histologia) && !filled(v.estadiamento)) {
         return { state: 'insuficiente', message: 'Informe ao menos a histologia ou o estadiamento.' };
       }
-      const dmmr = has(v.mmr_msi, 'dmmr', 'msi-alto', 'msi alto');
+      const dmmr = ehDmmr(v.mmr_msi);
       const mmrFeito = filled(v.mmr_msi) && !has(v.mmr_msi, 'nao realizado');
       const tests = [];
 
@@ -1288,6 +1290,6 @@
   return {
     REGISTRY, ORDER, get, list, labels,
     fieldsOf, schemaFields, normalizar, acharTumorPorLabel, encaixarValor, isComum, CHAVES_COMUNS,
-    helpers: { norm, lower, has, filled, num, estadioNumero, estadioAvancado, estadioInicial, estadioIlegivel, grauAlto, grauBaixo },
+    helpers: { norm, lower, has, ehDmmr, filled, num, estadioNumero, estadioAvancado, estadioInicial, grauAlto, grauBaixo },
   };
 });

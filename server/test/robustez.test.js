@@ -9,6 +9,7 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { arquivoDeDadosTemporario } = require('./temporario.js');
 
 const { criarStub } = require('./stub-anthropic.js');
 const store = require('../store.js');
@@ -28,7 +29,7 @@ async function esperarSaude(url, tentativas = 60) {
 }
 
 function subir(env = {}) {
-  const dataFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'oncogenyx-rob-')), 'dados.json');
+  const dataFile = arquivoDeDadosTemporario('rob');
   const porta = 5600 + Math.floor(Math.random() * 300);
   const proc = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], {
     env: {
@@ -42,7 +43,21 @@ function subir(env = {}) {
   return { proc, base: `http://127.0.0.1:${porta}` };
 }
 
-const fonte = (arquivo) => fs.readFileSync(path.join(__dirname, '..', arquivo), 'utf8');
+// SEM OS COMENTÁRIOS, de propósito.
+//
+// Sete testes desta suíte afirmam coisas sobre o código-fonte — é a única
+// forma de verificar tratador de processo, listener de pool e ordem de
+// middleware sem derrubar o servidor de verdade. Só que `assert.match` num
+// arquivo inteiro passa se a string existir num COMENTÁRIO, e comentário é
+// justamente onde a gente escreve o nome do defeito que acabou de corrigir.
+// Foi assim que um achado de auditoria passou por baixo de um teste que dizia
+// cobri-lo. Aqui a leitura descarta linhas de comentário e blocos /* */.
+const fonte = (arquivo) => fs
+  .readFileSync(path.join(__dirname, '..', arquivo), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .split('\n')
+  .filter((linha) => !linha.trim().startsWith('//'))
+  .join('\n');
 
 test.before(async () => {
   stub = criarStub();
@@ -106,16 +121,46 @@ test('existe teto global de bytes em voo', () => {
 /* ===== memória ===== */
 
 test('requisição acima do teto por requisição é recusada, e o servidor sobrevive', async () => {
+  // O teste antigo aceitava `413 || 400` e passava pelo caminho errado: os 26
+  // MB batiam no fileSize de 12 MB do multer e voltavam 400, então as linhas
+  // do teto por requisição apareciam DESCOBERTAS na medição de cobertura, e
+  // trocar o `if` por `if (false)` não quebrava nada. Aqui o status exigido é
+  // 413 e a mensagem é a específica deste teto — é a única forma de provar
+  // que a reserva de memória rodou.
   const corpo = new FormData();
   const grande = Buffer.alloc(26 * 1024 * 1024, 0x41);
   corpo.append('files', new Blob([grande], { type: 'application/pdf' }), 'enorme.pdf');
   const r = await fetch(base + '/api/extract', {
     method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: corpo,
   });
-  assert.ok(r.status === 413 || r.status === 400, `esperado 413 ou 400, veio ${r.status}`);
+  assert.strictEqual(r.status, 413, `esperado 413 do teto por requisição, veio ${r.status}`);
+  const json = await r.json();
+  assert.match(json.error, /grande demais/i, 'mensagem do teto por requisição não chegou ao médico');
 
   const saude = await fetch(base + '/api/health');
   assert.strictEqual(saude.status, 200, 'o processo morreu ao rejeitar o upload');
+});
+
+test('o teto global de bytes em voo existe e é aplicado antes do multer', () => {
+  // Duas requisições simultâneas de 57 MB levavam o processo a SIGKILL num
+  // cgroup de 512 MB, e com disco efêmero isso desloga todos os médicos. O
+  // contador é global, então não dá para exercitá-lo em processo separado sem
+  // sincronizar dois uploads no milissegundo; o que se verifica aqui é que ele
+  // existe, que devolve 503 com Retry-After e que a reserva vem ANTES do
+  // multer na cadeia — se vier depois, o corpo já foi lido para a memória e o
+  // teto não protege nada.
+  const codigo = fonte('index.js');
+  assert.match(codigo, /bytesEmVoo \+ tamanho > TETO_BYTES_EM_VOO/, 'sem teto global de bytes em voo');
+  assert.match(codigo, /Retry-After/, 'o 503 do teto global não diz quando tentar de novo');
+  const linha = codigo.split('\n').find((l) => l.includes("app.post('/api/extract'"));
+  assert.ok(linha, 'rota /api/extract não encontrada');
+  const posReserva = linha.indexOf('reservaDeMemoria');
+  const posMulter = linha.indexOf('upload.array');
+  assert.ok(posReserva >= 0 && posMulter >= 0, 'a rota perdeu a reserva de memória ou o multer');
+  assert.ok(
+    posReserva < posMulter,
+    'a reserva de memória precisa vir antes do multer, senão o corpo já foi lido',
+  );
 });
 
 /* ===== PDF não pode congelar o event loop ===== */
@@ -232,7 +277,7 @@ test('limpeza de sessões e resets expirados existe e roda', async () => {
   // requisição autenticada relê o banco inteiro (26x mais lento com 20 mil).
   const r = await store.limparExpirados();
   assert.ok(r && typeof r === 'object', 'limparExpirados não devolveu resultado');
-  assert.strictEqual(typeof store.deleteSessionsByUser, 'function', 'sem "sair de todos os dispositivos"');
+  assert.strictEqual(typeof store.deleteSessionsByUser, 'function', 'sem revogação de sessões');
   assert.strictEqual(typeof store.ping, 'function', 'sem verificação de saúde do armazenamento');
 });
 

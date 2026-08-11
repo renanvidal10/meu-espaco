@@ -10,6 +10,7 @@
 // até achar o fundo efetivo. Nada aqui é estimado.
 
 const path = require('path');
+const { arquivoDeDadosTemporario } = require('./temporario.js');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
 
@@ -145,7 +146,7 @@ if (require.main === module) {
           ...process.env,
           PORT: String(porta),
           NODE_ENV: 'test',
-          DATA_FILE: path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'oncogenyx-cor-')), 'dados.json'),
+          DATA_FILE: arquivoDeDadosTemporario('cor'),
           ANTHROPIC_API_KEY: 'chave-de-teste',
           ANTHROPIC_BASE_URL: `http://127.0.0.1:${portaStub}`,
           DATABASE_URL: '', RESEND_API_KEY: '', APP_ORIGIN: '',

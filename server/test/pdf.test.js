@@ -157,3 +157,43 @@ test('extração local não destrói o buffer original', async () => {
   assert.strictEqual(buffer.length, antes, 'o buffer foi consumido');
   assert.strictEqual(pdf.preparar(anexo('laudo.pdf', buffer)).ok, true, 'o buffer ficou inutilizável');
 });
+
+test('ehRecusaDePdf exige as DUAS condicoes, nao uma delas', () => {
+  // A conjuncao aqui custa dinheiro. Trocar && por || fazia "invalid
+  // x-api-key" — erro 401, sem PDF nenhum envolvido — ser lido como recusa de
+  // documento, disparando extracao local e uma SEGUNDA chamada paga a cada
+  // erro de autenticacao. Os casos negativos que existiam nao casavam nem um
+  // lado nem o outro, entao a mutacao passava incolume.
+  const recusaDeVerdade = [
+    'The PDF specified was not valid',
+    'Could not process pdf document',
+    'pdf is corrupt',
+  ];
+  for (const msg of recusaDeVerdade) {
+    assert.strictEqual(pdf.ehRecusaDePdf(new Error(msg)), true, `deveria ser recusa: ${msg}`);
+  }
+
+  // Casa "invalid" mas nao fala de PDF:
+  const soFalhaSemPdf = [
+    'invalid x-api-key',
+    'invalid_request_error: bad field',
+    'could not process request',
+    'image is corrupt',
+    'Your credit balance is too low',
+  ];
+  for (const msg of soFalhaSemPdf) {
+    assert.strictEqual(pdf.ehRecusaDePdf(new Error(msg)), false, `nao e recusa de PDF: ${msg}`);
+  }
+
+  // Fala de PDF mas nao e falha:
+  const soPdfSemFalha = [
+    'pdf recebido com sucesso',
+    'pdf processed in 3 pages',
+  ];
+  for (const msg of soPdfSemFalha) {
+    assert.strictEqual(pdf.ehRecusaDePdf(new Error(msg)), false, `nao e recusa de PDF: ${msg}`);
+  }
+
+  assert.strictEqual(pdf.ehRecusaDePdf(undefined), false);
+  assert.strictEqual(pdf.ehRecusaDePdf(new Error('')), false);
+});

@@ -9,6 +9,7 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { arquivoDeDadosTemporario } = require('./temporario.js');
 
 const { criarStub } = require('./stub-anthropic.js');
 const { criaPdf } = require('./util-pdf.js');
@@ -31,7 +32,7 @@ async function esperarSaude(url, tentativas = 60) {
 test.before(async () => {
   stub = criarStub();
   const portaStub = await stub.ouvir(0);
-  const dataFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'oncogenyx-seg-')), 'dados.json');
+  const dataFile = arquivoDeDadosTemporario('seg');
   const porta = 5200 + Math.floor(Math.random() * 400);
   base = `http://127.0.0.1:${porta}`;
 
@@ -230,4 +231,36 @@ test('rotas de email/senha continuam 404 no modo simples', async () => {
     });
     assert.strictEqual(r.status, 404, `/api/auth/${rota} está exposta no modo simples`);
   }
+});
+
+test('redefinir a senha revoga as sessoes antigas', () => {
+  // Quem redefine a senha em geral o faz porque perdeu o acesso ou suspeita de
+  // invasao. Sem revogar, o invasor continua logado depois da troca, e a tela
+  // diz que a conta foi protegida quando nao foi. A funcao existia em store.js
+  // e nao era chamada de lugar nenhum — codigo morto que parecia protecao.
+  const codigo = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+  const rota = codigo.slice(codigo.indexOf("app.post('/api/auth/set-password'"));
+  const fim = rota.indexOf("app.post('/api/auth/login'");
+  const corpo = rota.slice(0, fim > 0 ? fim : 2000);
+  assert.match(corpo, /deleteSessionsByUser/, 'redefinicao de senha nao revoga sessoes antigas');
+  assert.ok(
+    corpo.indexOf('setUserPassword') < corpo.indexOf('deleteSessionsByUser'),
+    'a revogacao precisa vir depois da troca de senha',
+  );
+});
+
+test('o listener de erro de porta e anexado ao servidor que existe', () => {
+  // Vivia num bloco `if (servidor === null) { process.nextTick(...) }` no fim
+  // do arquivo, que nunca rodava: o nextTick dispara antes do .then() de
+  // store.init(), entao `servidor` ainda era null e o if interno pulava fora.
+  // Porta ocupada saia como stack crua no log.
+  const codigo = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+  // Sem os comentarios: a propria explicacao do defeito cita o codigo antigo.
+  const semComentarios = codigo.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  assert.ok(!/if \(servidor === null\)/.test(semComentarios), 'o bloco morto do listener de porta voltou');
+  assert.match(codigo, /servidor\.on\('error'/, 'sem listener de erro de porta');
+  assert.ok(
+    codigo.indexOf("servidor = app.listen") < codigo.indexOf("servidor.on('error'"),
+    'o listener precisa ser anexado depois de o servidor existir',
+  );
 });

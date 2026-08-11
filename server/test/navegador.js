@@ -1,6 +1,10 @@
 // Bateria de navegador: todas as formas de entrada, no aparelho e no desktop.
 const fs = require('fs');
 const path = require('path');
+const { arquivoDeDadosTemporario } = require('./temporario.js');
+// PDF gerado na hora: o caminho absoluto que estava aqui apontava para um
+// diretorio de rascunho de uma sessao, e a bateria so rodava naquela maquina.
+const { criaPdf } = require('./util-pdf.js');
 const { execFileSync } = require('child_process');
 
 // O playwright pode estar instalado no projeto (devDependency) ou só
@@ -61,7 +65,7 @@ async function subirServidor() {
         ...process.env,
         PORT: String(porta),
         NODE_ENV: 'test',
-        DATA_FILE: path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'oncogenyx-nav-')), 'dados.json'),
+        DATA_FILE: arquivoDeDadosTemporario('nav'),
         ANTHROPIC_API_KEY: 'chave-de-teste',
         ANTHROPIC_BASE_URL: `http://127.0.0.1:${portaStub}`,
         DATABASE_URL: '',
@@ -149,7 +153,7 @@ async function rodar(nome, dispositivo) {
     p.on('pageerror', (e) => erros.push('pdf: ' + e.message));
     await mockExtracao(p, { tipo_tumor: 'Próstata', extensao_doenca: 'Metastático resistente à castração (mCRPC)', gleason_grade_group: 'Gleason 4+5=9' });
     await entrar(p);
-    await p.setInputFiles('#input-pdf', { name: 'laudo.pdf', mimeType: 'application/pdf', buffer: fs.readFileSync('/tmp/claude-0/-home-user-meu-espaco/10adf506-99da-52cd-9e4b-07d2135c0528/scratchpad/laudo-teste.pdf') });
+    await p.setInputFiles('#input-pdf', { name: 'laudo.pdf', mimeType: 'application/pdf', buffer: criaPdf('Laudo anatomopatologico de teste.') });
     const chip = await p.locator('#attached-files-list .file-chip').count();
     linha(ok(chip === 1, 'o PDF anexado não virou chip removível'), 'PDF anexado → chip visível');
     await p.click('#btn-extract');
