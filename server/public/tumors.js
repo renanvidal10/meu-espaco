@@ -135,8 +135,68 @@
   ];
   const PREFIXOS_GENERICOS = /^(adenocarcinoma|carcinoma|tumor|neoplasia|sarcoma)\b\s*/i;
 
+  // Se a histologia já nomeia a entidade tumoral, prefixar produz absurdo:
+  // "Carcinoma carcinossarcoma", "Carcinoma melanoma".
+  const TERMOS_TUMORAIS = /\b(adeno)?(carcinoma|carcinossarcoma|sarcoma|melanoma|linfoma|blastoma|teratoma|seminoma|tumor|neoplasia)\b/i;
+
+  // Descritores que são substantivo, não adjetivo: pedem "de" para ligar ao
+  // prefixo. "Carcinoma células claras" está errado; "carcinoma seroso" não.
+  const DESCRITORES_COM_DE = [
+    'celulas claras', 'celulas escamosas', 'grandes celulas', 'pequenas celulas',
+    'celulas transicionais', 'celulas em anel de sinete', 'celulas alta',
+  ];
+
+  // Siglas de laudo brasileiro. Sem elas, "CDI" recebia o prefixo genérico e
+  // saía impresso como "Carcinoma CDI de mama".
+  const SIGLAS = {
+    cdi: 'Carcinoma ductal invasivo',
+    cli: 'Carcinoma lobular invasivo',
+    cec: 'Carcinoma escamoso',
+    adc: 'Adenocarcinoma',
+    cbt: 'Carcinoma de células claras',
+  };
+
   function limpar(texto) {
     return String(texto == null ? '' : texto).replace(/\s+/g, ' ').trim();
+  }
+
+  function capitalizar(texto) {
+    const t = limpar(texto);
+    return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+  }
+
+  // Só a primeira letra: siglas e nomes próprios no meio do termo ficam de pé
+  // ("Carcinoma de células de Merkel", "carcinoma NOS").
+  function descapitalizar(texto) {
+    const t = limpar(texto);
+    if (!t) return t;
+    // Termo todo em maiúscula é sigla e não deve ser mexido.
+    if (t === t.toUpperCase() && /[A-Z]/.test(t)) return t;
+    return t.charAt(0).toLowerCase() + t.slice(1);
+  }
+
+  /**
+   * Verdadeiro só quando o termo aparece como PALAVRA no texto.
+   *
+   * `has()` casa por substring, e isso produzia o pior defeito do documento
+   * impresso: "Endometrioide" contém "endometrio", então montaDx() concluía
+   * que o sítio já estava escrito e imprimia "Carcinoma Endometrioide" — sem
+   * o órgão — numa solicitação de exame assinada.
+   */
+  function temPalavra(texto, termo) {
+    const t = norm(texto);
+    const alvo = norm(termo);
+    if (!alvo) return false;
+    let de = t.indexOf(alvo);
+    while (de >= 0) {
+      const antes = de === 0 ? '' : t[de - 1];
+      const depois = t[de + alvo.length] || '';
+      const limiteAntes = antes === '' || !/[a-z0-9]/.test(antes);
+      const limiteDepois = depois === '' || !/[a-z0-9]/.test(depois);
+      if (limiteAntes && limiteDepois) return true;
+      de = t.indexOf(alvo, de + 1);
+    }
+    return false;
   }
 
   /**
@@ -145,17 +205,67 @@
    * @param padrao      texto usado quando a histologia está vazia
    */
   function montaDx(histologia, orgao, padrao) {
-    const bruto = limpar(histologia);
+    let bruto = limpar(histologia);
     if (!filled(bruto)) return padrao;
 
+    const sigla = SIGLAS[norm(bruto)];
+    if (sigla) bruto = sigla;
+
     const casa = bruto.match(PREFIXOS_GENERICOS);
-    const prefixo = casa ? limpar(casa[1]) : 'Carcinoma';
-    const resto = casa ? limpar(bruto.slice(casa[0].length)) : bruto;
-    const cabeca = resto ? `${prefixo} ${resto}` : prefixo;
+    // Entidade já nomeada em qualquer posição do texto: usa como está.
+    if (!casa && TERMOS_TUMORAIS.test(bruto)) {
+      const jaTemSitioAqui = SITIOS.some((sitio) => temPalavra(bruto, sitio));
+      return capitalizar(jaTemSitioAqui ? bruto : `${bruto} de ${orgao}`);
+    }
+    const prefixo = casa ? capitalizar(casa[1]) : 'Carcinoma';
+    // O valor do campo vem capitalizado ("Seroso"), mas dentro da frase ele é
+    // substantivo comum: "Carcinoma Seroso" com S maiúsculo no meio parece
+    // erro de digitação num documento assinado.
+    const resto = descapitalizar(casa ? limpar(bruto.slice(casa[0].length)) : bruto);
+    const ligacao = DESCRITORES_COM_DE.some((d) => norm(resto).startsWith(d)) ? 'de ' : '';
+    const cabeca = resto ? `${prefixo} ${ligacao}${resto}` : prefixo;
 
     // Se a histologia já nomeia um sítio, acrescentar o órgão duplicaria.
-    const jaTemSitio = SITIOS.some((sitio) => has(bruto, sitio));
-    return jaTemSitio ? cabeca : `${cabeca} de ${orgao}`;
+    const jaTemSitio = SITIOS.some((sitio) => temPalavra(bruto, sitio));
+    return capitalizar(jaTemSitio ? cabeca : `${cabeca} de ${orgao}`);
+  }
+
+  /**
+   * Grau na forma canônica, para o documento impresso.
+   *
+   * O valor cru do modelo ia direto para o papel: "g3" minúsculo ao lado de
+   * uma histologia que já dizia "de alto grau", no mesmo diagnóstico.
+   */
+  function grauDx(valor, histologia) {
+    if (!filled(valor)) return '';
+    const canonico = grauAlto(valor) ? 'alto grau' : (grauBaixo(valor) ? 'baixo grau' : lower(valor));
+    // "Carcinoma seroso de alto grau de ovário, alto grau" — o médico já
+    // escreveu o grau dentro da histologia e o campo o repetia na sequência.
+    if (canonico && has(histologia, canonico)) return '';
+    return canonico;
+  }
+
+  /**
+   * Estágio na forma canônica, sem o prefixo que o médico já escreveu.
+   *
+   * "Estádio IIIC (FIGO)" virava "estágio Estádio IIIC (FIGO)" no documento.
+   */
+  const RUIDO_ESTADIO = /\b(estadio|estádio|estadiamento|estagio|estágio|figo|ec|stage|clinico|clínico|patologico|patológico)\b/gi;
+
+  function estadioDx(valor) {
+    if (!filled(valor)) return '';
+    const limpo = limpar(String(valor).replace(RUIDO_ESTADIO, ' ').replace(/[()]/g, ' '));
+    if (!limpo) return '';
+    // Token canônico quando reconhecido; senão devolve o que o médico escreveu,
+    // porque inventar um estágio num documento assinado é pior que repeti-lo.
+    const token = limpo.split(/[^a-z0-9]+/i).find((t) => TOKEN_ROMANO.test(norm(t)) || TOKEN_ARABICO.test(norm(t)));
+    if (!token) return `estágio ${limpo}`;
+    const n = norm(token);
+    const romano = n.match(TOKEN_ROMANO);
+    if (romano) return `estágio ${token.toUpperCase()}`;
+    const arabico = n.match(TOKEN_ARABICO);
+    const numeral = Object.keys(ROMANOS).find((r) => ROMANOS[r] === parseInt(arabico[1], 10));
+    return `estágio ${(numeral + (arabico[2] || '')).toUpperCase()}`;
   }
 
   // Junta as partes do diagnóstico descartando vazio e normalizando espaço.
@@ -373,8 +483,8 @@
     diagnosis(v) {
       return juntarDx([
         montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário'),
-        filled(v.grau) ? lower(v.grau) : '',
-        filled(v.estadiamento) ? 'estágio ' + limpar(v.estadiamento) : '',
+        grauDx(v.grau, v.histologia),
+        estadioDx(v.estadiamento),
       ]);
     },
   };
@@ -862,7 +972,7 @@
     diagnosis(v) {
       return juntarDx([
         montaDx(v.histologia, 'endométrio', 'Carcinoma de endométrio'),
-        filled(v.estadiamento) ? 'estágio ' + limpar(v.estadiamento) : '',
+        estadioDx(v.estadiamento),
         filled(v.mmr_msi) && !has(v.mmr_msi, 'nao realizado') ? v.mmr_msi : '',
       ]);
     },

@@ -374,7 +374,9 @@ rodar('Endométrio', [
     tumor: 'endometrio',
     valores: { histologia: 'Endometrioide', estadiamento: '1A', mmr_msi: 'Não realizado' },
     estado: 'completo', testes: ['mmr-endo'],
-    diagnosticoContem: ['estágio 1A'],
+    // O documento assinado leva o estagio na forma canonica, nao a grafia
+    // crua: "1A" entra, "estagio IA" sai impresso.
+    diagnosticoContem: ['estágio IA'],
   },
   {
     nome: 'dMMR — confirmação germinativa de Lynch',
@@ -590,4 +592,74 @@ test('filled() trata negativas explícitas como ausência de conteúdo', () => {
 test('lower() preserva acento (o diagnóstico vai impresso)', () => {
   assert.strictEqual(H.lower('Metastático'), 'metastático');
   assert.strictEqual(H.norm('Metastático'), 'metastatico'); // norm é só para comparar
+});
+
+/* ====================================================================== *
+ * O TEXTO IMPRESSO NA SOLICITAÇÃO
+ *
+ * Não é cosmético: esta frase é o diagnóstico dentro de um documento que o
+ * médico assina e entrega ao laboratório. Cada caso abaixo saiu errado em
+ * produção antes desta correção.
+ * ====================================================================== */
+test('diagnóstico impresso sai bem formado nos sete subtipos', () => {
+  const casos = [
+    // O pior deles: "endometrioide" CONTÉM "endometrio", então a checagem de
+    // sítio por substring concluía que o órgão já estava escrito e imprimia
+    // "Carcinoma Endometrioide" — sem órgão nenhum — numa solicitação.
+    ['endometrio', { histologia: 'Endometrioide', estadiamento: 'IA' },
+      'Carcinoma endometrioide de endométrio, estágio IA'],
+    // Prefixo genérico colado numa entidade que já é um tumor.
+    ['endometrio', { histologia: 'Carcinossarcoma', estadiamento: 'IIIC' },
+      'Carcinossarcoma de endométrio, estágio IIIC'],
+    // Sigla de laudo brasileiro virava "Carcinoma CDI de mama".
+    ['mama', { histologia: 'CDI', subtipo_molecular: 'HER2 positivo', extensao_doenca: 'Inicial (operável)' },
+      'Carcinoma ductal invasivo de mama, HER2 positivo, inicial (operável)'],
+    // Grau cru e prefixo de estágio duplicado: "g3, estágio Estádio IIIC (FIGO)".
+    ['ovario', { histologia: 'Carcinoma seroso de alto grau', grau: 'G3', estadiamento: 'Estádio IIIC (FIGO)' },
+      'Carcinoma seroso de alto grau de ovário, estágio IIIC'],
+    // Maiúscula no meio da frase: "Carcinoma Seroso".
+    ['ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' },
+      'Carcinoma seroso de ovário, alto grau, estágio IIIC'],
+    // Descritor que é substantivo pede "de": "Carcinoma células claras".
+    ['ovario', { histologia: 'Células claras', grau: 'Alto grau', estadiamento: 'IC1' },
+      'Carcinoma de células claras de ovário, alto grau, estágio IC1'],
+    ['pulmao', { histologia: 'CEC', extensao_doenca: 'Metastático' },
+      'Carcinoma escamoso de pulmão, metastático'],
+    ['pancreas', { histologia: 'Adenocarcinoma ductal', extensao_doenca: 'Metastático' },
+      'Adenocarcinoma ductal de pâncreas, metastático'],
+    ['colorretal', { histologia: 'Adenocarcinoma de reto', extensao_doenca: 'Metastático' },
+      'Adenocarcinoma de reto, metastático'],
+  ];
+
+  for (const [id, valores, esperado] of casos) {
+    const saida = TUMORS.get(id).diagnosis(valores);
+    assert.strictEqual(saida, esperado, `${id}: diagnóstico impresso errado`);
+  }
+});
+
+test('diagnóstico impresso nunca sai com defeito de forma', () => {
+  // Varredura ampla: qualquer combinação plausível, checando só os defeitos
+  // que um documento assinado não pode ter.
+  const variacoes = ['', 'Seroso', 'seroso', 'Adenocarcinoma', 'CDI', 'Endometrioide',
+    'Carcinoma ductal invasivo', 'Células claras', 'Carcinossarcoma', 'adeno'];
+  const graus = ['', 'G3', 'grau 1', 'Alto grau', 'pouco diferenciado'];
+  const estagios = ['', 'IIIC', '3c', 'Estádio IIIC (FIGO)', 'IIIA1(i)', 'IC1'];
+
+  for (const id of TUMORS.ORDER) {
+    for (const histologia of variacoes) {
+      for (const grau of graus) {
+        for (const estadiamento of estagios) {
+          const saida = TUMORS.get(id).diagnosis({ histologia, grau, estadiamento });
+          assert.ok(saida.length > 0, `${id}: diagnóstico vazio`);
+          assert.ok(!/\s{2,}/.test(saida), `${id}: espaço duplo em "${saida}"`);
+          assert.ok(!/,\s*,|,\s*$|^\s*,/.test(saida), `${id}: vírgula solta em "${saida}"`);
+          assert.ok(!/\b(\w+)\s+\1\b/i.test(saida), `${id}: palavra repetida em "${saida}"`);
+          assert.ok(!/est[áa]gio\s+est[áa]/i.test(saida), `${id}: prefixo de estágio duplicado em "${saida}"`);
+          assert.ok(!/Carcinoma\s+Carcinoma|Carcinoma\s+carcinoma/i.test(saida), `${id}: prefixo duplicado em "${saida}"`);
+          assert.strictEqual(saida, saida.trim(), `${id}: espaço nas pontas de "${saida}"`);
+          assert.strictEqual(saida[0], saida[0].toUpperCase(), `${id}: começa em minúscula: "${saida}"`);
+        }
+      }
+    }
+  }
 });
