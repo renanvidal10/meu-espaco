@@ -6,10 +6,12 @@
 //   - Postgres, quando DATABASE_URL está definida (produção; sobrevive a deploys)
 //   - Arquivo JSON local, caso contrário (desenvolvimento na máquina do dev)
 //
-// O disco do Render free tier é efêmero: ele é zerado a cada deploy e a cada
-// restart do serviço. Um arquivo JSON ali daria a falsa impressão de funcionar
-// e apagaria as contas dos médicos sem aviso. Por isso o servidor recusa subir
-// em produção sem DATABASE_URL (ver index.js) em vez de degradar silenciosamente.
+// O disco do Render free tier é efêmero: é zerado a cada deploy e a cada
+// restart. O back-end de arquivo serve para desenvolvimento e para a fase de
+// validação; em produção o servidor AVISA no boot quando sobe sem
+// DATABASE_URL (index.js) e /api/config expõe `ephemeralAccounts`, que a tela
+// de acesso mostra ao médico. A trava que encerrava o processo existiu na v1.0
+// e foi removida na v1.1 por decisão de produto (ver ARQUITETURA.md §14).
 
 const fs = require('fs');
 const path = require('path');
@@ -27,6 +29,16 @@ if (usingPostgres) {
     // cadeias que o Node não conhece por padrão.
     ssl: process.env.DATABASE_SSL === 'off' ? false : { rejectUnauthorized: false },
     max: 5,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 10_000,
+  });
+
+  // Sem este listener o processo MORRE quando cai uma conexão ociosa: o pg
+  // emite 'error' no pool, e um EventEmitter sem listener de 'error' lança.
+  // Neon e Supabase free derrubam conexão ociosa de forma agressiva e o Render
+  // hiberna a cada 15 min — é o caminho normal, não a exceção.
+  pool.on('error', (err) => {
+    console.error('Erro em cliente ocioso do Postgres (a conexão será descartada):', err.message);
   });
 }
 
@@ -119,8 +131,14 @@ async function createUser({ id, email, name, crm }) {
     last_login_at: null,
   };
   if (usingPostgres) {
+    // ON CONFLICT em vez de depender do "procura, não achou, insere": entre a
+    // busca e a inserção existe um await, e duas requisições do mesmo médico
+    // (duplo toque, duas abas) interleavam de verdade no Postgres. Sem isto a
+    // segunda batia na constraint UNIQUE e virava 500 "Erro interno".
     const { rows } = await pool.query(
-      'INSERT INTO users (id, email, name, crm) VALUES ($1, $2, $3, $4) RETURNING *',
+      `INSERT INTO users (id, email, name, crm) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, crm = EXCLUDED.crm
+       RETURNING *`,
       [user.id, user.email, user.name, user.crm]
     );
     return rows[0];
@@ -282,7 +300,47 @@ async function deletePlaudTokens(userId) {
   writeFile(db);
 }
 
+/**
+ * Apaga sessão e reset expirados. Sem isto as tabelas crescem sem teto no
+ * Postgres, e no back-end de arquivo cada requisição autenticada relê e
+ * reescreve o arquivo inteiro — medido: 26x mais lento com 20 mil sessões.
+ */
+async function limparExpirados() {
+  if (usingPostgres) {
+    const s = await pool.query('DELETE FROM sessions WHERE expires_at < NOW()');
+    const r = await pool.query('DELETE FROM resets WHERE expires_at < NOW() OR used_at IS NOT NULL');
+    return { sessoes: s.rowCount, resets: r.rowCount };
+  }
+  const db = readFile();
+  const agora = Date.now();
+  const antes = db.sessions.length + db.resets.length;
+  db.sessions = db.sessions.filter((x) => new Date(x.expires_at).getTime() > agora);
+  db.resets = db.resets.filter((x) => !x.used_at && new Date(x.expires_at).getTime() > agora);
+  writeFile(db);
+  return { removidos: antes - (db.sessions.length + db.resets.length) };
+}
+
+/** Encerra todas as sessões de um médico ("sair de todos os dispositivos"). */
+async function deleteSessionsByUser(userId) {
+  if (usingPostgres) {
+    await pool.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
+    return;
+  }
+  const db = readFile();
+  db.sessions = db.sessions.filter((x) => x.user_id !== userId);
+  writeFile(db);
+}
+
+/** Verifica se o armazenamento responde — usado pelo healthcheck. */
+async function ping() {
+  if (usingPostgres) await pool.query('SELECT 1');
+  return true;
+}
+
 module.exports = {
+  limparExpirados,
+  deleteSessionsByUser,
+  ping,
   init,
   usingPostgres,
   findUserByEmail,

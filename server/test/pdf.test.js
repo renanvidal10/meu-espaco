@@ -42,7 +42,9 @@ test('PDF acima do limite é barrado antes de virar base64', () => {
   const grande = Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(pdf.MAX_BYTES + 1)]);
   const r = pdf.preparar(anexo('laudo.pdf', grande));
   assert.strictEqual(r.ok, false);
-  assert.match(r.motivo, /20 MB/);
+  // Sem número fixo: o limite acompanha o do multer e já mudou uma vez.
+  assert.match(r.motivo, new RegExp(`${pdf.MAX_BYTES / 1024 / 1024} MB`));
+  assert.match(r.motivo, /acima do limite/i);
 });
 
 test('PDF protegido por senha é reconhecido pelo /Encrypt no trailer', () => {

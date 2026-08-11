@@ -1147,3 +1147,48 @@ o servidor guarda apenas conta e sessão; painel HRR de próstata exatamente
 igual ao do PROfound; critério de TNBC em qualquer idade correto; ressalva de
 MLH1 escrita com o rigor certo (BRAF V600E citado no colorretal e omitido no
 endométrio, que é exatamente o correto).
+
+### 29.4 Achados de robustez corrigidos
+
+A auditoria de backend rodou o app num **cgroup de 512 MB idêntico ao Render**,
+com a API substituída por stub, medindo memória do kernel e latência do event
+loop. Os números abaixo são medidos, não estimados.
+
+| # | Achado | Medição | Correção |
+|---|---|---|---|
+| 1 | **Duas requisições simultâneas matavam o container** | 2 médicos × 57 MB → SIGKILL. Amplificação real de ~8× os bytes enviados | Teto de 12 MB por arquivo, 25 MB por requisição e **45 MB global em voo**; buffer liberado ao virar base64 |
+| 2 | **Pool do Postgres sem listener de `error`** | `emit('error')` sem listener **lança** → processo morre. Neon e Supabase derrubam conexão ociosa; o Render hiberna a cada 15 min | `pool.on('error')` + timeouts de conexão |
+| 3 | **Sem `unhandledRejection`/`uncaughtException`/`SIGTERM`** | Cada morte apaga as sessões de todos os médicos (disco efêmero) | Os três instalados; deploy passa a encerrar com ordem |
+| 4 | **`MAX_PAGINAS` era decorativo** | PDF de 2,4 MB congelava o event loop por **14,5 s** — nenhuma rota respondia, nem o healthcheck | Limite aplicado de verdade; extração página a página cedendo o event loop |
+| 5 | **Sem timeout na API** | Padrão do SDK: 600 s × 3 tentativas = **até 30 min pendurado**, com ~180 MB presos | `timeout: 90s`, `maxRetries: 1` |
+| 6 | **Sessões e resets nunca eram apagados** | Com 20 mil sessões, `/api/auth/me` ficou **26× mais lento**; no Postgres as tabelas cresceriam para sempre | `limparExpirados()` no boot e de hora em hora |
+| 7 | Erro de cliente virava **500 "Erro interno"** | JSON malformado, corpo grande, charset inválido, **upload interrompido** | 4xx com mensagem acionável |
+| 8 | **`avisos[0]` podia ser um aviso de sucesso** | Tela de erro escrita *"lido normalmente — nenhuma ação necessária"* | `mensagemDeFalha()` só considera avisos de falha |
+| 9 | **Avisos sumiam no caminho de erro** | O médico reenviava os mesmos arquivos ruins sem nunca saber quais eram | `avisos` sobe para fora do `try` |
+| 10 | **`null`, array e string passavam por `JSON.parse`** | Viravam "leitura bem-sucedida" com o caso vazio | 502 explícito; rótulo fora do registro vira "Não identificado" |
+| 11 | **`AUTH_MODE` inválido caía em `simples` sem avisar** | `Completo` com maiúscula → qualquer pessoa entra com nome e CRM quaisquer | Boot recusa valor inválido |
+| 12 | Rate limit por IP **bloqueava hospital atrás de NAT** | A partir do 21º médico em 15 min, os seguintes viam "muitas tentativas" no primeiro acesso | Limite por CRM; IP com teto folgado |
+| 13 | `/api/health` dizia `ok: true` **literal** | Banco fora, instância marcada saudável, médicos roteados para 500 | `store.ping()` e 503 quando o armazenamento não responde |
+| 14 | `createUser` com check-then-act atravessando `await` | Duplo toque em "Entrar" no Postgres → 500 na segunda requisição | `ON CONFLICT (email) DO UPDATE` |
+
+Mais: nome com até 5000 caracteres e sequências de controle eram gravados no
+perfil e iam impressos no documento assinado; campo `text` duplicado no
+multipart derrubava a rota; e o log de resposta inválida ainda registrava os 40
+primeiros caracteres do caso — hoje registra só a forma.
+
+### 29.5 Duas auditorias não concluíram
+
+As de **frontend/acessibilidade** e **qualidade de testes** foram interrompidas
+por limite de sessão. Ficam pendentes, e o que elas iriam medir continua sem
+cobertura: contraste WCAG no tema claro e escuro, navegação só por teclado,
+armadilha de foco nos modais, zoom de 200%, teste de mutação da suíte e
+cobertura por linha e ramo. **Não afirme que o produto passou nessas duas
+frentes** — elas não rodaram.
+
+### 29.6 Uma nota de processo
+
+Durante a auditoria, o código foi editado ao vivo enquanto os agentes liam.
+Isso produziu uma janela de minutos em que `index.js` chamava uma função já
+removida de `tumors.js`, capturada em requisições reais. A lição: **arquivos que
+formam um contrato único devem mudar no mesmo commit**, e auditoria e correção
+não deveriam correr sobre a mesma árvore ao mesmo tempo.

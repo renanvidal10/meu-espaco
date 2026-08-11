@@ -16,7 +16,9 @@
 //                        e reenviado como texto. Perde o layout, mas um laudo
 //                        lido é infinitamente melhor que um erro na tela.
 
-const MAX_BYTES = 20 * 1024 * 1024;
+// Abaixo do limite do multer (12 MB), senão este bloco é inalcançável pelo
+// fluxo HTTP e a mensagem cuidadosa daqui nunca chega ao médico.
+const MAX_BYTES = 12 * 1024 * 1024;
 const MAX_PAGINAS = 100;
 
 // PKCS#7 / CMS: OID 1.2.840.113549.1.7.2 (signedData). É o envelope usado
@@ -85,7 +87,7 @@ function preparar(file) {
     const mb = (original.length / 1024 / 1024).toFixed(1);
     return {
       ok: false,
-      motivo: `"${nome}" tem ${mb} MB, acima do limite de 20 MB.`,
+      motivo: `"${nome}" tem ${mb} MB, acima do limite de ${MAX_BYTES / 1024 / 1024} MB.`,
       comoResolver: 'Anexe apenas as páginas do laudo que interessam, ou tire uma foto da página relevante.',
     };
   }
@@ -144,9 +146,27 @@ async function extrairTexto(buffer) {
   // Uint8Array próprio: o pdf.js consome (e neutraliza) o buffer que recebe,
   // e o buffer original ainda pode ser necessário depois.
   const documento = await getDocumentProxy(new Uint8Array(buffer));
-  const paginas = Math.min(documento.numPages, MAX_PAGINAS);
-  const { text } = await extractText(documento, { mergePages: true });
-  return { texto: String(text || '').trim(), paginas };
+
+  // MAX_PAGINAS era calculado e nunca aplicado: extractText lia o documento
+  // inteiro. Medido, um PDF de 2,4 MB com 8000 páginas congelava o event loop
+  // por 14,5 s — nenhuma rota respondia, nem o healthcheck, e o Render podia
+  // reciclar a instância (o que, com disco efêmero, desloga todos os médicos).
+  if (documento.numPages > MAX_PAGINAS) {
+    const err = new Error(`PDF com ${documento.numPages} páginas, acima do limite de ${MAX_PAGINAS}.`);
+    err.code = 'PDF_PAGINAS_DEMAIS';
+    err.paginas = documento.numPages;
+    throw err;
+  }
+
+  // Página a página, devolvendo o event loop a cada bloco: extrair tudo de uma
+  // vez bloqueia o processo enquanto durar.
+  const partes = [];
+  for (let n = 1; n <= documento.numPages; n++) {
+    const { text } = await extractText(documento, { mergePages: true, pages: [n] });
+    partes.push(String(text || ''));
+    if (n % 5 === 0) await new Promise((r) => setImmediate(r));
+  }
+  return { texto: partes.join('\n').trim(), paginas: documento.numPages };
 }
 
 /** Reconhece a recusa específica da API para documento ilegível. */

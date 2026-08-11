@@ -30,7 +30,15 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 // A sessão é emitida do mesmo jeito nos dois modos, então /api/extract e
 // /api/chat continuam protegidos - o modo simples reduz o atrito de entrada,
 // não remove a autenticação.
-const AUTH_MODE = process.env.AUTH_MODE === 'completo' ? 'completo' : 'simples';
+const AUTH_MODE_BRUTO = (process.env.AUTH_MODE || 'simples').trim().toLowerCase();
+if (!['simples', 'completo'].includes(AUTH_MODE_BRUTO)) {
+  // Cair em silêncio para 'simples' é a falha de configuração mais cara
+  // possível: o operador acredita ter ligado email e senha e qualquer pessoa
+  // entra com um nome e um CRM qualquer.
+  console.error(`ERRO: AUTH_MODE="${process.env.AUTH_MODE}" não é válido. Use "simples" ou "completo".`);
+  process.exit(1);
+}
+const AUTH_MODE = AUTH_MODE_BRUTO;
 // Limites de upload calibrados pela RAM real do container (512 MB no plano
 // atual). Antes: 10 arquivos x 20 MB = 190 MB por requisição, mantidos em
 // memória e depois convertidos para base64 (+33%) — uma única requisição
@@ -39,12 +47,48 @@ const AUTH_MODE = process.env.AUTH_MODE === 'completo' ? 'completo' : 'simples';
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 20 * 1024 * 1024,
+    fileSize: 12 * 1024 * 1024,
     files: 3,
     fields: 5,
     fieldSize: 64 * 1024,
   },
 });
+
+// Medido num cgroup de 512 MB idêntico ao Render: a amplificação real é de ~8x
+// os bytes enviados (buffer + base64 + serialização do SDK). O teto seguro é
+// ~57 MB somando TODOS os uploads em voo. Sem contador global, duas
+// requisições simultâneas de 57 MB levavam o processo a SIGKILL — e com disco
+// efêmero isso desloga todos os médicos.
+const TETO_BYTES_EM_VOO = 45 * 1024 * 1024;
+const TETO_BYTES_POR_REQUISICAO = 25 * 1024 * 1024;
+let bytesEmVoo = 0;
+
+function reservaDeMemoria(req, res, next) {
+  const tamanho = Number(req.get('content-length') || 0);
+
+  if (tamanho > TETO_BYTES_POR_REQUISICAO) {
+    return res.status(413).json({
+      error: 'O material anexado é grande demais. Anexe menos páginas, ou só a parte do laudo que interessa.',
+    });
+  }
+  if (bytesEmVoo + tamanho > TETO_BYTES_EM_VOO) {
+    res.set('Retry-After', '20');
+    return res.status(503).json({
+      error: 'O serviço está lendo outros laudos neste momento. Tente de novo em alguns segundos.',
+    });
+  }
+
+  bytesEmVoo += tamanho;
+  let devolvido = false;
+  const devolver = () => {
+    if (devolvido) return;
+    devolvido = true;
+    bytesEmVoo -= tamanho;
+  };
+  res.on('close', devolver);
+  res.on('finish', devolver);
+  next();
+}
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.warn('AVISO: ANTHROPIC_API_KEY não está definida. Configure um arquivo .env (veja .env.example).');
@@ -68,7 +112,15 @@ if (IS_PRODUCTION && AUTH_MODE === 'completo' && !mailer.isConfigured()) {
   process.exit(1);
 }
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Padrão do SDK: 600 s por tentativa, 3 tentativas — até 30 minutos com a
+// requisição do médico pendurada e ~180 MB de buffers presos. 90 s cobre laudo
+// longo; travamento não. maxRetries 1 porque cada retentativa é chamada paga, e
+// o caminho de recuperação já faz duas chamadas.
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  timeout: 90_000,
+  maxRetries: 1,
+});
 
 // Render coloca 1 proxy na frente. Se entrar CDN (Cloudflare) vira 2 — e o
 // req.ip do rate limit passa a ler o valor errado.
@@ -209,6 +261,25 @@ function requireFullAuthMode(req, res, next) {
 // Formato livre porque o CRM brasileiro varia por conselho regional (número,
 // UF, com ou sem separador) - validar demais barraria médico real. Usado nos
 // dois pontos que aceitam CRM: o acesso e a edição de perfil.
+// Um aviso com `recuperado: true` diz que deu certo por outro caminho. Usá-lo
+// como texto do erro produzia telas de falha escritas "lido normalmente —
+// nenhuma ação necessária", com a instrução útil escondida no segundo aviso.
+function mensagemDeFalha(avisos) {
+  const falhas = (avisos || []).filter((a) => !a.recuperado);
+  const principal = falhas[0];
+  if (principal) return `${principal.motivo} ${principal.comoResolver}`;
+  return 'Não consegui ler o material anexado. Tire uma foto ou print da página do laudo e anexe como imagem.';
+}
+
+// Remove caracteres de controle e normaliza espaço. O nome vai impresso no
+// documento assinado e para o log do servidor.
+function limparNome(valor) {
+  return String(valor == null ? '' : valor)
+    .replace(/[\p{Cc}\p{Cf}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function crmValido(crm) {
   return /^[A-Za-z0-9][A-Za-z0-9 .\/-]{2,29}$/.test(crm);
 }
@@ -227,7 +298,7 @@ app.post('/api/auth/acesso', async (req, res, next) => {
       return res.status(404).json({ error: 'Este acesso não está habilitado nesta instalação.' });
     }
 
-    const name = String(req.body.name || '').trim().replace(/\s+/g, ' ');
+    const name = limparNome(req.body.name);
     const crm = String(req.body.crm || '').trim().replace(/\s+/g, ' ');
 
     if (name.length < 3) return res.status(400).json({ error: 'Informe seu nome completo.' });
@@ -238,9 +309,14 @@ app.post('/api/auth/acesso', async (req, res, next) => {
       return res.status(400).json({ error: 'Informe um CRM válido (números e, se quiser, a UF).' });
     }
 
-    const limit = auth.rateLimit(`acesso:${req.ip}`, { max: 20, windowMs: 15 * 60 * 1000 });
-    if (!limit.allowed) {
-      return res.status(429).json({ error: 'Muitas tentativas deste dispositivo. Aguarde alguns minutos.' });
+    // Limitar por IP bloqueia um hospital inteiro atrás de NAT: a partir do 21º
+    // médico em 15 min, os seguintes veem "muitas tentativas" no primeiro
+    // acesso. O limite útil aqui é por CRM (identificação, não senha); o IP
+    // fica com um teto folgado, só contra automação.
+    const porCrm = auth.rateLimit(`acesso-crm:${crm.toLowerCase()}`, { max: 10, windowMs: 15 * 60 * 1000 });
+    const porIp = auth.rateLimit(`acesso-ip:${req.ip}`, { max: 200, windowMs: 15 * 60 * 1000 });
+    if (!porCrm.allowed || !porIp.allowed) {
+      return res.status(429).json({ error: 'Muitas tentativas de acesso. Aguarde alguns minutos.' });
     }
 
     const email = crmIdentity(crm);
@@ -415,9 +491,13 @@ app.get('/api/auth/me', auth.requireAuth(), (req, res) => {
 
 app.patch('/api/auth/me', auth.requireAuth(), async (req, res, next) => {
   try {
-    const name = String(req.body.name || '').trim();
-    const crm = String(req.body.crm || '').trim();
+    // Mesma validação do acesso: este nome vai impresso na solicitação de exame
+    // que o médico assina. Sem teto, 5000 caracteres quebram o layout do
+    // documento; sem limpeza, sequências de controle sujam o log do servidor.
+    const name = limparNome(req.body.name);
+    const crm = String(req.body.crm || '').trim().replace(/\s+/g, ' ');
     if (name.length < 3) return res.status(400).json({ error: 'Informe seu nome completo.' });
+    if (name.length > 120) return res.status(400).json({ error: 'Nome longo demais.' });
     if (!crmValido(crm)) return res.status(400).json({ error: 'Informe um CRM válido (números e, se quiser, a UF).' });
     await store.updateUserProfile(req.user.id, { name, crm });
     res.json({ ok: true, user: { ...auth.publicUser(req.user), name, crm } });
@@ -625,9 +705,15 @@ function tetoDeGasto(nome, max) {
   };
 }
 
-app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), upload.array('files', 3), async (req, res) => {
+app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), reservaDeMemoria, upload.array('files', 3), async (req, res) => {
+  // Fora do try: sem isso, os avisos por arquivo (qual anexo foi descartado e
+  // por quê) desapareciam quando a chamada falhava, e o médico reenviava os
+  // mesmos arquivos ruins sem nunca saber quais eram o problema.
+  const avisos = [];
   try {
-    const text = (req.body.text || '').trim();
+    // Campo duplicado no multipart chega como array e quebrava o .trim().
+    const bruto = req.body.text;
+    const text = String(Array.isArray(bruto) ? bruto.join('\n\n') : (bruto || '')).trim();
     const files = req.files || [];
 
     if (!files.length && !text) {
@@ -635,7 +721,6 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), upload.
     }
 
     const content = [];
-    const avisos = [];
     // Guardados para o plano B: se a API recusar o documento, o texto destes
     // PDFs é extraído aqui e a chamada é refeita.
     const pdfsEnviados = [];
@@ -659,6 +744,9 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), upload.
           type: 'document',
           source: { type: 'base64', media_type: 'application/pdf', data: check.buffer.toString('base64') },
         });
+        // O buffer original já virou base64 (e, se houve desembrulho, já foi
+        // copiado). Manter os dois em memória dobra o pico sem serventia.
+        if (file.buffer !== check.buffer) file.buffer = null;
       } else if (ehImagem) {
         if (!file.buffer || !file.buffer.length) {
           avisos.push({
@@ -688,6 +776,7 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), upload.
           type: 'image',
           source: { type: 'base64', media_type: file.mimetype, data: file.buffer.toString('base64') },
         });
+        file.buffer = null;
       } else {
         avisos.push({
           arquivo: file.originalname,
@@ -700,12 +789,7 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), upload.
     // Nenhuma fonte utilizável sobrou: responde o porquê, sem gastar chamada.
     const temAnexoUtil = content.length > 0;
     if (!temAnexoUtil && !text) {
-      return res.status(400).json({
-        error: avisos.length
-          ? `${avisos[0].motivo} ${avisos[0].comoResolver}`
-          : 'Nenhum arquivo pôde ser lido. Anexe um laudo em PDF ou uma foto.',
-        avisos,
-      });
+      return res.status(400).json({ error: mensagemDeFalha(avisos), avisos });
     }
 
     function montaMensagem(blocos, textoExtra) {
@@ -757,18 +841,19 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), upload.
         } catch (e) {
           avisos.push({
             arquivo: file.originalname,
-            motivo: `Não consegui abrir "${file.originalname}".`,
-            comoResolver: 'Tire uma foto ou print do laudo e anexe como imagem, ou reimprima o PDF a partir do sistema de origem.',
+            motivo: e.code === 'PDF_PAGINAS_DEMAIS'
+              ? `"${file.originalname}" tem ${e.paginas} páginas, acima do limite de leitura.`
+              : `Não consegui abrir "${file.originalname}".`,
+            comoResolver: e.code === 'PDF_PAGINAS_DEMAIS'
+              ? 'Anexe apenas as páginas do laudo que interessam, ou uma foto da página do resultado.'
+              : 'Tire uma foto ou print do laudo e anexe como imagem, ou reimprima o PDF a partir do sistema de origem.',
           });
         }
       }
 
       const semPdf = content.filter((b) => b.type !== 'document');
       if (!trechos.length && !semPdf.length && !text) {
-        return res.status(422).json({
-          error: `${avisos[0].motivo} ${avisos[0].comoResolver}`,
-          avisos,
-        });
+        return res.status(422).json({ error: mensagemDeFalha(avisos), avisos });
       }
       if (trechos.length) {
         avisos.push({
@@ -795,11 +880,29 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), upload.
     } catch (e) {
       // Forma, nunca conteúdo: a saída crua é o caso clínico estruturado, com
       // nome do paciente. Log de produção vai para agregador retido.
+      // Forma, nunca conteúdo. A versão anterior registrava os 40 primeiros
+      // caracteres — e o objeto pode começar por nome_paciente.
       console.error('Resposta do modelo não é JSON válido. Tamanho:', textBlock.text.length,
-        '| início:', textBlock.text.slice(0, 40).replace(/[^\x20-\x7E]/g, '.'));
+        '| primeiro caractere:', JSON.stringify(textBlock.text.slice(0, 1)),
+        '| parece JSON:', /^[[{"]/.test(textBlock.text.trim()));
       return res.status(502).json({ error: 'A leitura devolveu um resultado incompleto. Tente novamente.' });
     }
+    // JSON.parse aceita null, array e string. Todos viravam "leitura
+    // bem-sucedida" com o caso vazio, e o médico não distinguia "o laudo não
+    // tinha esses dados" de "a leitura falhou" — diferença que muda a conduta.
+    if (!cru || typeof cru !== 'object' || Array.isArray(cru)) {
+      console.error('Resposta do modelo não é objeto. Tipo:', Array.isArray(cru) ? 'array' : typeof cru);
+      return res.status(502).json({ error: 'A leitura devolveu um resultado incompleto. Tente novamente.', avisos });
+    }
+
     const extracted = TUMORS.normalizar(cru);
+
+    // Rótulo de tumor fora do registro: a tela não sabe desenhar um subtipo que
+    // não existe, então vira "Não identificado" com explicação.
+    if (extracted.tipo_tumor && !TUMORS.labels().includes(extracted.tipo_tumor)) {
+      extracted.tipo_tumor = 'Não identificado';
+      extracted.tipo_tumor_justificativa = 'O material sugere um sítio oncológico que ainda não está mapeado nesta versão.';
+    }
     res.json({ extracted, avisos, usage: response.usage });
   } catch (err) {
     // O detalhe técnico fica no servidor. O médico recebe uma frase que diz o
@@ -813,15 +916,20 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), upload.
       : status === 413 ? 'O material anexado é grande demais. Anexe menos páginas ou apenas a parte relevante do laudo.'
       : pdf.ehRecusaDePdf(err) ? 'Não consegui abrir o PDF anexado. Tire uma foto ou print do laudo e anexe como imagem.'
       : 'Não consegui ler o caso agora. Tente novamente em instantes — se persistir, anexe o laudo como foto.';
-    res.status(status && status < 500 ? 422 : 500).json({ error: mensagem });
+    res.status(status && status < 500 ? 422 : 500).json({ error: mensagem, avisos });
   }
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({
-    ok: true,
+app.get('/api/health', async (req, res) => {
+  // `ok: true` literal fazia o Render manter saudável uma instância cujo banco
+  // tinha caído, roteando médicos para 500 em toda rota autenticada.
+  let armazenamentoOk = true;
+  try { await store.ping(); } catch (e) { armazenamentoOk = false; }
+
+  res.status(armazenamentoOk ? 200 : 503).json({
+    ok: armazenamentoOk,
     hasApiKey: Boolean(process.env.ANTHROPIC_API_KEY),
-    storage: store.usingPostgres ? 'postgres' : 'arquivo (efêmero)',
+    storage: store.usingPostgres ? (armazenamentoOk ? 'postgres' : 'postgres INDISPONÍVEL') : 'arquivo (efêmero)',
     email: mailer.isConfigured() ? 'configurado' : 'não configurado',
     plaud: plaud.isConfigured() ? 'configurado' : 'aguardando credenciais',
   });
@@ -855,17 +963,76 @@ app.use((err, req, res, _next) => {
     };
     return res.status(400).json({ error: mensagens[err.code] || 'Não foi possível receber os arquivos enviados.' });
   }
+  // Envio interrompido antes de terminar: é o cenário mais comum de todos —
+  // médico anexando laudo pelo celular, no corredor, com sinal ruim. "Erro
+  // interno" o faz reenviar o mesmo arquivo pela mesma conexão ruim.
+  if (/Unexpected end of form|Malformed part header|Unexpected end of multipart/i.test(err.message || '')) {
+    return res.status(400).json({
+      error: 'O envio do arquivo foi interrompido antes de terminar. Verifique a conexão e anexe de novo.',
+    });
+  }
+
+  // Pedido malformado é erro do cliente. Devolver 500 suja a métrica de erro
+  // do serviço e manda o operador caçar bug que não existe — e esconde os 500
+  // de verdade no meio do ruído.
+  const statusCliente = err.status || err.statusCode;
+  if (statusCliente >= 400 && statusCliente < 500) {
+    console.warn('Pedido malformado:', err.type || err.code || err.message);
+    if (res.headersSent) return _next(err);
+    return res.status(statusCliente).json({
+      error: statusCliente === 413
+        ? 'O conteúdo enviado é grande demais.'
+        : 'Não consegui entender o pedido enviado. Recarregue a página e tente de novo.',
+    });
+  }
+
   console.error('Erro não tratado:', err);
-  if (res.headersSent) return;
+  // Headers já enviados: passar adiante encerra a resposta. Um `return` seco
+  // deixava o socket pendurado até o timeout do cliente.
+  if (res.headersSent) return _next(err);
   res.status(500).json({ error: 'Erro interno. Tente novamente em instantes.' });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
+
+// Sem estes handlers, qualquer promise rejeitada fora de try/catch mata o
+// processo. Com disco efêmero, cada morte apaga as sessões de TODOS os
+// médicos logados — uma falha de I/O isolada desloga o consultório inteiro.
+process.on('unhandledRejection', (motivo) => {
+  console.error('Promise rejeitada sem tratamento:', motivo && motivo.message ? motivo.message : motivo);
+});
+
+let servidor = null;
+
+process.on('uncaughtException', (err) => {
+  console.error('Exceção não capturada — encerrando com ordem:', err);
+  if (servidor) servidor.close(() => process.exit(1));
+  setTimeout(() => process.exit(1), 5000).unref();
+});
+
+// O deploy do Render manda SIGTERM: fecha aceitando o que já está em voo, em
+// vez de cortar a extração de um laudo no meio.
+function encerrar(sinal) {
+  console.log(`Recebido ${sinal}, encerrando…`);
+  if (!servidor) process.exit(0);
+  servidor.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 10000).unref();
+}
+process.on('SIGTERM', () => encerrar('SIGTERM'));
+process.on('SIGINT', () => encerrar('SIGINT'));
 
 store.init()
   .then(() => {
-    app.listen(PORT, () => {
+    servidor = app.listen(PORT, () => {
       console.log(`OncoGenYX rodando em http://localhost:${PORT}`);
+      // Sessão e reset expirados nunca eram apagados: no Postgres as tabelas
+      // cresciam sem teto, e no arquivo cada requisição autenticada relia o
+      // banco inteiro (26x mais lento com 20 mil sessões).
+      store.limparExpirados().catch((e) => console.error('Limpeza inicial:', e.message));
+      setInterval(
+        () => store.limparExpirados().catch((e) => console.error('Limpeza periódica:', e.message)),
+        60 * 60 * 1000,
+      ).unref();
       console.log(`  Armazenamento: ${store.usingPostgres ? 'Postgres' : 'arquivo local (efêmero)'}`);
       console.log(`  Email:         ${mailer.isConfigured() ? 'Resend configurado' : 'NÃO configurado (links vão para o console)'}`);
       console.log(`  Plaud:         ${plaud.isConfigured() ? 'credenciais presentes' : 'aguardando credenciais'}`);
@@ -875,3 +1042,15 @@ store.init()
     console.error('Falha ao inicializar o armazenamento:', err);
     process.exit(1);
   });
+
+if (servidor === null) {
+  // listener de erro do socket: porta ocupada não pode virar stack crua
+  process.nextTick(() => {
+    if (servidor) {
+      servidor.on('error', (e) => {
+        console.error('Não consegui escutar na porta', PORT, '-', e.code);
+        process.exit(1);
+      });
+    }
+  });
+}
