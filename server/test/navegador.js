@@ -213,6 +213,37 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- 6b. o aviso da leitura CHEGA AOS OLHOS na tela de revisão ---------- */
+  {
+    // Medido antes da correção: 1 aviso no DOM, 0 visíveis. Quando a extração
+    // dá certo o app avança para a revisão, e o aviso ficava renderizado na
+    // tela anterior. Valia para o aviso de leitura incompleta E para o de PDF
+    // com assinatura digital, que existia desde a v1.5 e ninguém nunca viu.
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('aviso-visivel: ' + e.message));
+    await mockExtracao(
+      p,
+      { tipo_tumor: 'Ginecológico - Endométrio', histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'pMMR / MSS' },
+      [{
+        arquivo: 'Leitura automática',
+        motivo: 'A primeira leitura do material voltou incompleta.',
+        comoResolver: 'Uma segunda leitura recuperou os dados — confira os campos.',
+        recuperado: true,
+      }],
+    );
+    await entrar(p);
+    await p.fill('#case-text', 'caso de endométrio');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    const visiveis = await p.locator('.aviso-arquivo:visible').count();
+    const texto = await p.locator('.aviso-arquivo:visible').first().innerText().catch(() => '');
+    linha(
+      ok(visiveis > 0 && /leitura/i.test(texto), `visíveis=${visiveis} texto="${texto.slice(0, 50)}"`),
+      'aviso da leitura é VISÍVEL na tela de revisão',
+    );
+    await p.close();
+  }
+
   /* ---------- 6. ditado por voz ---------- */
   {
     const p = await ctx.newPage();

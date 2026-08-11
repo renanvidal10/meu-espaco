@@ -93,6 +93,11 @@ function criarStub() {
     },
     limpar() { estado.requisicoes.length = 0; estado.fila.length = 0; },
     ultima() { return estado.requisicoes[estado.requisicoes.length - 1]; },
+    // A primeira chamada é a que carrega o schema unificado. Quando a extração
+    // volta abandonada, o servidor dispara uma SEGUNDA chamada com o schema
+    // reduzido ao subtipo, e aí `ultima()` já não é a que se quer inspecionar.
+    primeira() { return estado.requisicoes[0]; },
+    quantasChamadas() { return estado.requisicoes.length; },
     // Blocos de conteúdo da última mensagem enviada pelo servidor do app.
     blocos() {
       const u = this.ultima();

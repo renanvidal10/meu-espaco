@@ -1881,6 +1881,13 @@
     <h1>Confirme o caso estruturado</h1>
     <p class="lede">Isto foi extraído do que você descreveu no passo 1. Corrija ou complete os campos abaixo - a triagem do passo 3 usa exatamente o que estiver escrito aqui.</p>
 
+    <!-- Avisos da leitura (PDF desembrulhado, anexo descartado, leitura
+         incompleta) precisam aparecer AQUI, e não só na tela 1: quando a
+         extração dá certo o app avança para esta tela, e um aviso renderizado
+         lá atrás nunca chega aos olhos do médico. Medido: 1 aviso no DOM, 0
+         visíveis. Ver ARQUITETURA.md §33. -->
+    <div id="avisos-revisao" role="alert"></div>
+
     <div class="card">
       <h3>Perfil clínico</h3>
       <p class="hint" id="fields-hint"></p>
@@ -3586,25 +3593,40 @@
     document.querySelectorAll('.aviso-arquivo').forEach((el) => el.remove());
   }
 
+  function montaAviso(a) {
+    const div = document.createElement('div');
+    div.className = 'ocr-disclaimer aviso-arquivo';
+    // Sem isto o médico que usa leitor de tela anexa um HEIC, o aviso
+    // aparece na tela e ele não ouve absolutamente nada.
+    div.setAttribute('role', 'alert');
+    const motivo = document.createElement('span');
+    motivo.textContent = a.motivo || '';
+    div.appendChild(motivo);
+    if (a.comoResolver) {
+      const como = document.createElement('span');
+      como.className = 'resolver';
+      como.textContent = a.comoResolver;
+      div.appendChild(como);
+    }
+    return div;
+  }
+
   function mostrarAvisos(avisos) {
     limparAvisos();
     if (!avisos || !avisos.length) return;
     const ancora = document.getElementById('extract-error');
+
+    // O MESMO aviso vai para as duas telas. Quando a extração falha o médico
+    // fica na tela 1 e lê ali; quando dá certo ele avança para a revisão e lê
+    // lá. Renderizar só na tela 1 era um aviso que ninguém via — inclusive o
+    // de PDF com assinatura digital, que existia desde a v1.5.
+    const naRevisao = document.getElementById('avisos-revisao');
+    if (naRevisao) {
+      avisos.forEach((a) => naRevisao.appendChild(montaAviso(a)));
+    }
+
     avisos.forEach((a) => {
-      const div = document.createElement('div');
-      div.className = 'ocr-disclaimer aviso-arquivo';
-      // Sem isto o médico que usa leitor de tela anexa um HEIC, o aviso
-      // aparece na tela e ele não ouve absolutamente nada.
-      div.setAttribute('role', 'alert');
-      const motivo = document.createElement('span');
-      motivo.textContent = a.motivo || '';
-      div.appendChild(motivo);
-      if (a.comoResolver) {
-        const como = document.createElement('span');
-        como.className = 'resolver';
-        como.textContent = a.comoResolver;
-        div.appendChild(como);
-      }
+      const div = montaAviso(a);
       ancora.parentNode.insertBefore(div, ancora.nextSibling);
     });
   }

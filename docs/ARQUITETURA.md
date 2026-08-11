@@ -1557,3 +1557,79 @@ nenhum implementado:
   extração e a solicitação final.
 
 Aguardando decisão do usuário sobre qual caminho seguir.
+
+## 33. A falha silenciosa eliminada em três camadas (v1.9)
+
+A §32 mediu o problema e parou aí. Isso não basta para uma fase beta com
+oncologista real do outro lado: uma extração que falha sem avisar é pior que
+uma que erra alto, porque o médico não tem como saber que precisa desconfiar.
+
+A causa raiz no modelo não está fechada (a ambiguidade cirúrgica entre ovário
+e endométrio explica parte, não tudo). Mas a **assinatura da falha é
+inequívoca** e isso é suficiente para eliminá-la em produção sem depender de
+entender por que o modelo abandona.
+
+### 33.1 A assinatura
+
+Quando o modelo abandona, ele não erra: ele devolve o objeto inteiro com
+`tipo_tumor` preenchido e **todo o resto vazio** — inclusive
+`tipo_tumor_justificativa` e `fontes_usadas`, que ele preenche sempre que
+realmente leu o material. Nas extrações boas esses dois campos vêm sempre
+populados. É essa diferença que `extracaoAbandonada()` usa.
+
+A checagem tem uma contraprova deliberada: se o modelo capturou idade,
+histórico familiar, testes prévios, a justificativa ou as fontes, então ele
+leu o material de verdade, e campos decisivos vazios são **informação
+legítima** (o laudo não tinha), não abandono. Sem essa contraprova, um
+encaminhamento esparso e honesto dispararia recuperação e aviso à toa.
+
+### 33.2 As três camadas
+
+1. **Detectar** — `extracaoAbandonada()` em `server/index.js`.
+2. **Recuperar** — segunda chamada com `schemaDoSubtipo(id)`: só os campos
+   daquele tumor (4 a 11 propriedades em vez de 21), com um prompt que fixa o
+   subtipo já identificado e não o redecide. A hipótese por trás é que o
+   schema unificado, com a orientação dos sete subtipos competindo por
+   atenção em cada descrição de campo, é parte do problema — os cinco
+   subtipos não ginecológicos acertam 100% com ele, os dois ginecológicos
+   não. O custo extra só ocorre nesse cenário raro.
+3. **Nunca silenciar** — recuperando ou não, um aviso vai para a tela. Se
+   recuperou: "uma segunda leitura recuperou os dados — confira os campos".
+   Se não: "não consegui extrair os campos principais deste material" com o
+   que fazer a respeito. **O silêncio era o defeito**; ele não volta nem no
+   caminho de sucesso nem no de falha.
+
+### 33.3 Um defeito pré-existente que só apareceu ao verificar
+
+Ao conferir no navegador se o aviso novo chegava aos olhos do médico, o
+resultado medido foi: **1 aviso no DOM, 0 visíveis.**
+
+`mostrarAvisos()` renderizava tudo ancorado em `#extract-error`, que vive na
+tela de ingestão. Quando a extração dá certo, o app avança para a revisão — e
+o aviso ficava para trás, renderizado numa tela que o médico já deixou.
+
+Isso **não era um defeito do código novo**: valia para todo aviso que
+acompanha uma extração bem-sucedida, incluindo o de PDF dentro de envelope de
+assinatura digital, que existe desde a v1.5 e, portanto, **nunca foi visto por
+ninguém**. Agora os avisos são renderizados nas duas telas, e a bateria de
+navegador verifica visibilidade real (`:visible`), não presença no DOM.
+
+A lição, de novo: presença não é visibilidade, e teste que confere o DOM sem
+conferir o que o olho alcança valida a coisa errada.
+
+### 33.4 O que falta para fechar em 100%
+
+Esta camada garante que **nenhuma falha chega em silêncio**. Falta medir se a
+recuperação por schema dirigido de fato eleva a taxa a 100% contra a API real
+— o crédito da conta acabou durante o experimento (`credit balance is too
+low`), e as condições B a E do `test/lab-extracao.js` ficaram sem rodar:
+
+| Condição | O que isola | Estado |
+|---|---|---|
+| A | baseline atual | medido: ovário 67%, endométrio 40-75% |
+| B | schema reduzido ao subtipo | **não rodou** |
+| C | `strict: true` na saída estruturada | **não rodou** |
+| D | sem `output_config`, JSON pelo prompt | **não rodou** |
+| E | prompt com proibição explícita de abandono | **não rodou** |
+
+Não afirme que a recuperação resolve até B ter rodado com N≥10.

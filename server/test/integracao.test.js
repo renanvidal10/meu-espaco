@@ -385,7 +385,11 @@ test('o schema enviado usa chaves simples e cobre os valores de todos os tumores
   stub.responderCom({ tipo: 'ok', extracao: { tipo_tumor: 'Próstata' } });
   await extrair({ texto: 'caso' });
 
-  const schema = stub.ultima().corpo.output_config.format.schema;
+  // primeira(), nao ultima(): a resposta acima so tem tipo_tumor, que e a
+  // assinatura de extracao abandonada, entao o servidor dispara uma segunda
+  // chamada com o schema reduzido ao subtipo. E a PRIMEIRA que carrega o
+  // schema unificado que este teste verifica.
+  const schema = stub.primeira().corpo.output_config.format.schema;
   const chaves = Object.keys(schema.properties);
 
   // Nenhuma chave sintética: foi o desenho que o modelo ignorou em produção.
@@ -442,11 +446,115 @@ test('o prompt lista os sete subtipos e exige normalização de escrita', async 
   stub.responderCom({ tipo: 'ok', extracao: { tipo_tumor: 'Mama' } });
   await extrair({ texto: 'caso' });
 
-  const prompt = stub.ultima().corpo.system;
+  // primeira(), pelo mesmo motivo do teste do schema: a resposta so com
+  // tipo_tumor dispara a segunda chamada, cujo prompt e o do subtipo unico.
+  const prompt = stub.primeira().corpo.system;
   TUMORS.labels().forEach((label) => {
     assert.ok(prompt.includes(label), `o prompt não menciona "${label}"`);
   });
   assert.match(prompt, /estágio 4.*IV/s, 'o prompt não exige normalizar estágio arábico');
   assert.match(prompt, /endomete/i, 'o prompt não trata erro de digitação');
   assert.match(prompt, /86/, 'o prompt não exemplifica extração de idade');
+});
+
+/* ====================================================================== *
+ * EXTRAÇÃO ABANDONADA — a falha silenciosa medida contra a API real
+ *
+ * Ovário e endométrio às vezes voltam da API com tipo_tumor preenchido e TODO
+ * o resto vazio: status 200, avisos vazios, nenhum erro. O médico via a tela
+ * de revisão em branco e não tinha como distinguir "o laudo não tinha esses
+ * dados" de "a leitura desistiu". Os cinco subtipos não ginecológicos deram
+ * 100% na mesma medição. Ver ARQUITETURA.md §32.
+ * ====================================================================== */
+
+test('extração abandonada dispara segunda chamada com schema do subtipo', async () => {
+  stub.limpar();
+  // 1a chamada: a assinatura do abandono — só o tipo, nada mais.
+  stub.responderCom({ tipo: 'ok', extracao: { tipo_tumor: 'Ginecológico - Endométrio' } }, 1);
+  // 2a chamada: o schema dirigido recupera o caso.
+  stub.responderCom({
+    tipo: 'ok',
+    extracao: { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'pMMR / MSS', idade: '60' },
+  }, 1);
+
+  const { status, corpo } = await extrair({ texto: 'Pct 60a, carcinoma endometrioide grau 1, FIGO IA, pMMR.' });
+  assert.strictEqual(status, 200);
+  assert.strictEqual(stub.quantasChamadas(), 2, 'a segunda tentativa não aconteceu');
+
+  // A segunda chamada leva SÓ os campos do endométrio, não os 21 do unificado.
+  const segunda = stub.ultima().corpo;
+  const chaves = Object.keys(segunda.output_config.format.schema.properties);
+  assert.ok(chaves.includes('mmr_msi'), 'o schema dirigido perdeu um campo do próprio subtipo');
+  assert.ok(!chaves.includes('gleason_grade_group'), 'o schema dirigido levou campo de outro subtipo');
+  assert.ok(!chaves.includes('tipo_tumor'), 'a segunda chamada não deve redecidir o subtipo');
+  assert.match(segunda.system, /Ginecológico - Endométrio/, 'o prompt dirigido não fixa o subtipo');
+
+  // O caso chega recuperado à tela.
+  assert.strictEqual(corpo.extracted.histologia, 'Endometrioide');
+  assert.strictEqual(corpo.extracted.mmr_msi, 'pMMR / MSS');
+  assert.strictEqual(corpo.extracted.estadiamento, 'IA');
+});
+
+test('recuperação bem-sucedida avisa o médico em vez de fingir que sempre funcionou', async () => {
+  stub.limpar();
+  stub.responderCom({ tipo: 'ok', extracao: { tipo_tumor: 'Ginecológico - Ovário' } }, 1);
+  stub.responderCom({ tipo: 'ok', extracao: { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' } }, 1);
+
+  const { corpo } = await extrair({ texto: 'caso de ovário' });
+  const aviso = (corpo.avisos || []).find((a) => /leitura/i.test(a.arquivo || ''));
+  assert.ok(aviso, 'a recuperação passou silenciosa');
+  assert.strictEqual(aviso.recuperado, true, 'aviso de recuperação não marcado como recuperado');
+  assert.match(aviso.comoResolver, /confira/i, 'o aviso não pede conferência dos campos');
+});
+
+test('quando a recuperação também falha, o médico é avisado — nunca fica em silêncio', async () => {
+  stub.limpar();
+  // As duas chamadas voltam abandonadas.
+  stub.responderCom({ tipo: 'ok', extracao: { tipo_tumor: 'Ginecológico - Endométrio' } }, 2);
+
+  const { status, corpo } = await extrair({ texto: 'material que a leitura não consegue interpretar' });
+  assert.strictEqual(status, 200, 'a falha de leitura não é erro de servidor');
+  assert.strictEqual(stub.quantasChamadas(), 2);
+
+  const aviso = (corpo.avisos || []).find((a) => /leitura/i.test(a.arquivo || ''));
+  assert.ok(aviso, 'FALHA SILENCIOSA: a leitura falhou e o médico não foi avisado');
+  assert.ok(!aviso.recuperado, 'aviso de falha não pode se marcar como recuperado');
+  assert.match(aviso.motivo, /não consegui extrair/i);
+  assert.match(aviso.comoResolver, /à mão|texto/i, 'o aviso não diz o que o médico deve fazer');
+});
+
+test('extração normal NÃO dispara segunda chamada nem inventa aviso', async () => {
+  stub.limpar();
+  stub.responderCom({
+    tipo: 'ok',
+    extracao: {
+      tipo_tumor: 'Ginecológico - Endométrio',
+      tipo_tumor_justificativa: 'Laudo de histerectomia com carcinoma endometrioide.',
+      histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'pMMR / MSS', idade: '60',
+    },
+  }, 1);
+
+  const { corpo } = await extrair({ texto: 'caso completo' });
+  assert.strictEqual(stub.quantasChamadas(), 1, 'gastou chamada paga sem necessidade');
+  const aviso = (corpo.avisos || []).find((a) => /leitura/i.test(a.arquivo || ''));
+  assert.ok(!aviso, 'inventou aviso de falha numa extração que funcionou');
+});
+
+test('laudo legitimamente esparso não é confundido com abandono', async () => {
+  stub.limpar();
+  // Campos decisivos vazios, MAS o modelo provou que leu: justificativa,
+  // fontes e idade vieram. Isso é "o laudo não tinha", não "desisti".
+  stub.responderCom({
+    tipo: 'ok',
+    extracao: {
+      tipo_tumor: 'Ginecológico - Endométrio',
+      tipo_tumor_justificativa: 'Encaminhamento menciona câncer de endométrio sem laudo anexo.',
+      idade: '62',
+      fontes_usadas: ['texto digitado pelo médico'],
+    },
+  }, 1);
+
+  const { corpo } = await extrair({ texto: 'paciente 62a encaminhada por CA de endométrio, aguardando laudo' });
+  assert.strictEqual(stub.quantasChamadas(), 1, 'gastou chamada paga num laudo esparso legítimo');
+  assert.strictEqual(corpo.extracted.idade, '62');
 });
