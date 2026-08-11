@@ -1504,6 +1504,20 @@
     }
   }
 
+  /* Subtipo que a leitura não soube justificar. Mesma linguagem visual dos
+     campos decisivos em falta (--warn tracejado), porque o pedido ao médico é
+     o mesmo: olhe para isto antes de seguir. */
+  .field select.value.confirmar {
+    border-color: var(--warn);
+    border-style: dashed;
+    background: var(--warn-soft);
+    color: var(--warn);
+  }
+  .hint.confirmar-subtipo {
+    color: var(--warn);
+    font-weight: 600;
+  }
+
   /* Visível só para leitor de tela: sai do fluxo sem `display:none`, que o
      tiraria também da árvore de acessibilidade. */
   .sr-only {
@@ -2748,12 +2762,27 @@
 
       setSubtype(detected.id);
 
+      // A justificativa não é enfeite: é o indicador de confiança da leitura.
+      // Medido contra a API real, em toda extração CORRETA o modelo explicou
+      // por que identificou aquele subtipo; em TODA falha — tanto o abandono
+      // (tudo vazio) quanto a troca de ovário por endométrio — ela veio
+      // vazia. É um sinal que cobre os dois modos de falha, custa zero
+      // chamada extra, e o único jeito de errar para o lado seguro é pedir
+      // confirmação. Ver ARQUITETURA.md §33.5.
       const tipoJustEl = document.getElementById('tipo-tumor-justificativa');
-      if (extracted.tipo_tumor_justificativa) {
+      const campoSubtipo = document.getElementById('field-subtipo');
+      const semJustificativa = !String(extracted.tipo_tumor_justificativa || '').trim();
+
+      if (!semJustificativa) {
         tipoJustEl.textContent = 'Identificado automaticamente: ' + extracted.tipo_tumor_justificativa;
+        tipoJustEl.className = 'hint';
         tipoJustEl.style.display = '';
+        campoSubtipo.classList.remove('confirmar');
       } else {
-        tipoJustEl.style.display = 'none';
+        tipoJustEl.textContent = 'A leitura não explicou por que escolheu este subtipo — nos casos em que isso acontece a identificação erra com mais frequência. Confirme o subtipo antes de seguir; trocar aqui remonta os campos e as regras.';
+        tipoJustEl.className = 'hint confirmar-subtipo';
+        tipoJustEl.style.display = '';
+        campoSubtipo.classList.add('confirmar');
       }
 
       // Um único caminho de preenchimento para os sete tumores: a definição

@@ -1633,3 +1633,29 @@ low`), e as condições B a E do `test/lab-extracao.js` ficaram sem rodar:
 | E | prompt com proibição explícita de abandono | **não rodou** |
 
 Não afirme que a recuperação resolve até B ter rodado com N≥10.
+
+### 33.5 O sinal de confiança: `tipo_tumor_justificativa`
+
+A §33.2 cobre o abandono (tudo vazio). Falta o outro modo de falha, que é
+pior: a **troca de subtipo**. Um caso de ovário volta como "Ginecológico -
+Endométrio" com os campos preenchidos corretamente — não há nada vazio para
+detectar, e a regra clínica aplicada passa a ser a do tumor errado.
+
+Cruzando todas as chamadas reais registradas na §32, apareceu uma correlação
+limpa:
+
+| Resultado | `tipo_tumor_justificativa` |
+|---|---|
+| Extração correta (todos os subtipos, texto, PDF e imagem) | **sempre preenchida** |
+| Abandono (tudo vazio) | **sempre vazia** |
+| Troca de ovário por endométrio | **sempre vazia** |
+
+Quando o modelo sabe, ele explica. Quando erra ou desiste, ele cala. A amostra
+é pequena (≈35 chamadas), então isto é usado como **indicador de confiança**,
+nunca como veredito: a tela não bloqueia nada, marca o seletor de subtipo em
+amarelo tracejado — a mesma linguagem visual dos campos decisivos em falta — e
+pede confirmação antes de seguir. Custo: zero chamada extra.
+
+O valor está no lado para o qual o erro cai. Se o sinal for ruído, o médico
+confirma um subtipo que já estava certo e perde dois segundos. Se for real,
+ele evita uma triagem inteira rodada sobre o tumor errado.

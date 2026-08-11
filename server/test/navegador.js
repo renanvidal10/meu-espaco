@@ -244,6 +244,54 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- 6c. sinal de confiança: justificativa vazia pede confirmação ---------- */
+  {
+    // Medido contra a API real: em TODA extração correta o modelo explicou por
+    // que escolheu o subtipo; em TODA falha (abandono ou troca de ovário por
+    // endométrio) a justificativa veio vazia. O sinal cobre os dois modos de
+    // falha sem custar chamada extra — mas só serve se a tela o mostrar.
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('confianca: ' + e.message));
+    await mockExtracao(p, {
+      tipo_tumor: 'Ginecológico - Endométrio',
+      justificativa: '',
+      histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'pMMR / MSS',
+    });
+    await entrar(p);
+    await p.fill('#case-text', 'caso sem justificativa da leitura');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    const marcado = await p.locator('#field-subtipo.confirmar').count();
+    const pedido = await p.locator('#tipo-tumor-justificativa').innerText();
+    linha(
+      ok(marcado === 1 && /confirme o subtipo/i.test(pedido), `marcado=${marcado} texto="${pedido.slice(0, 40)}"`),
+      'sem justificativa → tela pede confirmação do subtipo',
+    );
+    await p.close();
+  }
+
+  /* ---------- 6d. com justificativa, a tela NÃO alarma à toa ---------- */
+  {
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('confianca-ok: ' + e.message));
+    await mockExtracao(p, {
+      tipo_tumor: 'Ginecológico - Ovário',
+      justificativa: 'Material descreve carcinoma seroso de alto grau de ovário com estadiamento FIGO.',
+      histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC',
+    });
+    await entrar(p);
+    await p.fill('#case-text', 'caso com justificativa');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    const marcado = await p.locator('#field-subtipo.confirmar').count();
+    const texto = await p.locator('#tipo-tumor-justificativa').innerText();
+    linha(
+      ok(marcado === 0 && /identificado automaticamente/i.test(texto), `marcado=${marcado} texto="${texto.slice(0, 40)}"`),
+      'com justificativa → nenhum alarme falso',
+    );
+    await p.close();
+  }
+
   /* ---------- 6. ditado por voz ---------- */
   {
     const p = await ctx.newPage();
