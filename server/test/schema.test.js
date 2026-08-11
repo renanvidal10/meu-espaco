@@ -376,3 +376,32 @@ test('todo programa de acesso tem nome e observação; url quando existe é http
     });
   });
 });
+
+test('valor curto nao casa por inclusao com a opcao errada', () => {
+  // "M" (de masculino) casava com "Feminino", porque a palavra "feminino"
+  // contem a letra "m". O campo ficava preenchido com o valor OPOSTO, e nada
+  // na tela denunciava — o medico via "Feminino" num caso masculino.
+  assert.strictEqual(TUMORS.encaixarValor('M', ['Feminino', 'Masculino']), 'M');
+  assert.strictEqual(TUMORS.encaixarValor('F', ['Feminino', 'Masculino']), 'F');
+  // Com corpo suficiente a inclusao continua funcionando, que e o que faz o
+  // motor tolerar a escrita real do medico.
+  assert.strictEqual(TUMORS.encaixarValor('masc', ['Feminino', 'Masculino']), 'Masculino');
+  assert.strictEqual(TUMORS.encaixarValor('triplo', ['Luminal (RH+/HER2-)', 'HER2 positivo', 'Triplo-negativo']), 'Triplo-negativo');
+  assert.strictEqual(TUMORS.encaixarValor('dMMR', ['dMMR / MSI-alto', 'pMMR / MSS', 'Não realizado']), 'dMMR / MSI-alto');
+});
+
+test('o campo sexo existe em mama e nao vaza para os outros subtipos', () => {
+  // Sem o campo, cancer de mama masculino era um caso impossivel de
+  // representar: o dado que dispara a indicacao nao tinha onde ser escrito.
+  const campo = TUMORS.schemaFields().find((c) => c.key === 'sexo');
+  assert.ok(campo, 'campo sexo ausente do schema de extracao');
+  assert.deepStrictEqual(campo.options, ['Feminino', 'Masculino']);
+  assert.deepStrictEqual(campo.tumores, ['Mama']);
+
+  const mama = TUMORS.fieldsOf(TUMORS.get('mama')).map((f) => f.key);
+  assert.ok(mama.includes('sexo'), 'mama sem campo de sexo');
+  for (const id of TUMORS.ORDER.filter((t) => t !== 'mama')) {
+    const chaves = TUMORS.fieldsOf(TUMORS.get(id)).map((f) => f.key);
+    assert.ok(!chaves.includes('sexo'), `${id} nao deveria ter campo de sexo`);
+  }
+});

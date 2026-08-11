@@ -1304,7 +1304,49 @@ história familiar que o justifique por si.
 **Nota:** este é o único item da seção em que a correção **reduz** teste.
 Todos os outros quatro aumentam.
 
-### 30.6 Como decidir
+### 30.6 Decisão tomada e implementada (v1.8)
+
+**Os cinco itens foram aprovados**, com a instrução de seguir o guideline à
+risca, inclusive o A1 — o único que retira exame. Todos estão implementados e
+cobertos por caso de teste que falha se a regra voltar atrás.
+
+| Item | O que mudou no motor | Caso de teste |
+|---|---|---|
+| C2 | Campo `sexo` criado em mama. `Masculino` emite painel germinativo sozinho, sem depender de idade, subtipo ou extensão. | `C2 homem com cancer de mama`, `C2 homem — o criterio nao depende de idade`, `C2 mulher 67a continua sem indicacao` |
+| C3 | `idade < 50` em colorretal emite painel multigênico, independente de MMR e de história familiar. | `C3 colorretal 44a pMMR`, `C3 colorretal 49a` (limite estrito), `C3 colorretal 50a` (fora), `C3 44a dMMR metastatico` (três testes) |
+| C4 | `Inicial (ressecável)` sem painel prévio emite EGFR/ALK/PD-L1, com nota explicando que a janela adjuvante não é recuperável. | `inicial ressecável — EGFR/ALK/PD-L1`, `inicial ressecável com painel já feito` |
+| C5 | `pMMR / MSS` em endométrio emite POLE + p53 em vez de `sem-indicacao`. A contradição da tela desaparece. | `pMMR — falta POLE e p53`, `dMMR — Lynch sem repetir` |
+| A1 | Histologia com `borderline` / `baixo potencial` devolve `sem-indicacao` com orientação explícita, antes de qualquer outra checagem. | `A1 tumor borderline seroso`, `A1 baixo potencial`, `A1 seroso invasivo NAO e confundido` |
+
+Duas observações sobre a implementação:
+
+**A1 não sai em silêncio.** Retirar um exame exige mais cuidado do que
+acrescentar: a saída diz que o teste germinativo segue indicado se houver
+história familiar que o justifique por si, ou se a revisão anatomopatológica
+identificar componente invasivo. O médico recebe uma orientação, não um
+"não".
+
+**C5 mudou o significado de `sem-indicacao` em endométrio.** Como todo
+carcinoma de endométrio passa a ter alguma pendência de classificação, o
+estado `sem-indicacao` deixou de existir nesse tumor; com MMR não informado o
+resultado é `insuficiente`, que é honesto — falta o dado, não falta indicação.
+
+### 30.7 Um defeito encontrado ao implementar: `encaixarValor` invertia o sexo
+
+Ao testar o campo novo, a resposta `"M"` do modelo virava `"Feminino"`. A
+causa é geral e não tinha nada a ver com mama: o casamento por inclusão de
+`encaixarValor()` aceitava qualquer substring, e a palavra `feminino` contém
+a letra `m`. Qualquer campo de lista fechada estava exposto ao mesmo erro com
+respostas curtas.
+
+O que torna esse defeito ruim não é a frequência, é o silêncio: o campo fica
+**preenchido**, com o valor oposto. Não há lacuna amarela, não há aviso, e o
+médico lê "Feminino" num caso masculino. Agora a inclusão exige que o menor
+dos dois textos tenha ao menos 4 caracteres; abaixo disso só vale casamento
+exato normalizado. `masc`, `triplo`, `dMMR` e `metastatico` continuam sendo
+reconhecidos.
+
+### 30.8 Como decidir
 
 Os cinco itens acima não são equivalentes em risco. Se for para aprovar em
 ordem, a ordem é: **C2 e C3 primeiro** (paciente elegível recebendo "nenhum

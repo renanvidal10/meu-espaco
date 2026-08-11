@@ -286,6 +286,23 @@
       if (!filled(v.histologia)) {
         return { state: 'insuficiente', message: 'Histologia não identificada. Volte à revisão do caso e complete o campo.' };
       }
+      // Borderline entrava por "seroso"/"endometrioide" e recebia o germinativo,
+      // contradizendo o texto do próprio card ("toda histologia epitelial
+      // não-borderline"). Tumor de baixo potencial de malignidade não é
+      // carcinoma e não faz parte do espectro BRCA-associado que sustenta a
+      // indicação universal. Este é o único item da revisão clínica que RETIRA
+      // exame — por isso a saída não é silenciosa: diz o que fazer.
+      // Ver ARQUITETURA.md §30.5.
+      if (has(v.histologia, 'borderline', 'baixo potencial', 'baixo grau de malignidade', 'limitrofe')) {
+        return {
+          state: 'sem-indicacao',
+          title: 'Fora do critério desta regra',
+          summary: 'Tumor borderline (baixo potencial de malignidade) não é carcinoma invasivo e está fora do espectro BRCA-associado que sustenta a indicação universal de teste germinativo em ovário.',
+          notes: [{ tag: 'Fora de escopo', title: 'Histologia borderline não coberta por esta regra',
+            body: 'Teste germinativo segue indicado se houver história familiar que o justifique por si, ou se a revisão anatomopatológica identificar componente invasivo. Reavalie se a histologia for atualizada.' }],
+        };
+      }
+
       const epitelial = HISTOLOGIAS_EPITELIAIS.find((h) => has(v.histologia, h));
       if (!epitelial) {
         return { state: 'nao-reconhecida', message: `"${v.histologia}" não corresponde a nenhuma histologia epitelial de ovário mapeada nesta versão.` };
@@ -487,9 +504,16 @@
         options: ['Inicial (operável)', 'Localmente avançado', 'Metastático'],
         justify: 'extensao_justificativa',
         ai: 'Extensão: "Inicial (operável)", "Localmente avançado" ou "Metastático". Infira do TNM e do contexto clínico e explique em extensao_justificativa quando inferir.' },
+      // O campo não existia, e a consequência não era uma regra frouxa: era um
+      // caso impossível de representar. Homem com câncer de mama caía em
+      // "nenhum teste indicado" porque o dado que dispara a indicação não tinha
+      // onde ser escrito. Ver ARQUITETURA.md §30.1.
+      { key: 'sexo', label: 'Sexo', placeholder: 'Ex.: Feminino',
+        options: ['Feminino', 'Masculino'],
+        ai: 'Sexo do paciente. "Masculino" quando o material indicar paciente homem (pronome, tratamento, "paciente masculino", nome masculino acompanhado de menção explícita). Vazio se não for possível determinar — não presuma feminino por ser câncer de mama.' },
       ...COMUNS,
     ],
-    hint: 'Subtipo (RE/RP/HER2) e idade ao diagnóstico são os eixos que mais mudam a indicação germinativa. Extensão da doença define o teste somático.',
+    hint: 'Subtipo (RE/RP/HER2), sexo e idade ao diagnóstico são os eixos que mais mudam a indicação germinativa. Extensão da doença define o teste somático.',
     classify(v) {
       const subtipo = v.subtipo_molecular;
       const idade = num(v.idade);
@@ -497,14 +521,19 @@
       const triploNeg = has(subtipo, 'triplo');
       const luminal = has(subtipo, 'luminal', 'rh+');
       const familiar = temHistoricoFamiliar(v);
+      const masculino = has(v.sexo, 'masculino');
 
-      if (!filled(subtipo) && idade === null && !filled(v.extensao_doenca)) {
+      if (!filled(subtipo) && idade === null && !filled(v.extensao_doenca) && !masculino) {
         return { state: 'insuficiente', message: 'Informe ao menos o subtipo (RE/RP/HER2), a idade ao diagnóstico ou a extensão da doença.' };
       }
 
-      // Critério germinativo NCCN: idade <=50, triplo-negativo em qualquer
-      // idade, doença metastática, ou histórico familiar relevante.
+      // Critério germinativo NCCN: sexo masculino em qualquer idade, idade <=50,
+      // triplo-negativo em qualquer idade, doença metastática, ou histórico
+      // familiar relevante. O critério masculino é independente de todos os
+      // outros — é o subgrupo com maior prevalência de BRCA2 patogênico, e a
+      // indicação vale mesmo sem história familiar. Ver ARQUITETURA.md §30.1.
       const motivos = [
+        masculino ? 'câncer de mama em paciente do sexo masculino' : null,
         idade !== null && idade <= 50 ? `diagnóstico aos ${idade} anos` : null,
         triploNeg ? 'subtipo triplo-negativo' : null,
         metastatico ? 'doença metastática' : null,
@@ -661,6 +690,12 @@
       const metastatico = has(v.extensao_doenca, 'metastatico');
       const dmmr = has(v.mmr_msi, 'dmmr', 'msi-alto', 'msi alto');
       const mmrFeito = filled(v.mmr_msi) && !has(v.mmr_msi, 'nao realizado');
+      const idade = num(v.idade);
+      // O colorretal de início precoce é o cenário que mais cresce, e era
+      // exatamente o que a regra deixava passar: 44 anos, pMMR, sem história
+      // familiar caía em "nenhum teste indicado". A idade não entrava na
+      // decisão. Ver ARQUITETURA.md §30.2.
+      const precoce = idade !== null && idade < 50;
 
       const tests = [];
 
@@ -672,6 +707,21 @@
           description: 'Imuno-histoquímica das proteínas de reparo ou análise de instabilidade de microssatélites. Um único teste informa prognóstico, elegibilidade a imunoterapia e risco familiar (síndrome de Lynch).',
           justify: 'Todo carcinoma colorretal tem indicação de pesquisa de MMR/MSI ao diagnóstico, independente de idade ou histórico familiar.',
           programs: [A_MAPEAR],
+        });
+      }
+
+      // Independente do status de MMR e de história familiar: variante
+      // germinativa patogênica aparece em cerca de 1 a cada 6 pacientes com
+      // colorretal, e a proporção é maior abaixo dos 50.
+      if (precoce) {
+        tests.push({
+          id: 'germinativo-crc-precoce', kind: 'germinativo',
+          name: 'Painel germinativo multigênico (APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11)',
+          sample: 'Sangue periférico', order: 'Sangue · germinativo · prioridade', primary: !dmmr,
+          stat: 'Variante germinativa patogênica em cerca de 1 a cada 6 pacientes com colorretal',
+          description: 'Diagnóstico abaixo dos 50 anos indica painel multigênico completo, independentemente do status de MMR e de história familiar. O painel cobre polipose (APC, MUTYH, BMPR1A, SMAD4, PTEN, STK11) além dos genes de reparo.',
+          justify: `Carcinoma colorretal diagnosticado aos ${idade} anos: abaixo de 50 anos há indicação de painel germinativo multigênico independentemente do status de MMR e de histórico familiar.`,
+          programs: [LIFE_GENOMICS],
         });
       }
 
@@ -708,9 +758,11 @@
       return {
         state: 'completo', tests,
         title: tests.length > 1 ? `Este caso tem indicação para ${tests.length} testes` : 'Este caso tem indicação para 1 teste',
-        summary: dmmr
-          ? 'Tumor com deficiência de reparo: exige confirmação germinativa para síndrome de Lynch.'
-          : 'Carcinoma colorretal: pesquisa de MMR/MSI indicada em qualquer idade ou estágio.',
+        summary: [
+          dmmr ? 'Tumor com deficiência de reparo: exige confirmação germinativa para síndrome de Lynch.' : null,
+          precoce ? `Diagnóstico aos ${idade} anos: abaixo de 50 há indicação de painel germinativo multigênico.` : null,
+          !dmmr && !precoce ? 'Carcinoma colorretal: pesquisa de MMR/MSI indicada em qualquer idade ou estágio.' : null,
+        ].filter(Boolean).join(' '),
         notes: [],
       };
     },
@@ -772,22 +824,38 @@
         });
       }
 
+      // A tela se contradizia: dizia "nenhum teste indicado" e, no mesmo card,
+      // "considere completar POLE e p53". MMR isolado não fecha a
+      // classificação — um tumor pMMR ainda pode ser POLEmut ou p53abn, e a
+      // diferença muda a conduta adjuvante nos dois extremos (desescalonar em
+      // POLEmut, intensificar em p53abn). Ver ARQUITETURA.md §30.4.
+      if (mmrFeito && !dmmr) {
+        tests.push({
+          id: 'classificacao-molecular-endo', kind: 'somatico',
+          name: 'Complementar classificação molecular (POLE e p53)', primary: true,
+          sample: 'Tecido tumoral', order: 'Tumoral · somático · prioridade',
+          stat: 'Quatro grupos moleculares; MMR sozinho define apenas um deles',
+          description: 'Sequenciamento do domínio exonuclease de POLE e imuno-histoquímica de p53. O algoritmo é hierárquico (POLE prevalece sobre MMRd, que prevalece sobre p53 anormal), então um tumor pMMR ainda pode ser POLEmut ou p53 anormal — grupos com prognóstico oposto entre si.',
+          justify: 'Carcinoma de endométrio com MMR proficiente: a classificação molecular permanece incompleta sem POLE e p53, que definem os grupos POLEmut e p53 anormal e alteram a decisão de terapia adjuvante.',
+          programs: [A_MAPEAR],
+        });
+      }
+
       if (!tests.length) {
         return {
-          state: 'sem-indicacao',
-          title: 'Nenhum teste adicional indicado por esta regra',
-          summary: 'MMR/MSI já realizado com resultado proficiente (pMMR/MSS).',
-          notes: [{ tag: 'Já realizado', title: 'Rastreio universal já cumprido',
-            body: 'Considere completar a classificação molecular (POLE e p53) se ainda não feita, pelo impacto prognóstico.' }],
+          state: 'insuficiente',
+          message: 'Informe o status de MMR/MSI para determinar o que falta na classificação molecular.',
         };
       }
 
       return {
         state: 'completo', tests,
-        title: tests.length > 1 ? 'Este caso tem indicação para 2 testes' : 'Este caso tem indicação para 1 teste',
+        title: tests.length > 1 ? `Este caso tem indicação para ${tests.length} testes` : 'Este caso tem indicação para 1 teste',
         summary: dmmr
           ? 'Tumor com deficiência de reparo: exige confirmação germinativa para síndrome de Lynch.'
-          : 'Carcinoma de endométrio: classificação molecular indicada em qualquer idade ou estágio.',
+          : (mmrFeito
+            ? 'MMR proficiente: falta POLE e p53 para fechar a classificação molecular, que orienta a terapia adjuvante.'
+            : 'Carcinoma de endométrio: classificação molecular indicada em qualquer idade ou estágio.'),
         notes: [],
       };
     },
@@ -839,13 +907,35 @@
       const avancado = has(v.extensao_doenca, 'metastatico', 'localmente avancado');
       const jaFeito = has(v.painel_previo, 'ja realizado');
 
+      // A regra antiga mandava esperar a doença progredir para pedir teste. Isso
+      // custa a janela adjuvante inteira: osimertinibe em EGFR mutado e
+      // alectinibe em ALK rearranjado são categoria 1 em doença ressecada, e o
+      // benefício não é recuperável depois. Ver ARQUITETURA.md §30.3.
       if (!avancado) {
+        if (jaFeito) {
+          return {
+            state: 'sem-indicacao',
+            title: 'Perfil molecular já realizado',
+            summary: 'O perfil molecular já foi feito neste paciente.',
+            notes: [{ tag: 'Já realizado', title: 'Reavaliação à progressão',
+              body: 'Se a doença recidivar, um novo perfil (incluindo biópsia líquida) orienta a linha seguinte.' }],
+          };
+        }
         return {
-          state: 'sem-indicacao',
-          title: 'Sem indicação de painel amplo por esta regra',
-          summary: 'Doença inicial ressecável. O painel molecular amplo é indicado em doença avançada ou metastática.',
-          notes: [{ tag: 'Reavaliar', title: 'Painel indicado se a doença avançar',
-            body: 'Alguns cenários iniciais têm indicação de pesquisa dirigida (ex.: EGFR para terapia adjuvante). Reavalie conforme a conduta definida.' }],
+          state: 'completo',
+          tests: [{
+            id: 'alvo-adjuvante-nsclc', kind: 'somatico',
+            name: 'Pesquisa dirigida para terapia adjuvante (EGFR, ALK, PD-L1)', primary: true,
+            sample: 'Tecido tumoral (peça cirúrgica)', order: 'Tumoral · somático · prioridade',
+            stat: 'Terapia adjuvante dirigida é categoria 1 em EGFR mutado e em ALK rearranjado',
+            description: 'Em doença ressecável de estágio IB a IIIB, EGFR e ALK definem elegibilidade a terapia-alvo adjuvante, e PD-L1 orienta a imunoterapia adjuvante. Um painel amplo cobre os três e evita nova solicitação de tecido.',
+            justify: 'Doença ressecável com indicação de pesquisa de EGFR, ALK e PD-L1 para definição de elegibilidade a terapia adjuvante dirigida.',
+            programs: [PROGRAMA_ID],
+          }],
+          title: 'Este caso tem indicação para 1 teste',
+          summary: 'Doença ressecável: EGFR, ALK e PD-L1 definem a elegibilidade a terapia adjuvante — a janela é agora, não à progressão.',
+          notes: [{ tag: 'Janela', title: 'A decisão adjuvante depende deste resultado',
+            body: 'Adiar o teste para depois da progressão perde a indicação adjuvante, cujo benefício em sobrevida livre de doença não é recuperável na doença avançada.' }],
         };
       }
 
@@ -1026,7 +1116,19 @@
     if (exato) return exato;
     const porNorma = opcoes.find((o) => norm(o) === norm(bruto));
     if (porNorma) return porNorma;
-    const porInclusao = opcoes.find((o) => norm(o).includes(norm(bruto)) || norm(bruto).includes(norm(o)));
+    // A inclusao so vale para textos com corpo suficiente. Sem o piso, uma
+    // resposta curta casava com qualquer opcao que contivesse aquela letra:
+    // "M" (de masculino) virava "Feminino", porque "feminino" contem "m". Um
+    // erro desses inverte o sexo do paciente no formulario e nao aparece em
+    // lugar nenhum — o campo fica preenchido, so que com o valor oposto.
+    const MINIMO_PARA_INCLUSAO = 4;
+    const porInclusao = opcoes.find((o) => {
+      const a = norm(o);
+      const b = norm(bruto);
+      const menor = a.length <= b.length ? a : b;
+      if (menor.length < MINIMO_PARA_INCLUSAO) return false;
+      return a.includes(b) || b.includes(a);
+    });
     if (porInclusao) return porInclusao;
     // Valor de outro subtipo ou grafia inesperada: preserva o texto. As regras
     // usam has(), que é tolerante, e o médico vê e corrige na revisão.

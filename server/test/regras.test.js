@@ -389,10 +389,19 @@ rodar('Endométrio', [
     estado: 'completo', testes: ['mmr-endo'],
   },
   {
-    nome: 'pMMR — rastreio cumprido',
+    // ARQUITETURA.md §30.4: MMR proficiente nao fecha a classificacao. O tumor
+    // ainda pode ser POLEmut ou p53abn, grupos de prognostico oposto entre si,
+    // e a tela dizia "nenhum teste" e "considere POLE e p53" ao mesmo tempo.
+    nome: 'pMMR — falta POLE e p53 para fechar a classificacao molecular',
     tumor: 'endometrio',
     valores: { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'pMMR / MSS' },
-    estado: 'sem-indicacao', testes: [],
+    estado: 'completo', testes: ['classificacao-molecular-endo'],
+  },
+  {
+    nome: 'dMMR — Lynch, sem repetir a classificacao molecular',
+    tumor: 'endometrio',
+    valores: { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'dMMR / MSI-alto' },
+    estado: 'completo', testes: ['germinativo-lynch-endo'],
   },
   {
     nome: 'nada informado — dados insuficientes',
@@ -419,9 +428,18 @@ rodar('Pulmão', [
     estado: 'completo', testes: ['painel-nsclc'],
   },
   {
-    nome: 'inicial ressecável — sem painel por esta regra',
+    // ARQUITETURA.md §30.3: a regra antiga mandava esperar a doenca progredir,
+    // o que custa a janela adjuvante inteira (osimertinibe e alectinibe sao
+    // categoria 1 em doenca ressecada e o beneficio nao volta depois).
+    nome: 'inicial ressecável — EGFR/ALK/PD-L1 para decisao adjuvante',
     tumor: 'pulmao',
     valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Inicial (ressecável)' },
+    estado: 'completo', testes: ['alvo-adjuvante-nsclc'],
+  },
+  {
+    nome: 'inicial ressecável com painel já feito — não repete',
+    tumor: 'pulmao',
+    valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Inicial (ressecável)', painel_previo: 'Já realizado' },
     estado: 'sem-indicacao', testes: [],
   },
   {
@@ -447,6 +465,80 @@ rodar('Pulmão', [
     tumor: 'pulmao',
     valores: {},
     estado: 'insuficiente',
+  },
+
+  /* ================================================================== *
+   * REVISAO CLINICA v1.8 — casos que a plataforma deixava passar.
+   * Os quatro primeiros grupos SUPRIMIAM teste de paciente elegivel, que e
+   * o erro mais caro de uma ferramenta de triagem porque e silencioso: a
+   * tela diz "nenhum teste indicado" e o oncologista segue em frente.
+   * Diretrizes e criterios em ARQUITETURA.md secao 30.
+   * ================================================================== */
+
+  // --- 30.1 mama masculina: nao havia nem campo para representar o caso ---
+  {
+    nome: 'C2 homem com cancer de mama — germinativo em qualquer idade',
+    tumor: 'mama',
+    valores: { sexo: 'Masculino', histologia: 'Carcinoma ductal invasivo', subtipo_molecular: 'Luminal (RH+/HER2-)', extensao_doenca: 'Inicial (operável)', idade: '67' },
+    estado: 'completo', testes: ['germinativo-mama'],
+  },
+  {
+    nome: 'C2 homem — o criterio nao depende de idade, subtipo nem extensao',
+    tumor: 'mama',
+    valores: { sexo: 'Masculino', histologia: 'Carcinoma ductal invasivo' },
+    estado: 'completo', testes: ['germinativo-mama'],
+  },
+  {
+    nome: 'C2 mulher 67a luminal inicial continua sem indicacao',
+    tumor: 'mama',
+    valores: { sexo: 'Feminino', histologia: 'Carcinoma ductal invasivo', subtipo_molecular: 'Luminal (RH+/HER2-)', extensao_doenca: 'Inicial (operável)', idade: '67' },
+    estado: 'sem-indicacao', testes: [],
+  },
+
+  // --- 30.2 colorretal abaixo de 50 anos ---
+  {
+    nome: 'C3 colorretal 44a pMMR sem historia familiar — painel multigenico',
+    tumor: 'colorretal',
+    valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'pMMR / MSS', idade: '44' },
+    estado: 'completo', testes: ['germinativo-crc-precoce'],
+  },
+  {
+    nome: 'C3 colorretal 49a — o limite e estrito abaixo de 50',
+    tumor: 'colorretal',
+    valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'pMMR / MSS', idade: '49' },
+    estado: 'completo', testes: ['germinativo-crc-precoce'],
+  },
+  {
+    nome: 'C3 colorretal 50a pMMR — fora do criterio de idade',
+    tumor: 'colorretal',
+    valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'pMMR / MSS', idade: '50' },
+    estado: 'sem-indicacao', testes: [],
+  },
+  {
+    nome: 'C3 colorretal 44a dMMR metastatico — os tres testes',
+    tumor: 'colorretal',
+    valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático', mmr_msi: 'dMMR / MSI-alto', idade: '44' },
+    estado: 'completo', testes: ['germinativo-crc-precoce', 'germinativo-lynch', 'somatico-crc'],
+  },
+
+  // --- 30.5 ovario borderline: o unico item que RETIRA exame ---
+  {
+    nome: 'A1 tumor borderline seroso — fora do espectro BRCA',
+    tumor: 'ovario',
+    valores: { histologia: 'Tumor borderline seroso', estadiamento: 'IA', idade: '34' },
+    estado: 'sem-indicacao', testes: [],
+  },
+  {
+    nome: 'A1 baixo potencial de malignidade — mesma saida',
+    tumor: 'ovario',
+    valores: { histologia: 'Tumor seroso de baixo potencial de malignidade', estadiamento: 'IA' },
+    estado: 'sem-indicacao', testes: [],
+  },
+  {
+    nome: 'A1 seroso invasivo NAO e confundido com borderline',
+    tumor: 'ovario',
+    valores: { histologia: 'Carcinoma seroso', grau: 'Alto grau', estadiamento: 'IIIC' },
+    estado: 'completo', testes: ['hrd', 'germinativo-brca'],
   },
 ]);
 
