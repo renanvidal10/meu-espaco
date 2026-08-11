@@ -1455,3 +1455,105 @@ Honestidade sobre o que **não** foi verificado:
   aproximação, não a coisa real.
 - Instalabilidade PWA: não há service worker; a ausência está confirmada, a
   instalabilidade real não foi medida.
+
+## 32. Bateria contra a API real: um achado de confiabilidade (v1.9)
+
+Até aqui toda a suíte validava o servidor contra um simulador (`stub-anthropic.js`)
+que devolve exatamente o que eu mando devolver. Isso garante que o SERVIDOR reage
+certo a qualquer resposta — nunca garantiu que o MODELO real produz aquela
+resposta. `server/test/bateria-real.js` fecha essa lacuna: sobe o servidor de
+verdade, sem stub, e manda casos clínicos reais para a API paga.
+
+Custo total da investigação: **~US$ 3,10** (chave de teste do usuário, com o
+consentimento dele). Cada extração ficou entre US$ 0,05 e US$ 0,07.
+
+### 32.1 O achado
+
+**Ginecológico - Endométrio tem uma taxa de falha silenciosa mensuravelmente
+maior que os outros seis subtipos**, e **Ginecológico - Ovário tem uma taxa
+secundária de confusão com Endométrio.** Em nenhum dos dois casos há erro,
+aviso ou qualquer sinal na tela — os campos decisivos simplesmente vêm vazios,
+ou o subtipo vem trocado, com `avisos: []` e status 200. O médico vê uma tela
+de revisão com campos em branco e não tem como saber se é porque o laudo não
+tinha aquele dado ou porque a leitura falhou.
+
+Amostra (mesmo texto, chamadas repetidas, servidor real, API real):
+
+| Subtipo | Tentativas | Sucesso completo | Observação |
+|---|---|---|---|
+| Próstata | 4 | 4/4 (100%) | — |
+| Colorretal | 4 | 4/4 (100%) | — |
+| Mama | 4 | 4/4 (100%) | inclusive o campo novo `sexo` |
+| Pulmão | 4 | 4/4 (100%) | — |
+| Pâncreas | 3 | 3/3 (100%) | via PDF |
+| **Ginecológico - Ovário** | 6 | 4/6 (67%) | 2 vieram como "Ginecológico - Endométrio" |
+| **Ginecológico - Endométrio** (caso ambíguo) | 13 | ~5/13 (~40%) | texto e imagem, baixa e alta resolução |
+| **Ginecológico - Endométrio** (caso sem ambiguidade cirúrgica) | 4 | 3/4 (75%) | melhora, mas não fecha |
+
+### 32.2 Como cheguei lá — e dois becos que pareciam bug e não eram
+
+1. **Suspeita inicial:** PDF do caso de pâncreas voltou sem histologia.
+   Causa real: meu próprio gerador de PDF de teste (`criaPdf()`) escreve
+   numa linha só, sem quebra — um texto comprido saía da área visível da
+   página. O próprio modelo apontou: `"texto truncado na margem da
+   página"`. **Bug do teste, não do produto.** Corrigido com
+   `criaPdfMultilinha()` em `test/util-pdf.js`; 3/3 depois da correção.
+
+2. **Suspeita seguinte:** imagem do caso de endométrio voltou vazia.
+   Testei se era corrupção no upload via `fetch`/`FormData` do Node
+   (diferente de um navegador real) — os bytes chegaram **idênticos** ao
+   `curl`, byte a byte. Não era o transporte.
+
+3. **Testei se era resolução da imagem** (gerei em alta definição) —
+   melhorou (de ~40% para 75% de sucesso) mas não eliminou. Não era só
+   legibilidade.
+
+4. **Testei se era posição no schema/prompt** (`ORDER` tem `endometrio` por
+   último) — pus endométrio primeiro na lista e rodei 4 vezes: **4/4
+   falharam do mesmo jeito.** Não é posição.
+
+5. **Testei se era o schema unificado ser grande demais** — rodei próstata e
+   colorretal 4 vezes cada com o mesmo schema completo: **8/8 perfeitos.**
+   Não é o tamanho do schema por si.
+
+6. **O que restou, com evidência a favor:** meus dois casos de teste para
+   ovário e endométrio descrevem a MESMA combinação de procedimento
+   cirúrgico (salpingo-ooforectomia bilateral + histerectomia total) —
+   que ocorre tanto em cirurgia de ovário quanto de endométrio na prática
+   real. Ao escrever um caso de endométrio sem mencionar essa cirurgia
+   ambígua, o sucesso subiu de ~40% para 75%. A ambiguidade clínica real
+   entre dois sítios anatomicamente vizinhos, com vocabulário cirúrgico
+   sobreposto, é a explicação com mais evidência a favor — mas não fecha
+   os 25% de falha residual mesmo no caso limpo.
+
+### 32.3 O que isso significa em produção
+
+Nada disso apareceu na suíte com stub, porque o stub sempre devolve exatamente
+o que eu mando. É a diferença entre "o servidor processa qualquer resposta
+corretamente" e "o modelo produz a resposta certa" — só a segunda pergunta
+importa para o médico. Os dois incidentes anteriores desta mesma categoria
+(§19, §28) foram descobertos pelo usuário em produção, não por teste. Este foi
+descoberto antes, mas só porque a bateria rodou contra a API paga de verdade.
+
+**Não codifiquei nenhuma correção ainda** — o "diretriz primeiro, código
+depois" vale aqui por analogia: a causa raiz não está fechada (a ambiguidade
+cirúrgica explica parte, não tudo), e a correção certa depende de uma decisão
+de produto sobre custo e latência, não é óbvia. Três caminhos possíveis,
+nenhum implementado:
+
+- **Heurística de "extração suspeita":** se o material tem tamanho
+  substancial (texto longo, PDF com texto, imagem legível) mas os campos
+  decisivos do subtipo identificado vêm todos vazios, mostrar um aviso
+  explícito em vez de silêncio — "a leitura pode não ter capturado todos os
+  dados deste laudo; confira com atenção" — em vez de deixar o card de
+  revisão parecer que o laudo não tinha a informação.
+- **Segunda chamada dirigida ao subtipo identificado**, com um schema muito
+  menor (só os campos daquele tumor, não os 44 do schema unificado), quando a
+  primeira chamada volta com campos decisivos vazios. Dobra o custo só nesse
+  caso, que já é raro.
+- **Aceitar o risco residual e documentar**, given que mesmo 75% de acerto
+  no pior caso ainda deixa o médico revisando manualmente antes de assinar
+  qualquer documento — a tela de revisão (`screen-1`) sempre existe entre a
+  extração e a solicitação final.
+
+Aguardando decisão do usuário sobre qual caminho seguir.
