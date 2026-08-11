@@ -30,20 +30,32 @@
     --border: #cdd7d2;
     --ink: #1b2420;
     --ink-muted: #56645d;
-    --ink-faint: #6f7d76;
+    --ink-faint: #5a675f;
     --accent: #0f6b5c;
     --accent-ink: #ffffff;
+    /* Texto secundário sobre --accent. Era rgba(255,255,255,.82/.9/.75) fixo,
+       o que no tema escuro pintava branco sobre menta clara. Ver §31. */
+    --accent-ink-2: #dbe9e7;
+    --accent-veil: rgba(255, 255, 255, 0.18);
+    --accent-veil-strong: rgba(255, 255, 255, 0.4);
     --accent-soft: #dcebe6;
     --accent-soft-border: #b9d6cc;
-    --warm: #a15a3f;
+    --warm: #8f4c33;
     --warm-soft: #f3e4dc;
     --warm-soft-border: #ddbca8;
     --ok: #0f6b5c;
     --ok-soft: #dcebe6;
-    --warn: #93650f;
+    --warn: #7d5509;
     --warn-soft: #f3e9d3;
     --neutral-soft: #e4e7e5;
     --focus: #1b6de0;
+    /* Contorno de foco sobre superfícies pintadas com --accent: o azul do
+       --focus só tem 2,24:1 contra a menta do tema escuro. */
+    --focus-on-accent: #ffffff;
+    /* A borda decorativa de card (--border) fica em 1,3-1,5:1 de propósito.
+       Input, select, textarea e botão são componentes de UI e a WCAG 1.4.11
+       exige 3:1 no limite visual deles — daí um token separado. */
+    --border-control: #7b827e;
     --shadow: 0 1px 2px rgba(20, 30, 26, 0.06), 0 8px 24px -12px rgba(20, 30, 26, 0.18);
   }
 
@@ -54,9 +66,12 @@
     --border: #2b362f;
     --ink: #e9efec;
     --ink-muted: #a3b1a9;
-    --ink-faint: #71807a;
+    --ink-faint: #909e97;
     --accent: #55c2a8;
     --accent-ink: #072019;
+    --accent-ink-2: #13382e;
+    --accent-veil: rgba(7, 32, 25, 0.18);
+    --accent-veil-strong: rgba(7, 32, 25, 0.4);
     --accent-soft: #1a352e;
     --accent-soft-border: #2b5148;
     --warm: #e2a284;
@@ -67,6 +82,9 @@
     --warn: #dcb256;
     --warn-soft: #362c17;
     --neutral-soft: #232b26;
+    --focus: #7ab0ff;
+    --focus-on-accent: #072019;
+    --border-control: #6a7c74;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.55);
   }
 
@@ -78,9 +96,12 @@
       --border: #2b362f;
       --ink: #e9efec;
       --ink-muted: #a3b1a9;
-      --ink-faint: #71807a;
+      --ink-faint: #909e97;
       --accent: #55c2a8;
       --accent-ink: #072019;
+      --accent-ink-2: #13382e;
+      --accent-veil: rgba(7, 32, 25, 0.18);
+      --accent-veil-strong: rgba(7, 32, 25, 0.4);
       --accent-soft: #1a352e;
       --accent-soft-border: #2b5148;
       --warm: #e2a284;
@@ -91,6 +112,9 @@
       --warn: #dcb256;
       --warn-soft: #362c17;
       --neutral-soft: #232b26;
+      --focus: #7ab0ff;
+      --focus-on-accent: #072019;
+      --border-control: #6a7c74;
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.55);
     }
   }
@@ -220,7 +244,7 @@
   }
   .gate-aside {
     background: var(--accent);
-    color: #fff;
+    color: var(--accent-ink);
     padding: 38px 34px;
     display: flex;
     flex-direction: column;
@@ -228,16 +252,16 @@
   .gate-aside-brand { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 700; margin-bottom: 30px; }
   .gate-aside-brand .mark {
     width: 30px; height: 30px; border-radius: 9px;
-    background: rgba(255,255,255,0.18);
+    background: var(--accent-veil);
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: 15px;
   }
-  .gate-aside h2 { font-size: 22px; line-height: 1.3; color: #fff; margin: 0 0 12px; letter-spacing: -0.015em; text-wrap: balance; }
-  .gate-aside > p { font-size: 13.5px; line-height: 1.6; color: rgba(255,255,255,0.82); margin: 0 0 26px; }
+  .gate-aside h2 { font-size: 22px; line-height: 1.3; color: var(--accent-ink); margin: 0 0 12px; letter-spacing: -0.015em; text-wrap: balance; }
+  .gate-aside > p { font-size: 13.5px; line-height: 1.6; color: var(--accent-ink-2); margin: 0 0 26px; }
   .gate-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 13px; }
-  .gate-points li { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,0.9); }
-  .gate-points .ic { width: 15px; height: 15px; margin-top: 2px; color: rgba(255,255,255,0.75); }
-  .gate-aside-foot { margin: auto 0 0; padding-top: 26px; font-size: 11.5px; color: rgba(255,255,255,0.6); }
+  .gate-points li { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; line-height: 1.5; color: var(--accent-ink-2); }
+  .gate-points .ic { width: 15px; height: 15px; margin-top: 2px; color: var(--accent-ink-2); }
+  .gate-aside-foot { margin: auto 0 0; padding-top: 26px; font-size: 11.5px; color: var(--accent-ink-2); }
 
   .gate-main { padding: 38px 34px; display: flex; flex-direction: column; }
   .gate-brand-mobile { display: none; align-items: center; gap: 9px; font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 24px; }
@@ -716,7 +740,7 @@
   .field input.value.missing::placeholder { color: var(--warn); opacity: 0.75; }
 
   .verdict.negative { background: var(--warn); }
-  .verdict.negative .glyph { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.4); }
+  .verdict.negative .glyph { background: var(--accent-veil); border-color: var(--accent-veil-strong); }
   .verdict.negative .verdict-count-pill { color: var(--warn); }
 
   .pill {
@@ -742,13 +766,13 @@
   }
   .verdict .glyph {
     width: 30px; height: 30px; border-radius: 9px;
-    background: rgba(255,255,255,0.18);
-    color: #fff;
+    background: var(--accent-veil);
+    color: var(--accent-ink);
     display: flex; align-items: center; justify-content: center;
     font-size: 14px; font-weight: 700; flex-shrink: 0;
   }
-  .verdict h2 { font-size: 15.5px; margin-bottom: 2px; color: #fff; letter-spacing: -0.01em; }
-  .verdict p { margin: 0; font-size: 12px; color: rgba(255,255,255,0.82); line-height: 1.45; }
+  .verdict h2 { font-size: 15.5px; margin-bottom: 2px; color: var(--accent-ink); letter-spacing: -0.01em; }
+  .verdict p { margin: 0; font-size: 12px; color: var(--accent-ink-2); line-height: 1.45; }
 
   .test-pair {
     display: grid;
@@ -897,7 +921,7 @@
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--accent);
-    background: #ffffff;
+    background: var(--accent-ink);
     padding: 2px 8px;
     border-radius: 100px;
     margin-bottom: 5px;
@@ -1065,7 +1089,7 @@
     padding-bottom: 10px;
     margin-bottom: 16px;
   }
-  .doc-preview .doc-head .doc-type { font-size: 11px; color: #8a8a8a; text-transform: uppercase; letter-spacing: 0.06em; }
+  .doc-preview .doc-head .doc-type { font-size: 11px; color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.06em; }
   .doc-preview .doc-row {
     display: flex;
     justify-content: space-between;
@@ -1073,7 +1097,7 @@
     font-size: 13px;
     padding: 8px 0;
   }
-  .doc-preview .doc-row .k { color: #8a8a8a; }
+  .doc-preview .doc-row .k { color: #6b6b6b; }
   .doc-preview .doc-row .v { font-weight: 600; text-align: right; }
   .doc-preview .doc-justif {
     margin-top: 16px;
@@ -1081,14 +1105,14 @@
     line-height: 1.65;
     color: #2a2a2a;
   }
-  .doc-preview .doc-justif .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: #8a8a8a; margin-bottom: 5px; }
+  .doc-preview .doc-justif .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: #6b6b6b; margin-bottom: 5px; }
   .doc-preview .doc-sign {
     margin-top: 24px;
     padding-top: 16px;
     display: flex;
     justify-content: space-between;
     font-size: 11.5px;
-    color: #8a8a8a;
+    color: #6b6b6b;
   }
   /* ===================== GENA — assistente flutuante ===================== */
   .gena { position: fixed; right: 20px; bottom: 20px; z-index: 90; }
@@ -1098,7 +1122,7 @@
     display: flex; align-items: center; gap: 9px;
     padding: 8px 16px 8px 9px;
     border: none; border-radius: 100px;
-    background: var(--accent); color: #fff;
+    background: var(--accent); color: var(--accent-ink);
     font-family: inherit; font-size: 13.5px; font-weight: 600;
     cursor: pointer;
     box-shadow: 0 8px 24px -8px rgba(15, 107, 92, 0.65);
@@ -1187,7 +1211,7 @@
     border: 1px solid var(--border); border-bottom-left-radius: 5px;
   }
   .gena-msg.from-doc .gena-bubble {
-    background: var(--accent); color: #fff; border-bottom-right-radius: 5px;
+    background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 5px;
   }
 
   .gena-typing { display: flex; gap: 4px; padding: 11px 13px; }
@@ -1219,7 +1243,7 @@
     width: 42px; height: 42px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     border: none; border-radius: 50%;
-    background: var(--accent); color: #fff;
+    background: var(--accent); color: var(--accent-ink);
     cursor: pointer; font-size: 15px;
     transition: filter .15s ease;
   }
@@ -1471,6 +1495,59 @@
     body.printing .doc-preview .doc-sign {
       color: #444 !important;
     }
+    /* O título da solicitação escapava desta lista: no tema escuro ele saía
+       com var(--ink) = #e9efec sobre papel branco, 1,17:1 — invisível no PDF
+       que o médico assina. Medido no PDF gerado, não na tela. */
+    body.printing .doc-preview-wrap h3,
+    body.printing .doc-preview h3 {
+      color: #1c1c1c !important;
+    }
+  }
+
+  /* ================================================================== *
+   * ACESSIBILIDADE — correções medidas, não estimadas (ver §31)
+   * Este bloco fica no fim de propósito: ele precisa vencer as regras
+   * decorativas acima sem que cada uma delas tenha de ser reescrita.
+   * ================================================================== */
+
+  /* WCAG 1.4.11 (3:1 no limite visual de um componente de UI). A borda de
+     card continua decorativa em --border; input, select, textarea e as
+     células editáveis do documento passam a --border-control. Sem isto os
+     campos da revisão do caso mediam 1,47:1 (claro) e 1,35:1 (escuro) — o
+     médico não distinguia o campo do cartão. */
+  .gate input,
+  textarea,
+  .field input.value,
+  .field select.value,
+  .name-card input,
+  .gena-compose input,
+  .doc-preview [contenteditable="true"] {
+    border-color: var(--border-control);
+  }
+
+  /* O campo de mensagem da Gena era o único do produto sem marca de foco:
+     `:focus { outline: none }` sem `:focus-visible` correspondente. */
+  .gena-compose input:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+
+  /* Único link real do produto — leva ao portal do laboratório. Ficava com o
+     contorno padrão do navegador, cinza quase preto sobre o fundo escuro. */
+  .program-row a.link:focus-visible,
+  a.link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  /* Controles pintados com --accent: o azul do --focus tem 2,24:1 contra a
+     menta do tema escuro, abaixo dos 3:1 exigidos. */
+  .gena-fab:focus-visible,
+  .gena-send:focus-visible,
+  .btn.primary:focus-visible {
+    outline: 2px solid var(--focus-on-accent);
+    outline-offset: 2px;
   }
 </style>
 </head>
