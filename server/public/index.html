@@ -513,7 +513,20 @@
     border-radius: 8px;
     padding: 9px 12px;
     line-height: 1.5;
+    /* Uma string longa sem espaço (nome de arquivo, mensagem técnica) empurra
+       a largura da página inteira e encolhe todo o layout. Quebrar em
+       qualquer ponto é obrigatório aqui. */
+    overflow-wrap: anywhere;
   }
+  .ocr-disclaimer .resolver { display: block; margin-top: 4px; opacity: .85; }
+  .ocr-disclaimer .arquivo { font-weight: 700; }
+  .ocr-disclaimer + .ocr-disclaimer { margin-top: 8px; }
+
+  /* Trava geral contra rolagem horizontal: nenhum filho de grid/flex pode
+     usar o conteúdo como largura mínima. Sem isto, um nome de arquivo comprido
+     alarga a coluna e espreme as vizinhas. */
+  .intake-tile, .field, .test-step .step-body, .program-row .who, .file-chip { min-width: 0; }
+  .intake-tile .file-name, .doc-preview .v, .field .value { overflow-wrap: anywhere; }
 
   .intake-grid {
     display: grid;
@@ -551,7 +564,7 @@
   .intake-tile.selected .icon { background: var(--accent-soft); border-color: var(--accent-soft-border); }
   .intake-tile .title { font-size: 12px; font-weight: 600; }
   .intake-tile .desc { font-size: 10.5px; color: var(--ink-faint); line-height: 1.35; }
-  .intake-tile .file-name { font-size: 10.5px; color: var(--accent); font-weight: 600; margin-top: 1px; }
+  .intake-tile .file-name { font-size: 10.5px; color: var(--accent); font-weight: 600; margin-top: 1px; overflow-wrap: anywhere; }
 
   textarea {
     width: 100%;
@@ -2439,7 +2452,7 @@
     photoFiles.forEach((f) => formData.append('files', f));
 
     const body = await api('/api/extract', { method: 'POST', body: formData, isForm: true });
-    return body.extracted;
+    return { extracted: body.extracted, avisos: body.avisos || [] };
   }
 
   function currentSources() {
@@ -2481,7 +2494,8 @@
     btn.textContent = 'Lendo caso com IA...';
 
     try {
-      const extracted = await extractCase(text);
+      const { extracted, avisos } = await extractCase(text);
+      mostrarAvisos(avisos);
       extractedPatientName = (extracted.nome_paciente || '').trim();
 
       // O subtipo vem da própria leitura do material. Se não deu para
@@ -2637,11 +2651,37 @@
     return f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|heic|heif|bmp|tiff?)$/i.test(f.name);
   }
 
+  const LIMITE_ARQUIVO = 20 * 1024 * 1024;
+
+  // Checa o arquivo no próprio navegador, antes de subir. Um PDF de 0 byte
+  // (típico de arquivo que ainda está no iCloud e não foi baixado) só daria
+  // erro depois da chamada paga - e com uma mensagem que não ajuda em nada.
+  function problemaNoArquivo(f) {
+    if (f.size === 0) {
+      return `"${f.name}" está vazio (0 bytes). Costuma ser arquivo que ainda está no iCloud/Drive: abra-o uma vez no aparelho para baixar e anexe de novo.`;
+    }
+    if (f.size > LIMITE_ARQUIVO) {
+      return `"${f.name}" tem ${(f.size / 1024 / 1024).toFixed(1)} MB, acima do limite de 20 MB. Anexe só as páginas que interessam, ou uma foto da página.`;
+    }
+    return null;
+  }
+
   function addFiles(kind, fileList) {
     const files = Array.from(fileList || []);
     if (!files.length) return;
-    if (kind === 'pdf') pdfFiles = pdfFiles.concat(files);
-    else photoFiles = photoFiles.concat(files);
+
+    const problemas = [];
+    const bons = files.filter((f) => {
+      const p = problemaNoArquivo(f);
+      if (p) { problemas.push(p); return false; }
+      return true;
+    });
+
+    if (problemas.length) mostrarAvisos(problemas.map((texto) => ({ motivo: texto })));
+    if (!bons.length) return;
+
+    if (kind === 'pdf') pdfFiles = pdfFiles.concat(bons);
+    else photoFiles = photoFiles.concat(bons);
     refreshFileTiles();
   }
 
@@ -2711,6 +2751,7 @@
     document.getElementById('case-text').value = '';
     document.getElementById('tile-text').classList.remove('selected');
     document.getElementById('extract-error').style.display = 'none';
+    limparAvisos();
 
     if (recording) toggleRecording();
     recSeconds = 0;
@@ -3197,6 +3238,34 @@
     const box = document.getElementById('extract-error');
     box.textContent = message;
     box.style.display = '';
+    limparAvisos();
+  }
+
+  // Avisos por arquivo: o que houve com aquele anexo e o que fazer a respeito.
+  // Ficam separados do erro geral porque a extração pode ter dado certo com
+  // as outras fontes e mesmo assim ter algo a comunicar.
+  function limparAvisos() {
+    document.querySelectorAll('.aviso-arquivo').forEach((el) => el.remove());
+  }
+
+  function mostrarAvisos(avisos) {
+    limparAvisos();
+    if (!avisos || !avisos.length) return;
+    const ancora = document.getElementById('extract-error');
+    avisos.forEach((a) => {
+      const div = document.createElement('div');
+      div.className = 'ocr-disclaimer aviso-arquivo';
+      const motivo = document.createElement('span');
+      motivo.textContent = a.motivo || '';
+      div.appendChild(motivo);
+      if (a.comoResolver) {
+        const como = document.createElement('span');
+        como.className = 'resolver';
+        como.textContent = a.comoResolver;
+        div.appendChild(como);
+      }
+      ancora.parentNode.insertBefore(div, ancora.nextSibling);
+    });
   }
 
   function reportPlaudReturn(status) {

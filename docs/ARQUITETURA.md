@@ -877,3 +877,45 @@ Os casos foram escolhidos para cobrir o que quebra na prática:
 **Quando falhar**: o botão "Copiar resultado" gera um texto com o caso, o que
 era esperado e o que veio. Esse texto é o suficiente para ajustar as instruções
 do modelo sem adivinhação.
+
+## 23. PDF anexado: validação e recuperação (v1.4) — `server/pdf.js`
+
+**O que aconteceu.** Um laudo real anexado no celular foi recusado pela API com
+`messages.0.content.0.pdf.source.base64.data: The PDF specified was not valid`.
+Duas falhas de uma vez:
+
+1. A mensagem crua da API foi exibida ao médico. Ela não diz o que fazer.
+2. Sendo uma linha sem espaços, ela **empurrou a largura da página** e encolheu
+   o layout inteiro — o app apareceu espremido com uma faixa branca à direita.
+
+**Três estágios agora.**
+
+1. **`inspecionar()`** — checa os bytes antes de qualquer chamada paga:
+   arquivo de 0 byte, conteúdo que não começa com `%PDF-`, acima de 20 MB, ou
+   com `/Encrypt` no trailer (protegido por senha). Cada bloqueio devolve
+   **motivo + o que fazer**, em português.
+2. **Envio normal** — passando na inspeção, o PDF vai como documento para a
+   API, que é o melhor caminho: ela lê layout, tabelas e imagens.
+3. **`extrairTexto()`** — se mesmo assim a API recusar, o texto é extraído
+   localmente (`unpdf`, pdf.js empacotado) e a chamada é **refeita como texto**.
+   Perde o layout, mas um laudo lido vale mais que um erro na tela. O médico é
+   avisado de que isso aconteceu, para conferir os campos com atenção extra.
+
+O arquivo de 0 byte merece destaque: é o caso mais comum no iPhone, quando o
+PDF ainda está no iCloud e não foi baixado para o aparelho. A mensagem diz
+exatamente isso, e a checagem também roda no navegador — antes do upload.
+
+**Nenhum erro técnico chega à tela.** O detalhe vai para o log do servidor; o
+médico recebe uma frase acionável. Erros de rate limit, crédito, tamanho e PDF
+ilegível têm cada um a sua mensagem.
+
+**Trava de layout.** Além de nunca exibir texto técnico, o CSS passou a impedir
+que qualquer string empurre a largura: `overflow-wrap: anywhere` nas caixas de
+aviso e nos nomes de arquivo, e `min-width: 0` nos filhos de grid/flex —
+sem isso, um nome de arquivo comprido alarga a coluna e espreme as vizinhas
+(foi o que deformou os tiles "Foto do laudo" e "Ditado por voz").
+
+Cobertura em `test/pdf.test.js`: 0 byte, conteúdo não-PDF, tamanho, PDF
+protegido, lixo antes do cabeçalho, extração local de texto, e a garantia de
+que nenhum bloqueio vaza jargão da API (`base64`, `invalid_request`,
+`request_id`) para a mensagem do médico.

@@ -11,6 +11,7 @@ const store = require('./store');
 const auth = require('./auth');
 const mailer = require('./email');
 const plaud = require('./plaud');
+const pdf = require('./pdf');
 
 const app = express();
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -513,62 +514,156 @@ app.post('/api/extract', auth.requireAuth(), upload.array('files', 10), async (r
     const text = (req.body.text || '').trim();
     const files = req.files || [];
 
-    const content = [];
-
-    for (const file of files) {
-      if (file.mimetype === 'application/pdf') {
-        content.push({
-          type: 'document',
-          source: {
-            type: 'base64',
-            media_type: 'application/pdf',
-            data: file.buffer.toString('base64'),
-          },
-        });
-      } else if (file.mimetype.startsWith('image/')) {
-        content.push({
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: file.mimetype,
-            data: file.buffer.toString('base64'),
-          },
-        });
-      }
-    }
-
-    const instructionText = text
-      ? `Descrição em texto fornecida pelo médico:\n\n${text}`
-      : 'Nenhum texto foi digitado — extraia só a partir dos arquivos anexados.';
-    content.push({ type: 'text', text: `${instructionText}\n\nExtraia o caso clínico estruturado conforme o schema.` });
-
     if (!files.length && !text) {
       return res.status(400).json({ error: 'Nenhum texto ou arquivo foi enviado.' });
     }
 
-    const response = await client.messages.create({
-      model: 'claude-opus-5',
-      max_tokens: 2048,
-      system: UNIFIED_SYSTEM_PROMPT,
-      output_config: {
-        format: { type: 'json_schema', schema: UNIFIED_SCHEMA },
-      },
-      messages: [{ role: 'user', content }],
-    });
+    const content = [];
+    const avisos = [];
+    // Guardados para o plano B: se a API recusar o documento, o texto destes
+    // PDFs é extraído aqui e a chamada é refeita.
+    const pdfsEnviados = [];
+
+    for (const file of files) {
+      const ehPdf = file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname || '');
+      const ehImagem = (file.mimetype || '').startsWith('image/');
+
+      if (ehPdf) {
+        // Checagem barata antes de gastar chamada: arquivo vazio, protegido ou
+        // que nem é PDF são recusados aqui, com instrução do que fazer.
+        const check = pdf.inspecionar(file);
+        if (!check.ok) {
+          avisos.push({ arquivo: file.originalname, motivo: check.motivo, comoResolver: check.comoResolver });
+          continue;
+        }
+        pdfsEnviados.push(file);
+        content.push({
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: file.buffer.toString('base64') },
+        });
+      } else if (ehImagem) {
+        if (!file.buffer || !file.buffer.length) {
+          avisos.push({
+            arquivo: file.originalname,
+            motivo: `"${file.originalname}" chegou vazio (0 bytes).`,
+            comoResolver: 'Abra a imagem uma vez no aparelho para forçar o download e anexe de novo.',
+          });
+          continue;
+        }
+        content.push({
+          type: 'image',
+          source: { type: 'base64', media_type: file.mimetype, data: file.buffer.toString('base64') },
+        });
+      } else {
+        avisos.push({
+          arquivo: file.originalname,
+          motivo: `"${file.originalname}" não é PDF nem imagem.`,
+          comoResolver: 'Anexe o laudo em PDF, ou tire uma foto/print e anexe como imagem.',
+        });
+      }
+    }
+
+    // Nenhuma fonte utilizável sobrou: responde o porquê, sem gastar chamada.
+    const temAnexoUtil = content.length > 0;
+    if (!temAnexoUtil && !text) {
+      return res.status(400).json({
+        error: avisos.length
+          ? `${avisos[0].motivo} ${avisos[0].comoResolver}`
+          : 'Nenhum arquivo pôde ser lido. Anexe um laudo em PDF ou uma foto.',
+        avisos,
+      });
+    }
+
+    function montaMensagem(blocos, textoExtra) {
+      const instrucao = (text || textoExtra)
+        ? `Descrição em texto fornecida pelo médico:\n\n${[text, textoExtra].filter(Boolean).join('\n\n')}`
+        : 'Nenhum texto foi digitado — extraia só a partir dos arquivos anexados.';
+      return [...blocos, { type: 'text', text: `${instrucao}\n\nExtraia o caso clínico estruturado conforme o schema.` }];
+    }
+
+    async function chamar(blocos, textoExtra) {
+      return client.messages.create({
+        model: 'claude-opus-5',
+        max_tokens: 2048,
+        system: UNIFIED_SYSTEM_PROMPT,
+        output_config: { format: { type: 'json_schema', schema: UNIFIED_SCHEMA } },
+        messages: [{ role: 'user', content: montaMensagem(blocos, textoExtra) }],
+      });
+    }
+
+    let response;
+    try {
+      response = await chamar(content);
+    } catch (err) {
+      // Plano B: a API recusou o documento. Em vez de devolver o erro cru ao
+      // médico, o texto do PDF é extraído aqui e a chamada é refeita sem o
+      // documento. Perde o layout, mas um laudo lido vale mais que um erro.
+      if (!pdf.ehRecusaDePdf(err) || !pdfsEnviados.length) throw err;
+
+      console.warn('API recusou o PDF; tentando extração local de texto.', err.message);
+      const trechos = [];
+      for (const file of pdfsEnviados) {
+        try {
+          const { texto, paginas } = await pdf.extrairTexto(file.buffer);
+          if (texto.length > 40) {
+            trechos.push(`--- Conteúdo extraído de "${file.originalname}" (${paginas} página(s)) ---\n${texto}`);
+          } else {
+            avisos.push({
+              arquivo: file.originalname,
+              motivo: `"${file.originalname}" não tem texto selecionável.`,
+              comoResolver: 'O PDF parece ser uma imagem digitalizada que a leitura automática não conseguiu abrir. Tire uma foto ou print da página do laudo e anexe como imagem.',
+            });
+          }
+        } catch (e) {
+          avisos.push({
+            arquivo: file.originalname,
+            motivo: `Não consegui abrir "${file.originalname}".`,
+            comoResolver: 'Tire uma foto ou print do laudo e anexe como imagem, ou reimprima o PDF a partir do sistema de origem.',
+          });
+        }
+      }
+
+      const semPdf = content.filter((b) => b.type !== 'document');
+      if (!trechos.length && !semPdf.length && !text) {
+        return res.status(422).json({
+          error: `${avisos[0].motivo} ${avisos[0].comoResolver}`,
+          avisos,
+        });
+      }
+      if (trechos.length) {
+        avisos.push({
+          arquivo: pdfsEnviados.map((f) => f.originalname).join(', '),
+          motivo: 'O PDF não pôde ser lido no formato original.',
+          comoResolver: 'O texto foi extraído e usado assim mesmo — confira os campos com atenção extra, porque tabelas e imagens do laudo podem ter se perdido.',
+          recuperado: true,
+        });
+      }
+      response = await chamar(semPdf, trechos.join('\n\n'));
+    }
 
     const textBlock = response.content.find((b) => b.type === 'text');
     if (!textBlock) {
-      return res.status(502).json({ error: 'A extração não retornou texto estruturado.' });
+      return res.status(502).json({ error: 'A leitura não retornou um caso estruturado. Tente novamente.' });
     }
 
     // O modelo responde com chave namespaced por tumor
     // ("prostata__extensao_doenca"). Aqui isso vira o objeto simples que o
     // navegador consome, já filtrado para o subtipo identificado.
     const extracted = TUMORS.unscope(JSON.parse(textBlock.text));
-    res.json({ extracted, usage: response.usage });
+    res.json({ extracted, avisos, usage: response.usage });
   } catch (err) {
+    // O detalhe técnico fica no servidor. O médico recebe uma frase que diz o
+    // que houve e o que fazer - nunca o JSON cru da API, que além de não
+    // ajudar ainda quebrava o layout por ser uma linha sem espaços.
     console.error('Erro na extração:', err);
-    res.status(500).json({ error: err.message || 'Erro interno na extração.' });
+    const status = err && err.status;
+    const mensagem =
+      status === 429 ? 'A leitura está com muitas solicitações no momento. Tente de novo em alguns segundos.'
+      : status === 401 || status === 403 ? 'A chave de acesso à leitura automática está inválida ou sem crédito. Verifique a configuração do serviço.'
+      : status === 413 ? 'O material anexado é grande demais. Anexe menos páginas ou apenas a parte relevante do laudo.'
+      : pdf.ehRecusaDePdf(err) ? 'Não consegui abrir o PDF anexado. Tire uma foto ou print do laudo e anexe como imagem.'
+      : 'Não consegui ler o caso agora. Tente novamente em instantes — se persistir, anexe o laudo como foto.';
+    res.status(status && status < 500 ? 422 : 500).json({ error: mensagem });
   }
 });
 
