@@ -919,3 +919,94 @@ Cobertura em `test/pdf.test.js`: 0 byte, conteúdo não-PDF, tamanho, PDF
 protegido, lixo antes do cabeçalho, extração local de texto, e a garantia de
 que nenhum bloqueio vaza jargão da API (`base64`, `invalid_request`,
 `request_id`) para a mensagem do médico.
+
+## 24. O caso real que quebrou o anexo: assinatura digital (v1.5)
+
+Um laudo real anexado no celular foi recusado. A investigação mostrou que o
+arquivo **não é um PDF**: os primeiros bytes são `30 83 01 4B` seguidos do OID
+`1.2.840.113549.1.7.2` — é um **envelope PKCS#7/CMS de assinatura digital
+ICP-Brasil**, com o PDF de verdade começando no byte 72 e terminando 76 KB
+depois, seguido do certificado.
+
+A API estava certa em recusar. E a validação que eu tinha escrito estava
+**errada em aprovar**: ela procurava `%PDF-` nos primeiros 1024 bytes para
+tolerar lixo de cabeçalho, e o envelope cabia nessa tolerância.
+
+Isso não é um caso raro. Sistema hospitalar brasileiro assina digitalmente
+laudo e receita por padrão — **todo laudo assinado falharia**.
+
+`desembrulhar()` resolve: quando o arquivo não começa com `%PDF-` mas contém um
+PDF completo adiante, recorta do `%PDF-` até o último `%%EOF` e envia só isso.
+O médico é avisado de que o documento foi desembrulhado, sem precisar fazer
+nada. Um `%PDF-` solto no meio de um arquivo qualquer não dispara o recorte:
+exige-se um bloco mínimo plausível.
+
+## 25. Testes de integração com API simulada (v1.5) — `test/stub-anthropic.js`
+
+O erro de método que deixou passar a colisão de chaves do schema (seção 19) era
+estrutural: a suíte simulava a extração **no navegador** e injetava os valores
+já prontos. Testava tudo menos a fronteira.
+
+`test/stub-anthropic.js` é um servidor HTTP que imita `/v1/messages`. O servidor
+do app sobe apontando `ANTHROPIC_BASE_URL` para ele, e os testes atravessam a
+fronteira de verdade — sem chave, sem custo. O stub registra cada requisição,
+então dá para afirmar **o que o servidor de fato enviou**:
+
+- o PDF chegou desembrulhado (`%PDF-` no primeiro byte);
+- o schema tem um bloco por tumor, e a lista da próstata não vazou para a mama;
+- a segunda tentativa da recuperação não reenvia o documento já recusado;
+- nenhuma mensagem de erro contém jargão da API nem palavra longa o bastante
+  para quebrar o layout.
+
+O stub repete respostas sob demanda porque **o SDK da Anthropic reenvia sozinho
+em 429 e 5xx** — descoberto justamente por um teste que falhava por isso.
+
+Dois bugs reais apareceram na primeira execução:
+
+1. O limiar de 40 caracteres da extração local descartava laudo curto e válido
+   (o texto de teste tinha 39). Baixado para 15, que é o suficiente para
+   separar "PDF com texto" de "PDF que é imagem digitalizada".
+2. A mensagem de erro de 429 nunca chegava ao médico, porque o SDK retentava e
+   a segunda tentativa passava — comportamento correto, mas que escondia o
+   caminho de erro do teste.
+
+## 26. A Gena conversa, não preenche formulário (v1.5)
+
+As instruções anteriores listavam os campos a coletar. O resultado era um
+interrogatório: perguntava o que o médico tinha acabado de dizer com outras
+palavras, e soava como banco de dados com vocabulário clínico.
+
+As novas instruções mudam o eixo de "quais campos coletar" para **como uma
+colega conduz**:
+
+- **Inferir em vez de perguntar** é a regra número um. "Metástase hepática" já
+  responde a extensão. "RE e RP negativos, HER2 negativo" já é triplo-negativo.
+  "Progressão em abiraterona" já é resistente à castração. Repergunta é o que
+  mais faz uma conversa parecer robô.
+- **O que decide cada tumor** vem do registro (`decisivo` + `hint`), então ela
+  pergunta o que muda a resposta e diz quando um dado não muda.
+- **Situações previstas explicitamente**: cumprimento, pergunta sobre a
+  ferramenta, pedido de conduta, tumor fora de escopo, correção de dado no
+  meio, caso completo de uma vez, contexto humano junto do dado clínico, troca
+  de caso, e "roda logo assim mesmo".
+- **Sem lista com marcadores, sem numerar perguntas, sem emoji** — os três
+  vícios que denunciam texto gerado.
+
+`test/gena.test.js` cobre o contrato da rota (sessão, corte de histórico em 24
+mensagens, truncagem em 4000 caracteres, papéis inválidos, teto de saída), a
+extração do marcador `CASO_PRONTO` em todas as posições, e **dez roteiros de
+conversa real** percorridos pela rota de verdade.
+
+## 27. Como rodar os testes
+
+```
+cd server
+npm test              # 139 casos, offline, poucos segundos
+npm run test:navegador # 48 verificações no Chromium (exige o app de pé em :3311)
+```
+
+`npm test` cobre regras clínicas, integridade do schema, tratamento de PDF,
+integração HTTP com a API simulada e o contrato da Gena. Nada depende de chave
+nem de rede. `test:navegador` percorre texto, PDF, imagem, ditado por voz,
+remoção de anexo, Gena, erros e o fluxo até o documento — no viewport de iPhone
+e no desktop.

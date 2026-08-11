@@ -13,6 +13,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const pdf = require('../pdf.js');
+const { criaPdf, ENVELOPE_ASSINATURA } = require('./util-pdf.js');
 
 function anexo(nome, buffer, mimetype = 'application/pdf') {
   return { originalname: nome, mimetype, buffer };
@@ -23,7 +24,7 @@ const PDF_MINIMO = Buffer.from(
 );
 
 test('PDF de 0 bytes é barrado com instrução de iCloud/Drive', () => {
-  const r = pdf.inspecionar(anexo('laudo.pdf', Buffer.alloc(0)));
+  const r = pdf.preparar(anexo('laudo.pdf', Buffer.alloc(0)));
   assert.strictEqual(r.ok, false);
   assert.match(r.motivo, /vazio/i);
   assert.match(r.comoResolver, /iCloud|Drive/i);
@@ -31,7 +32,7 @@ test('PDF de 0 bytes é barrado com instrução de iCloud/Drive', () => {
 
 test('arquivo que não começa como PDF é barrado', () => {
   const html = Buffer.from('<html><body>404 Not Found</body></html>');
-  const r = pdf.inspecionar(anexo('laudo.pdf', html));
+  const r = pdf.preparar(anexo('laudo.pdf', html));
   assert.strictEqual(r.ok, false);
   assert.match(r.motivo, /não é um PDF válido/i);
   assert.match(r.comoResolver, /foto|print/i);
@@ -39,7 +40,7 @@ test('arquivo que não começa como PDF é barrado', () => {
 
 test('PDF acima do limite é barrado antes de virar base64', () => {
   const grande = Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(pdf.MAX_BYTES + 1)]);
-  const r = pdf.inspecionar(anexo('laudo.pdf', grande));
+  const r = pdf.preparar(anexo('laudo.pdf', grande));
   assert.strictEqual(r.ok, false);
   assert.match(r.motivo, /20 MB/);
 });
@@ -50,20 +51,68 @@ test('PDF protegido por senha é reconhecido pelo /Encrypt no trailer', () => {
     Buffer.alloc(200),
     Buffer.from('trailer<< /Encrypt 12 0 R /Root 1 0 R >>\n%%EOF'),
   ]);
-  const r = pdf.inspecionar(anexo('laudo.pdf', protegido));
+  const r = pdf.preparar(anexo('laudo.pdf', protegido));
   assert.strictEqual(r.ok, false);
   assert.strictEqual(r.protegido, true);
   assert.match(r.motivo, /senha|restrição/i);
 });
 
-test('PDF com lixo antes do cabeçalho ainda é aceito', () => {
-  // Alguns geradores colocam bytes antes de "%PDF-". A busca é nos primeiros 1024.
-  const comLixo = Buffer.concat([Buffer.from('\r\n\r\n'), PDF_MINIMO]);
-  assert.strictEqual(pdf.inspecionar(anexo('laudo.pdf', comLixo)).ok, true);
+test('PDF com lixo antes do cabeçalho é recortado e aceito', () => {
+  const comLixo = Buffer.concat([Buffer.from('\r\n\r\n'), criaPdf('laudo de teste')]);
+  const r = pdf.preparar(anexo('laudo.pdf', comLixo));
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.buffer.subarray(0, 5).toString('latin1'), '%PDF-');
+  assert.ok(r.aviso, 'deveria avisar que houve recorte');
+});
+
+// ===================================================================
+// O caso real que motivou tudo isto: laudo emitido por sistema
+// hospitalar brasileiro, assinado digitalmente (ICP-Brasil). O arquivo
+// tem extensão .pdf mas, nos bytes, é um envelope PKCS#7 com o PDF
+// dentro, começando no offset 72. A API recusa - corretamente, porque
+// não é um PDF - e o médico via "The PDF specified was not valid".
+// ===================================================================
+test('PDF dentro de envelope de assinatura digital é desembrulhado', () => {
+  const dentro = criaPdf('RELATORIO ONCOLOGICO adenocarcinoma de prostata');
+  const arquivo = Buffer.concat([ENVELOPE_ASSINATURA, dentro, Buffer.from('\x00\x01certificado-e-assinatura')]);
+
+  // Confere que a fixture reproduz mesmo a estrutura do arquivo real.
+  assert.notStrictEqual(arquivo.subarray(0, 5).toString('latin1'), '%PDF-', 'fixture não reproduz o envelope');
+
+  const r = pdf.preparar(anexo('SOLICITACAO123.pdf', arquivo));
+  assert.strictEqual(r.ok, true, 'o laudo assinado foi barrado');
+  assert.strictEqual(r.buffer.subarray(0, 5).toString('latin1'), '%PDF-');
+  assert.ok(r.buffer.length < arquivo.length, 'o envelope não foi removido');
+  assert.strictEqual(r.buffer.subarray(-5).toString('latin1'), '%%EOF', 'sobrou assinatura no fim');
+  assert.ok(r.aviso && r.aviso.recuperado, 'a recuperação deveria ser comunicada');
+  assert.match(r.aviso.motivo, /assinatura digital/i);
+});
+
+test('o PDF desembrulhado continua legível', async () => {
+  const dentro = criaPdf('carcinoma seroso de ovario estagio IIIC');
+  const arquivo = Buffer.concat([ENVELOPE_ASSINATURA, dentro, Buffer.from('assinatura')]);
+  const r = pdf.preparar(anexo('laudo.pdf', arquivo));
+  const { texto } = await pdf.extrairTexto(r.buffer);
+  assert.match(texto, /carcinoma seroso/i);
+  assert.match(texto, /IIIC/);
+});
+
+test('desembrulhar não mexe em PDF que já começa correto', () => {
+  const normal = criaPdf('laudo normal');
+  const r = pdf.desembrulhar(normal);
+  assert.strictEqual(r.envelope, null);
+  assert.strictEqual(r.buffer.length, normal.length);
+});
+
+test('não recorta quando o suposto PDF interno é pequeno demais para ser real', () => {
+  // "%PDF-" solto no meio de um arquivo qualquer não é um PDF embutido.
+  const falso = Buffer.concat([Buffer.from('lixo qualquer '), Buffer.from('%PDF-1.4 fim')]);
+  const r = pdf.preparar(anexo('x.pdf', falso));
+  assert.strictEqual(r.ok, false, 'recortou um PDF que não existe');
 });
 
 test('PDF válido passa', () => {
-  assert.strictEqual(pdf.inspecionar(anexo('laudo.pdf', PDF_MINIMO)).ok, true);
+  assert.strictEqual(pdf.preparar(anexo('laudo.pdf', PDF_MINIMO)).ok, true);
 });
 
 test('todo bloqueio traz motivo E instrução do que fazer', () => {
@@ -73,7 +122,7 @@ test('todo bloqueio traz motivo E instrução do que fazer', () => {
     Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(200), Buffer.from('trailer<< /Encrypt 1 0 R >>')]),
   ];
   ruins.forEach((buf, i) => {
-    const r = pdf.inspecionar(anexo('laudo.pdf', buf));
+    const r = pdf.preparar(anexo('laudo.pdf', buf));
     assert.strictEqual(r.ok, false, `caso ${i} deveria ser barrado`);
     assert.ok(r.motivo && r.motivo.length > 15, `caso ${i}: motivo ausente`);
     assert.ok(r.comoResolver && r.comoResolver.length > 25, `caso ${i}: sem instrução do que fazer`);
@@ -91,26 +140,8 @@ test('reconhece a recusa de PDF da API, e só ela', () => {
 });
 
 test('extração local devolve o texto do PDF (plano B da recusa da API)', async () => {
-  // PDF montado à mão com um fluxo de texto simples, sem depender de binário externo.
-  const conteudo = 'BT /F1 12 Tf 72 720 Td (carcinoma seroso de ovario estagio IIIC) Tj ET';
-  const objetos = [
-    '1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj',
-    '2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj',
-    '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj',
-    `4 0 obj<</Length ${conteudo.length}>>stream\n${conteudo}\nendstream endobj`,
-    '5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj',
-  ];
-  let corpo = '%PDF-1.4\n';
-  const offsets = [];
-  objetos.forEach((o) => { offsets.push(corpo.length); corpo += o + '\n'; });
-  const inicioXref = corpo.length;
-  corpo += `xref\n0 ${objetos.length + 1}\n0000000000 65535 f \n`;
-  offsets.forEach((off) => { corpo += String(off).padStart(10, '0') + ' 00000 n \n'; });
-  corpo += `trailer<</Size ${objetos.length + 1}/Root 1 0 R>>\nstartxref\n${inicioXref}\n%%EOF`;
-
-  const buffer = Buffer.from(corpo, 'latin1');
-  assert.strictEqual(pdf.inspecionar(anexo('laudo.pdf', buffer)).ok, true);
-
+  const buffer = criaPdf('carcinoma seroso de ovario estagio IIIC');
+  assert.strictEqual(pdf.preparar(anexo('laudo.pdf', buffer)).ok, true);
   const { texto, paginas } = await pdf.extrairTexto(buffer);
   assert.strictEqual(paginas, 1);
   assert.match(texto, /carcinoma seroso/i);
@@ -118,22 +149,9 @@ test('extração local devolve o texto do PDF (plano B da recusa da API)', async
 });
 
 test('extração local não destrói o buffer original', async () => {
-  const conteudo = 'BT /F1 12 Tf 72 720 Td (teste) Tj ET';
-  const objetos = [
-    '1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj',
-    '2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj',
-    '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj',
-    `4 0 obj<</Length ${conteudo.length}>>stream\n${conteudo}\nendstream endobj`,
-    '5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj',
-  ];
-  let corpo = '%PDF-1.4\n';
-  objetos.forEach((o) => { corpo += o + '\n'; });
-  corpo += 'trailer<</Size 6/Root 1 0 R>>\n%%EOF';
-  const buffer = Buffer.from(corpo, 'latin1');
+  const buffer = criaPdf('teste');
   const antes = buffer.length;
-
   try { await pdf.extrairTexto(buffer); } catch (e) { /* o que importa é o buffer */ }
-
   assert.strictEqual(buffer.length, antes, 'o buffer foi consumido');
-  assert.strictEqual(pdf.inspecionar(anexo('laudo.pdf', buffer)).ok, true, 'o buffer ficou inutilizável');
+  assert.strictEqual(pdf.preparar(anexo('laudo.pdf', buffer)).ok, true, 'o buffer ficou inutilizável');
 });

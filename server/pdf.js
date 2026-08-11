@@ -2,37 +2,78 @@
 
 // Tratamento de PDF anexado.
 //
-// Motivo de existir: a API recusa PDFs que ela não consegue abrir e devolve
-// "The PDF specified was not valid" — uma mensagem que não diz ao médico o que
-// fazer e que, se vazar crua para a tela, ainda quebra o layout.
+// Motivo de existir: laudos brasileiros chegam de formas que a API recusa, e a
+// recusa dela ("The PDF specified was not valid") não diz ao médico o que
+// fazer. Pior: o caso mais comum no Brasil não é um arquivo corrompido — é um
+// arquivo perfeitamente bom dentro de um envelope de assinatura digital.
 //
-// Aqui o PDF passa por três estágios:
-//   1. inspecionar()  — checa os bytes antes de gastar chamada: arquivo vazio,
-//                       que não é PDF, protegido por senha, grande demais.
-//   2. envio normal   — se passar, vai como documento para a API (melhor
-//                       qualidade: a API lê layout, tabelas e imagens).
-//   3. extrairTexto() — se mesmo assim a API recusar, o texto é extraído aqui
-//                       e reenviado como texto. Perde o layout, mas um laudo
-//                       lido é infinitamente melhor que um erro na tela.
+// Estágios, nesta ordem:
+//   1. preparar()      — desembrulha o que precisa ser desembrulhado e barra o
+//                        que não tem conserto, ANTES de gastar chamada paga.
+//   2. envio normal    — o PDF vai como documento para a API (melhor
+//                        qualidade: ela lê layout, tabelas e imagens).
+//   3. extrairTexto()  — se mesmo assim a API recusar, o texto é extraído aqui
+//                        e reenviado como texto. Perde o layout, mas um laudo
+//                        lido é infinitamente melhor que um erro na tela.
 
 const MAX_BYTES = 20 * 1024 * 1024;
 const MAX_PAGINAS = 100;
 
-// Todo PDF começa com "%PDF-" nos primeiros bytes. Alguns geradores colocam
-// lixo antes do cabeçalho, então a busca é nos primeiros 1024 bytes.
-function achaCabecalho(buffer) {
-  const inicio = buffer.subarray(0, 1024).toString('latin1');
-  return inicio.indexOf('%PDF-');
+// PKCS#7 / CMS: OID 1.2.840.113549.1.7.2 (signedData). É o envelope usado
+// pela assinatura digital ICP-Brasil quando o sistema de origem gera um
+// arquivo ".pdf" que, nos bytes, é um contêiner de assinatura com o PDF
+// dentro. Muito comum em laudo e receita emitidos por sistema hospitalar.
+const OID_SIGNED_DATA = Buffer.from('2a864886f70d010702', 'hex');
+
+/**
+ * Desembrulha um PDF embutido em outro contêiner.
+ *
+ * Se o arquivo não começa com "%PDF-" mas contém um PDF completo mais adiante,
+ * recorta do "%PDF-" até o último "%%EOF". É o que salva os laudos assinados
+ * digitalmente: o conteúdo é válido, só está dentro de um envelope que a API
+ * não sabe abrir.
+ *
+ * Devolve { buffer, envelope } — envelope é null quando nada foi feito.
+ */
+function desembrulhar(buffer) {
+  if (buffer.subarray(0, 5).toString('latin1') === '%PDF-') {
+    return { buffer, envelope: null };
+  }
+
+  const texto = buffer.toString('latin1');
+  const inicio = texto.indexOf('%PDF-');
+  if (inicio < 0) return { buffer, envelope: null };
+
+  const fimEOF = texto.lastIndexOf('%%EOF');
+  const fim = fimEOF > inicio ? fimEOF + 5 : buffer.length;
+  const dentro = buffer.subarray(inicio, fim);
+  if (dentro.length < 400) return { buffer, envelope: null };
+
+  const assinado = buffer.indexOf(OID_SIGNED_DATA) >= 0 && buffer.indexOf(OID_SIGNED_DATA) < inicio;
+  return {
+    buffer: dentro,
+    envelope: assinado ? 'assinatura-digital' : 'conteudo-extra',
+  };
+}
+
+/** Procura /Encrypt no trailer — PDF protegido por senha ou com restrição. */
+function pareceProtegido(buffer) {
+  const cauda = buffer.subarray(Math.max(0, buffer.length - 8192)).toString('latin1');
+  return /\/Encrypt\b/.test(cauda);
 }
 
 /**
- * Checagem barata, antes de qualquer chamada paga.
- * Devolve { ok: true } ou { ok: false, motivo, comoResolver }.
+ * Checagem e preparo, antes de qualquer chamada paga.
+ *
+ * Devolve:
+ *   { ok: true, buffer, aviso? }              — pronto para enviar
+ *   { ok: false, motivo, comoResolver }       — não tem conserto automático
  */
-function inspecionar(file) {
+function preparar(file) {
   const nome = file.originalname || 'arquivo';
+  const original = file.buffer;
 
-  if (!file.buffer || file.buffer.length === 0) {
+  if (!original || original.length === 0) {
     return {
       ok: false,
       motivo: `"${nome}" chegou vazio (0 bytes).`,
@@ -40,8 +81,8 @@ function inspecionar(file) {
     };
   }
 
-  if (file.buffer.length > MAX_BYTES) {
-    const mb = (file.buffer.length / 1024 / 1024).toFixed(1);
+  if (original.length > MAX_BYTES) {
+    const mb = (original.length / 1024 / 1024).toFixed(1);
     return {
       ok: false,
       motivo: `"${nome}" tem ${mb} MB, acima do limite de 20 MB.`,
@@ -49,7 +90,11 @@ function inspecionar(file) {
     };
   }
 
-  if (achaCabecalho(file.buffer) < 0) {
+  const { buffer, envelope } = desembrulhar(original);
+
+  // Depois de desembrulhar, o cabeçalho tem de estar no começo. Se não estiver,
+  // não é PDF de jeito nenhum — extensão trocada ou download pela metade.
+  if (buffer.subarray(0, 5).toString('latin1') !== '%PDF-') {
     return {
       ok: false,
       motivo: `"${nome}" não é um PDF válido — o conteúdo do arquivo não começa como PDF.`,
@@ -57,10 +102,7 @@ function inspecionar(file) {
     };
   }
 
-  // /Encrypt no trailer indica PDF protegido. A API não abre esses, e a
-  // extração de texto aqui também não vai abrir sem a senha.
-  const cauda = file.buffer.subarray(Math.max(0, file.buffer.length - 4096)).toString('latin1');
-  if (/\/Encrypt\b/.test(cauda)) {
+  if (pareceProtegido(buffer)) {
     return {
       ok: false,
       motivo: `"${nome}" está protegido por senha ou com restrição de cópia.`,
@@ -69,16 +111,32 @@ function inspecionar(file) {
     };
   }
 
-  return { ok: true };
+  const resultado = { ok: true, buffer };
+  if (envelope === 'assinatura-digital') {
+    resultado.aviso = {
+      arquivo: nome,
+      motivo: `"${nome}" veio dentro de um envelope de assinatura digital.`,
+      comoResolver: 'O documento foi desembrulhado e lido normalmente — nenhuma ação necessária.',
+      recuperado: true,
+    };
+  } else if (envelope === 'conteudo-extra') {
+    resultado.aviso = {
+      arquivo: nome,
+      motivo: `"${nome}" tinha conteúdo antes do início do PDF.`,
+      comoResolver: 'A parte válida do documento foi recortada e lida normalmente — confira os campos.',
+      recuperado: true,
+    };
+  }
+  return resultado;
 }
 
 /**
- * Extração de texto local, usada como plano B quando a API recusa o documento.
+ * Extração de texto local, plano B quando a API recusa o documento.
  * Devolve { texto, paginas } ou lança.
  */
 async function extrairTexto(buffer) {
   // O pdf.js usa Math.sumPrecise (proposta recente). Sem ele, cada página
-  // despeja um TypeError no log do servidor. A soma ingênua é suficiente aqui.
+  // despeja um TypeError no log do servidor. A soma ingênua basta aqui.
   if (typeof Math.sumPrecise !== 'function') {
     Math.sumPrecise = (valores) => Array.from(valores).reduce((a, b) => a + b, 0);
   }
@@ -97,4 +155,4 @@ function ehRecusaDePdf(err) {
   return /pdf/i.test(msg) && /not valid|invalid|could not|unable|corrupt/i.test(msg);
 }
 
-module.exports = { inspecionar, extrairTexto, ehRecusaDePdf, MAX_BYTES, MAX_PAGINAS };
+module.exports = { preparar, desembrulhar, extrairTexto, ehRecusaDePdf, MAX_BYTES, MAX_PAGINAS };
