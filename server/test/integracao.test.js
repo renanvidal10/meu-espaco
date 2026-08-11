@@ -558,3 +558,34 @@ test('laudo legitimamente esparso não é confundido com abandono', async () => 
   assert.strictEqual(stub.quantasChamadas(), 1, 'gastou chamada paga num laudo esparso legítimo');
   assert.strictEqual(corpo.extracted.idade, '62');
 });
+
+test('o prompt desambigua ovário de endométrio pelas três pistas que enganam', async () => {
+  // O prompt antigo era parte da causa: a palavra "endometrioide" aparecia na
+  // pista do OVÁRIO e na do endométrio, e "histerectomia" aparecia só no
+  // endométrio embora seja a cirurgia padrão dos dois. O caso de ovário que
+  // falhou contra a API real dizia "SOB + HT" — histerectomia. Ver §33.6.
+  stub.limpar();
+  stub.responderCom({
+    tipo: 'ok',
+    extracao: {
+      tipo_tumor: 'Ginecológico - Ovário',
+      tipo_tumor_justificativa: 'CA de ovário declarado no material.',
+      histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC',
+    },
+  }, 1);
+  await extrair({ texto: 'caso' });
+
+  const prompt = stub.primeira().corpo.system;
+  assert.match(prompt, /salpingo-ooforectomia bilateral/i, 'o prompt não avisa que a cirurgia vale para os dois');
+  assert.match(prompt, /endometrioide.*DE\s*OVÁRIO/is, 'o prompt não avisa que endometrioide existe no ovário');
+  assert.match(prompt, /S[ÍI]TIO DE ORIGEM/i, 'o prompt não diz o que decide o subtipo');
+  assert.match(prompt, /PREVALECE/i, 'o prompt não dá precedência ao sítio declarado');
+
+  // E as pistas por subtipo não podem voltar a se sobrepor.
+  const ovario = TUMORS.get('ovario').detect;
+  const endometrio = TUMORS.get('endometrio').detect;
+  assert.ok(!/histerectomia/i.test(endometrio),
+    'a pista do endométrio voltou a citar histerectomia, que é cirurgia dos dois');
+  assert.match(ovario, /s[íi]tio/i, 'a pista do ovário não ancora no sítio de origem');
+  assert.match(endometrio, /s[íi]tio/i, 'a pista do endométrio não ancora no sítio de origem');
+});

@@ -294,6 +294,30 @@ ${TUMORS.list().map((t) => `   - ${t.label}: ${t.detect}`).join('\n')}
 
 Você NÃO decide qual teste pedir e NÃO dá conduta terapêutica — apenas estrutura o que está no material. A decisão de indicação é do motor de regras da plataforma.
 
+=== DESAMBIGUAÇÃO ENTRE OS DOIS SUBTIPOS GINECOLÓGICOS ===
+
+Ovário e endométrio dividem vocabulário, e é aqui que a identificação erra com
+mais frequência. Três pistas que NÃO decidem o subtipo, porque valem para os
+dois:
+
+- Histerectomia total com salpingo-ooforectomia bilateral (HT + SOB, "SOB+HT",
+  "anexectomia bilateral") é a cirurgia padrão dos DOIS. A cirurgia realizada
+  não diz de onde o tumor veio.
+- A histologia "endometrioide" existe nos DOIS: há carcinoma endometrioide DE
+  OVÁRIO e carcinoma endometrioide DE ENDOMÉTRIO. A histologia sozinha não
+  decide.
+- O estadiamento FIGO é usado nos DOIS.
+
+O que decide é o SÍTIO DE ORIGEM declarado no material:
+- "CA de ovário", "carcinoma de ovário", "massa anexial", "tuba uterina",
+  "peritônio", "implantes peritoneais", CA-125 -> Ginecológico - Ovário.
+- "carcinoma de endométrio", "endometrial", "corpo uterino", "biópsia de
+  endométrio", "curetagem", "histeroscopia", "sangramento pós-menopausa"
+  -> Ginecológico - Endométrio.
+
+Quando o material nomeia o sítio explicitamente, esse nome PREVALECE sobre
+qualquer outra pista, inclusive sobre a cirurgia e a histologia.
+
 === A REGRA MAIS IMPORTANTE ===
 
 Você INTERPRETA, não transcreve. Um dado escrito de forma não-canônica é um dado PRESENTE, e deixá-lo em branco é um erro grave — não é prudência. Só deixe vazio o que realmente não está no material.

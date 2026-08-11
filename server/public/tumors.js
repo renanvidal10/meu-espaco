@@ -372,7 +372,7 @@
     id: 'ovario',
     label: 'Ginecológico - Ovário',
     short: 'Ovário',
-    detect: 'carcinoma de ovário, tuba uterina ou peritônio; menção a estadiamento FIGO, CA-125, histologia serosa/endometrioide/células claras/mucinosa de ovário',
+    detect: 'SÍTIO DE ORIGEM ovário, tuba uterina ou peritônio — "CA de ovário", "massa anexial", "carcinoma seroso de ovário", "tuba uterina", "implantes peritoneais", CA-125. A histologia endometrioide TAMBÉM existe no ovário: o que decide é o sítio, não a histologia.',
     fields: [
       { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Seroso', decisivo: true,
         ai: 'Histologia do tumor de ovário (ex.: "Seroso", "Endometrioide", "Células claras", "Mucinoso", "Carcinossarcoma").' },
@@ -894,7 +894,7 @@
     id: 'endometrio',
     label: 'Ginecológico - Endométrio',
     short: 'Endométrio',
-    detect: 'carcinoma de endométrio ou uterino; menção a endometrioide de útero, seroso uterino, histerectomia, POLE, classificação molecular de endométrio',
+    detect: 'SÍTIO DE ORIGEM endométrio ou corpo uterino — "carcinoma de endométrio", "endometrial", "biópsia/curetagem de endométrio", "histeroscopia", sangramento pós-menopausa, POLE, classificação molecular de endométrio.',
     fields: [
       { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Endometrioide', decisivo: true,
         ai: 'Histologia do carcinoma de endométrio (ex.: "Endometrioide", "Seroso", "Células claras", "Carcinossarcoma").' },

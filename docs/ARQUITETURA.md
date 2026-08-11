@@ -1659,3 +1659,35 @@ pede confirmação antes de seguir. Custo: zero chamada extra.
 O valor está no lado para o qual o erro cai. Se o sinal for ruído, o médico
 confirma um subtipo que já estava certo e perde dois segundos. Se for real,
 ele evita uma triagem inteira rodada sobre o tumor errado.
+
+### 33.6 A causa que estava no nosso próprio prompt
+
+Ao reler as pistas de identificação (`detect`) com o caso que falhou na mão,
+apareceu uma sobreposição que **nós mesmos** tínhamos escrito:
+
+| Pista | Estava em | Problema |
+|---|---|---|
+| `endometrioide` | ovário **e** endométrio | existe carcinoma endometrioide nos dois sítios |
+| `histerectomia` | só endométrio | é a cirurgia padrão dos **dois** |
+| `FIGO` | ambos | não discrimina |
+
+O caso de ovário que falhou começa com **"SOB + HT"** — salpingo-ooforectomia
+bilateral com histerectomia. O prompt associava histerectomia a endométrio, e
+o modelo seguiu a pista que demos a ele. A confusão não era arbitrária: era
+uma instrução ambígua sendo obedecida.
+
+A correção tem duas partes:
+
+1. As duas pistas foram reescritas para ancorar no **sítio de origem**, não em
+   cirurgia nem em histologia.
+2. O prompt ganhou uma seção de desambiguação explícita, que lista as três
+   pistas enganosas, diz por que cada uma vale para os dois, e estabelece que
+   o sítio declarado no material **prevalece** sobre qualquer outra pista.
+
+Um teste trava as duas pontas: verifica que o prompt contém a desambiguação e
+que as pistas por subtipo não voltam a se sobrepor.
+
+**Ainda não medido contra a API real** — o crédito acabou antes. A hipótese é
+que isto reduza a confusão ovário↔endométrio na origem, e as camadas da §33.2
+e §33.5 continuam valendo como rede de proteção independentemente do
+resultado.
