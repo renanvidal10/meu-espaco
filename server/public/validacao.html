@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>OncoGenYX - Validação da leitura clínica</title>
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" content="#0f6b5c" />
+<link rel="icon" href="/icone-192.png" />
+<style>
+  :root {
+    --bg: #eef2f0; --surface: #ffffff; --surface-2: #e4eae7; --border: #cdd7d2;
+    --ink: #1b2420; --ink-muted: #56645d; --ink-faint: #6f7d76;
+    --accent: #0f6b5c; --accent-soft: #dcebe6; --accent-soft-border: #b9d6cc;
+    --ok: #0f6b5c; --ok-soft: #dcebe6;
+    --warn: #93650f; --warn-soft: #f3e9d3;
+    --erro: #a03530; --erro-soft: #f6e2e0;
+    --focus: #0f6b5c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121a17; --surface: #1a2320; --surface-2: #222d29; --border: #33403b;
+      --ink: #e8efec; --ink-muted: #a9b8b2; --ink-faint: #8a9a94;
+      --accent: #55c2a8; --accent-soft: #1d3830; --accent-soft-border: #2c5449;
+      --ok: #55c2a8; --ok-soft: #1d3830;
+      --warn: #dcb256; --warn-soft: #362c17;
+      --erro: #e08a84; --erro-soft: #3a201e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 28px 20px 80px; }
+  h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.015em; }
+  .lede { font-size: 13.5px; color: var(--ink-muted); line-height: 1.55; margin: 0 0 18px; max-width: 68ch; }
+  .aviso {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: var(--warn-soft); border: 1px solid var(--warn);
+    color: var(--warn); border-radius: 10px; padding: 12px 14px;
+    font-size: 12.5px; line-height: 1.5; margin-bottom: 20px;
+  }
+  .barra { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 22px; }
+  button {
+    font-family: inherit; font-size: 13.5px; font-weight: 600;
+    border-radius: 9px; padding: 11px 18px; min-height: 44px;
+    cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button[disabled] { opacity: .55; cursor: not-allowed; }
+  button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  a { color: var(--accent); font-size: 13px; }
+
+  .placar {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    font-size: 12.5px; margin-left: auto;
+  }
+  .selo {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 100px; padding: 4px 12px; font-weight: 700; font-size: 12px;
+  }
+  .selo.ok { background: var(--ok-soft); color: var(--ok); }
+  .selo.erro { background: var(--erro-soft); color: var(--erro); }
+  .selo.neutro { background: var(--surface-2); color: var(--ink-muted); }
+
+  .caso {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
+  }
+  .caso.falhou { border-left: 3px solid var(--erro); }
+  .caso.passou { border-left: 3px solid var(--ok); }
+  .caso.rodando { opacity: .6; }
+  .caso h3 { font-size: 13.5px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .texto {
+    font-size: 12.5px; color: var(--ink-muted); font-style: italic;
+    margin: 0 0 10px; line-height: 1.5;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th {
+    text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-faint); font-weight: 700; padding: 4px 8px 4px 0; border-bottom: 1px solid var(--border);
+  }
+  td { padding: 6px 8px 6px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.campo { color: var(--ink-muted); white-space: nowrap; }
+  td.valor { font-weight: 600; }
+  td.valor.divergiu { color: var(--erro); }
+  td.valor.vazio { color: var(--ink-faint); font-weight: 400; font-style: italic; }
+  .marca { width: 22px; }
+  .erro-box {
+    background: var(--erro-soft); border: 1px solid var(--erro); color: var(--erro);
+    border-radius: 10px; padding: 12px 14px; font-size: 12.5px; line-height: 1.5; margin-bottom: 16px;
+  }
+  .resumo-final {
+    margin-top: 22px; padding: 16px; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--border); font-size: 13px; line-height: 1.6;
+  }
+  .resumo-final strong { display: block; margin-bottom: 6px; font-size: 14px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+  @media (max-width: 560px) {
+    main { padding: 20px 14px 70px; }
+    .placar { margin-left: 0; width: 100%; }
+    table, tbody, tr, td, th { display: block; }
+    thead { display: none; }
+    td { border: none; padding: 2px 0; }
+    .caso tr { border-bottom: 1px solid var(--border); padding: 8px 0; display: block; }
+    .caso tr:last-child { border-bottom: none; }
+  }
+</style>
+</head>
+
+<body>
+<main>
+  <h1>Validação da leitura clínica</h1>
+  <p class="lede">
+    Roda uma bateria de textos reais pelo motor de extração de verdade — a mesma
+    chamada que o passo 1 faz — e compara o que voltou com o que deveria ter
+    voltado. Serve para verificar se a IA está interpretando a escrita do médico,
+    que é a única parte do sistema que não dá para testar sem chamar a API.
+  </p>
+
+  <div class="aviso">
+    <span aria-hidden="true">⚠</span>
+    <span>
+      Cada execução faz uma chamada paga por caso. A bateria completa são
+      <strong id="total-casos">-</strong> chamadas de texto curto. Rode quando quiser
+      conferir, não em loop.
+    </span>
+  </div>
+
+  <div class="barra">
+    <button class="primary" type="button" id="btn-rodar" onclick="rodarTudo()">Rodar validação</button>
+    <button type="button" id="btn-copiar" onclick="copiarResultado()" disabled>Copiar resultado</button>
+    <a href="/">← Voltar ao app</a>
+    <span class="placar" id="placar"></span>
+  </div>
+
+  <div id="erro-geral"></div>
+  <div id="resultados"></div>
+  <div id="resumo"></div>
+</main>
+
+<script src="/tumors.js"></script>
+<script>
+  // Cada caso é um texto como um médico escreveria, com o que a extração
+  // precisa devolver. Só campos que o texto realmente contém entram em
+  // "espera" — o resto não é cobrado.
+  const CASOS = [
+    {
+      nome: 'Ovário — estágio em arábico e histologia com erro de digitação',
+      texto: 'Câncer de ovário estágio 4, endometeioide. Paciente de 86 anos',
+      espera: { tipo_tumor: 'Ginecológico - Ovário', histologia: /endometri/i, estadiamento: /^IV/i, idade: /86/ },
+    },
+    {
+      nome: 'Ovário — laudo com grau e FIGO por extenso',
+      texto: 'Mulher de 61 anos, carcinoma seroso de alto grau de ovário, estadiamento FIGO IIIC, mãe com câncer de mama aos 58 anos, sem teste genético prévio.',
+      espera: { tipo_tumor: 'Ginecológico - Ovário', histologia: /seroso/i, grau: /alto/i, estadiamento: /^IIIC/i, idade: /61/, historico_familiar: /mama/i },
+    },
+    {
+      nome: 'Ovário — grau em escala numérica (G3) e estágio 3C',
+      texto: 'Pcte 58a, CA de ovário, AP: carcinoma seroso G3, estadiamento 3C após citorredução.',
+      espera: { tipo_tumor: 'Ginecológico - Ovário', histologia: /seroso/i, grau: /alto/i, estadiamento: /^III/i, idade: /58/ },
+    },
+    {
+      nome: 'Próstata — mCRPC inferido pelo contexto (progressão em enzalutamida)',
+      texto: 'Homem 72 anos, adenocarcinoma de próstata Gleason 4+5=9, PSA 225, metástases ósseas múltiplas, progressão de PSA em uso de enzalutamida.',
+      espera: { tipo_tumor: 'Próstata', extensao_doenca: /castra|mCRPC/i, gleason_grade_group: /4\+5|9/, psa: /225/, idade: /72/ },
+    },
+    {
+      nome: 'Próstata — mHSPC inferido (início de bloqueio hormonal)',
+      texto: 'Paciente 66a com adenocarcinoma de próstata, metástase óssea única, iniciando bloqueio hormonal pela primeira vez.',
+      espera: { tipo_tumor: 'Próstata', extensao_doenca: /horm[oô]nio|mHSPC/i, idade: /66/ },
+    },
+    {
+      nome: 'Próstata — localizado com categoria de risco inferida',
+      texto: 'Homem de 64 anos, adenocarcinoma acinar de próstata cT2a, Gleason 3+3=6, PSA 5,8, sem metástases.',
+      espera: { tipo_tumor: 'Próstata', extensao_doenca: /localizado/i, psa: /5[.,]8/, idade: /64/ },
+    },
+    {
+      nome: 'Mama — triplo-negativo por imuno-histoquímica descrita',
+      texto: 'Mulher 44 anos, carcinoma ductal invasivo de mama, RE negativo, RP negativo, HER2 negativo, tumor operável. Irmã com câncer de mama aos 41.',
+      espera: { tipo_tumor: 'Mama', subtipo_molecular: /triplo/i, extensao_doenca: /inicial|oper/i, idade: /44/, historico_familiar: /irm/i },
+    },
+    {
+      nome: 'Mama — luminal metastático',
+      texto: 'Paciente de 62 anos, carcinoma lobular invasivo de mama RE+ RP+ HER2 negativo, doença metastática hepática.',
+      espera: { tipo_tumor: 'Mama', subtipo_molecular: /luminal/i, extensao_doenca: /metast/i, idade: /62/ },
+    },
+    {
+      nome: 'Pâncreas — adenocarcinoma ductal metastático',
+      texto: 'Homem 59a, adenocarcinoma ductal de cabeça de pâncreas, metástases hepáticas, iniciando FOLFIRINOX.',
+      espera: { tipo_tumor: 'Pâncreas', histologia: /ductal/i, extensao_doenca: /metast/i, platina: /uso|respond/i, idade: /59/ },
+    },
+    {
+      nome: 'Colorretal — dMMR com jargão de laudo',
+      texto: 'Pcte 55 anos, adenocarcinoma de sigmoide, IHQ com perda de MLH1 e PMS2 (dMMR), metástases hepáticas ao diagnóstico. Tio materno com CA de cólon aos 47.',
+      espera: { tipo_tumor: 'Colorretal', mmr_msi: /dMMR|MSI/i, extensao_doenca: /metast/i, idade: /55/, historico_familiar: /c[oó]lon/i },
+    },
+    {
+      nome: 'Endométrio — estágio em arábico',
+      texto: 'Mulher 67 anos, carcinoma endometrioide de endométrio, estadiamento 1A após histerectomia, MMR ainda não pesquisado.',
+      espera: { tipo_tumor: 'Ginecológico - Endométrio', histologia: /endometri/i, estadiamento: /^I/i, idade: /67/ },
+    },
+    {
+      nome: 'Pulmão — adenocarcinoma metastático sem painel prévio',
+      texto: 'Homem de 70 anos, adenocarcinoma de pulmão, estadiamento IV com metástase cerebral, nenhum perfil molecular realizado até agora.',
+      espera: { tipo_tumor: 'Pulmão - não pequenas células', histologia: /adenocarcinoma/i, extensao_doenca: /metast/i, painel_previo: /n[aã]o realizado/i, idade: /70/ },
+    },
+    {
+      nome: 'Pulmão — pequenas células (precisa ser reconhecido como tal)',
+      texto: 'Paciente 63a, carcinoma de pequenas células de pulmão, doença extensa.',
+      espera: { tipo_tumor: 'Pulmão - não pequenas células', histologia: /pequenas c[eé]lulas/i, idade: /63/ },
+    },
+    {
+      nome: 'Material sem tumor identificável — deve recusar, não inventar',
+      texto: 'Paciente comparece para consulta de rotina. Exames laboratoriais dentro da normalidade.',
+      espera: { tipo_tumor: 'Não identificado' },
+    },
+  ];
+
+  document.getElementById('total-casos').textContent = CASOS.length;
+
+  const TOKEN_KEY = 'oncogenyx.session';
+  let ultimoRelatorio = '';
+
+  function esc(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function confere(esperado, veio) {
+    const valor = String(veio == null ? '' : veio).trim();
+    if (esperado instanceof RegExp) return esperado.test(valor);
+    return valor.toLowerCase() === String(esperado).toLowerCase();
+  }
+
+  function descreveEsperado(e) {
+    return e instanceof RegExp ? e.source.replace(/\\\\/g, '') : String(e);
+  }
+
+  async function extrair(texto) {
+    const form = new FormData();
+    form.append('text', texto);
+    const token = localStorage.getItem(TOKEN_KEY) || '';
+    const r = await fetch('/api/extract', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      body: form,
+    });
+    const corpo = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(corpo.error || ('Erro HTTP ' + r.status));
+    return corpo.extracted;
+  }
+
+  function desenhaCaso(caso, indice, estado, extraido, erro) {
+    const el = document.getElementById('caso-' + indice);
+    if (estado === 'rodando') {
+      el.className = 'caso rodando';
+      el.innerHTML = `<h3>${esc(caso.nome)}</h3><p class="texto">"${esc(caso.texto)}"</p><p style="font-size:12.5px;color:var(--ink-muted);margin:0;">Lendo...</p>`;
+      return null;
+    }
+
+    if (erro) {
+      el.className = 'caso falhou';
+      el.innerHTML = `<h3>${esc(caso.nome)} <span class="selo erro">falhou</span></h3>
+        <p class="texto">"${esc(caso.texto)}"</p>
+        <p style="font-size:12.5px;color:var(--erro);margin:0;">${esc(erro)}</p>`;
+      return { ok: 0, total: Object.keys(caso.espera).length, linhas: [`  ERRO: ${erro}`] };
+    }
+
+    const linhas = [];
+    let acertos = 0;
+    const total = Object.keys(caso.espera).length;
+
+    const corpo = Object.entries(caso.espera).map(([campo, esperado]) => {
+      const veio = extraido[campo];
+      const passou = confere(esperado, veio);
+      if (passou) acertos++;
+      linhas.push(`  ${passou ? 'OK ' : 'XX '} ${campo}: esperado ${descreveEsperado(esperado)} | veio "${veio || ''}"`);
+      return `<tr>
+        <td class="marca">${passou ? '✓' : '✗'}</td>
+        <td class="campo">${esc(campo)}</td>
+        <td class="valor ${passou ? '' : 'divergiu'} ${veio ? '' : 'vazio'}">${esc(veio || '(vazio)')}</td>
+        <td class="campo">esperado: ${esc(descreveEsperado(esperado))}</td>
+      </tr>`;
+    }).join('');
+
+    const passouTudo = acertos === total;
+    el.className = 'caso ' + (passouTudo ? 'passou' : 'falhou');
+    el.innerHTML = `
+      <h3>${esc(caso.nome)}
+        <span class="selo ${passouTudo ? 'ok' : 'erro'}">${acertos}/${total}</span>
+      </h3>
+      <p class="texto">"${esc(caso.texto)}"</p>
+      <table>
+        <thead><tr><th></th><th>Campo</th><th>Veio</th><th>Referência</th></tr></thead>
+        <tbody>${corpo}</tbody>
+      </table>`;
+    return { ok: acertos, total, linhas };
+  }
+
+  async function rodarTudo() {
+    const btn = document.getElementById('btn-rodar');
+    btn.disabled = true;
+    btn.textContent = 'Rodando...';
+    document.getElementById('erro-geral').innerHTML = '';
+    document.getElementById('resumo').innerHTML = '';
+    document.getElementById('btn-copiar').disabled = true;
+
+    if (!localStorage.getItem(TOKEN_KEY)) {
+      document.getElementById('erro-geral').innerHTML =
+        '<div class="erro-box">Você não está autenticado. Abra o app, entre com nome e CRM, e volte para esta página.</div>';
+      btn.disabled = false;
+      btn.textContent = 'Rodar validação';
+      return;
+    }
+
+    document.getElementById('resultados').innerHTML =
+      CASOS.map((_, i) => `<div class="caso" id="caso-${i}"></div>`).join('');
+
+    let acertos = 0, total = 0, casosPerfeitos = 0;
+    const relatorio = ['VALIDAÇÃO DA LEITURA CLÍNICA - ' + new Date().toLocaleString('pt-BR'), ''];
+
+    for (let i = 0; i < CASOS.length; i++) {
+      const caso = CASOS[i];
+      desenhaCaso(caso, i, 'rodando');
+      relatorio.push(`[${i + 1}] ${caso.nome}`);
+      relatorio.push(`  texto: ${caso.texto}`);
+      try {
+        const extraido = await extrair(caso.texto);
+        const r = desenhaCaso(caso, i, 'pronto', extraido);
+        acertos += r.ok; total += r.total;
+        if (r.ok === r.total) casosPerfeitos++;
+        relatorio.push(...r.linhas);
+      } catch (e) {
+        const r = desenhaCaso(caso, i, 'pronto', null, e.message);
+        total += r.total;
+        relatorio.push(...r.linhas);
+      }
+      relatorio.push('');
+      document.getElementById('placar').innerHTML =
+        `<span class="selo neutro">${i + 1} de ${CASOS.length}</span>`;
+    }
+
+    const pct = total ? Math.round((acertos / total) * 100) : 0;
+    document.getElementById('placar').innerHTML =
+      `<span class="selo ${pct === 100 ? 'ok' : 'erro'}">${acertos}/${total} campos (${pct}%)</span>` +
+      `<span class="selo neutro">${casosPerfeitos}/${CASOS.length} casos completos</span>`;
+
+    relatorio.unshift(`RESULTADO: ${acertos}/${total} campos corretos (${pct}%), ${casosPerfeitos}/${CASOS.length} casos completos`, '');
+    ultimoRelatorio = relatorio.join('\n');
+
+    document.getElementById('resumo').innerHTML = `
+      <div class="resumo-final">
+        <strong>${acertos} de ${total} campos corretos (${pct}%)</strong>
+        ${pct === 100
+          ? 'A leitura clínica está interpretando todos os casos da bateria.'
+          : 'Os campos marcados com ✗ são os que a leitura errou. Use "Copiar resultado" e envie o texto — é o suficiente para ajustar as instruções do modelo.'}
+      </div>`;
+
+    document.getElementById('btn-copiar').disabled = false;
+    btn.disabled = false;
+    btn.textContent = 'Rodar de novo';
+  }
+
+  async function copiarResultado() {
+    const btn = document.getElementById('btn-copiar');
+    try {
+      await navigator.clipboard.writeText(ultimoRelatorio);
+      btn.textContent = 'Copiado ✓';
+    } catch (e) {
+      // Safari sem permissão de área de transferência: mostra para copiar à mão.
+      const w = window.open('', '_blank');
+      w.document.write('<pre>' + esc(ultimoRelatorio) + '</pre>');
+      btn.textContent = 'Aberto em nova aba';
+    }
+    setTimeout(() => { btn.textContent = 'Copiar resultado'; }, 2500);
+  }
+</script>
+</body>
+</html>

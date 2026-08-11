@@ -840,3 +840,40 @@ Três correções de leitura, todas na tela 1:
   texto viravam um parágrafo que ninguém lê; como chips, é escaneável.
 - **Textos encurtados**: o exemplo dentro do campo de texto tinha três linhas
   e competia com o próprio campo.
+
+## 22. Como validar a leitura clínica (v1.3) — `/validacao.html`
+
+Há exatamente uma parte do sistema que não dá para testar sem gastar crédito:
+a **interpretação do modelo**. Todo o resto — regras, schema, tela, documento —
+é coberto por `npm test`, que roda offline.
+
+O ambiente onde o desenvolvimento acontece não alcança nem `api.anthropic.com`
+(não tem chave) nem o app publicado (bloqueado pela política de rede). Então a
+validação dessa camada precisa rodar de dentro do próprio app publicado, que é
+quem tem a chave.
+
+`/validacao.html` faz isso: uma bateria de textos escritos como um médico
+escreveria, passando pela **mesma** chamada do passo 1, comparando o que voltou
+com o que deveria ter voltado. Sai uma tabela campo a campo e um botão para
+copiar o resultado como texto.
+
+Os casos foram escolhidos para cobrir o que quebra na prática:
+
+| Categoria | Exemplo na bateria |
+|---|---|
+| Estágio em arábico | "câncer de ovário estágio 4" → `IV` |
+| Erro de digitação | "endometeioide" → `Endometrioide` |
+| Grau em escala numérica | "carcinoma seroso G3" → `Alto grau` |
+| Inferência de contexto | "progressão em enzalutamida" → `mCRPC` |
+| Inferência de contexto | "iniciando bloqueio hormonal" → `mHSPC` |
+| IHQ descrita por extenso | "RE neg, RP neg, HER2 neg" → `Triplo-negativo` |
+| Jargão de laudo | "perda de MLH1 e PMS2" → `dMMR / MSI-alto` |
+| Idade solta no texto | "Paciente de 86 anos" → `86` |
+| Recusa correta | consulta de rotina → `Não identificado` |
+
+**Custo**: uma chamada por caso, textos curtos. Não é para rodar em loop —
+é para rodar depois de mexer no prompt de extração ou no registro de campos.
+
+**Quando falhar**: o botão "Copiar resultado" gera um texto com o caso, o que
+era esperado e o que veio. Esse texto é o suficiente para ajustar as instruções
+do modelo sem adivinhação.
