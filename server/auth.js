@@ -123,7 +123,13 @@ function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
+// O domínio sintético do modo simples (crm-123456-sp@acesso.oncogenyx) não
+// pode ser aceito como email de cadastro: alguém se registraria com ele no
+// modo completo e assumiria a conta daquele CRM.
+const DOMINIO_INTERNO = '@acesso.oncogenyx';
+
 function isValidEmail(email) {
+  if (String(email).toLowerCase().endsWith(DOMINIO_INTERNO)) return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 }
 

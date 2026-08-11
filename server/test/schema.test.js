@@ -330,6 +330,38 @@ test('estados possíveis são só os que a tela sabe desenhar', () => {
   });
 });
 
+// Trava dos dois incidentes de curadoria: GSK entrou no card de próstata (o
+// programa é de ovário) e "Cuidar Mais - PAF" da Pfizer entrou em próstata e
+// pulmão (PAF é Polineuropatia Amiloidótica Familiar, não oncologia).
+test('todo programa exibido tem cobertura verificada para aquele tumor', () => {
+  TUMORS.list().forEach((tumor) => {
+    // Varre todas as combinações de valores fechados para alcançar todos os
+    // testes que aquele tumor pode indicar.
+    const comLista = tumor.fields.filter((f) => f.options);
+    const combinacoes = comLista.reduce(
+      (acc, campo) => acc.flatMap((base) => [...campo.options, ''].map((v) => ({ ...base, [campo.key]: v }))),
+      [{}],
+    );
+
+    combinacoes.forEach((valores) => {
+      const completo = { ...valores };
+      tumor.fields.forEach((f) => { if (!(f.key in completo)) completo[f.key] = f.options ? '' : 'Adenocarcinoma'; });
+      const r = tumor.classify(completo);
+      (r.tests || []).forEach((teste) => {
+        teste.programs.forEach((p) => {
+          if (p.cobertura === null) return; // "a mapear" vale para qualquer tumor
+          assert.ok(
+            Array.isArray(p.cobertura) && p.cobertura.includes(tumor.id),
+            `"${p.name}" aparece em ${tumor.id}/${teste.id} sem cobertura verificada para esse tumor`,
+          );
+          assert.ok(p.verificadoEm, `"${p.name}": sem data de verificação`);
+          assert.ok(p.fonte, `"${p.name}": sem fonte da verificação`);
+        });
+      });
+    });
+  });
+});
+
 test('todo programa de acesso tem nome e observação; url quando existe é http(s)', () => {
   TUMORS.list().forEach((tumor) => {
     const v = {};

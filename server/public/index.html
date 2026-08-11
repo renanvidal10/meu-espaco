@@ -1498,7 +1498,7 @@
         </li>
         <li>
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-          <span>Caso pseudonimizado por padrão, conforme a LGPD</span>
+          <span>Nenhum dado de paciente é armazenado — o caso vive só na sua sessão</span>
         </li>
       </ul>
       <p class="gate-aside-foot">Uso restrito a profissionais de saúde habilitados.</p>
@@ -1751,7 +1751,7 @@
       <div class="btn-row">
         <button class="ghost" type="button" onclick="clearIntake()">Limpar tudo</button>
         <button class="primary" type="button" id="btn-extract" onclick="runExtraction()">Estruturar caso →</button>
-        <span class="note">Nenhum dado de identificação é enviado a modelos externos</span>
+        <span class="note">O material é lido por um modelo de IA externo. <button type="button" class="linklike" onclick="abrirPrivacidade()">Como seus dados são tratados</button></span>
       </div>
     </div>
 
@@ -1760,7 +1760,7 @@
   <!-- SCREEN 2 - REVISÃO -->
   <section class="screen" id="screen-1">
     <div class="case-banner">
-      <span>Identificação removida automaticamente</span>
+      <span>Caso identificado por código — nada é salvo no servidor</span>
       <span class="code lock"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Caso <span class="mono" id="case-code-1">-</span></span>
     </div>
 
@@ -1853,7 +1853,7 @@
     </div>
     <div class="reident-note">
       <span class="reident-icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-      <span class="reident-text">O nome só é usado para preencher estes documentos, agora, no seu navegador. Ele não entra no motor de triagem, não fica salvo no histórico de casos (que continua identificado só por <span class="mono" id="case-code-3">-</span>) e não sai desta tela. Quando identificável em um PDF/foto anexado, ele já vem preenchido - confira e corrija se preciso.</span>
+      <span class="reident-text">O nome preenche apenas estes documentos, aqui no seu navegador. Ele não entra no motor de triagem e não é gravado em nenhum servidor — o caso é identificado só por <span class="mono" id="case-code-3">-</span>. Quando o nome está escrito no material anexado, vem preenchido daí; confira e corrija se preciso.</span>
     </div>
 
     <div id="programs-dynamic"></div>
@@ -1869,6 +1869,43 @@
   </section>
 
 </main>
+
+<!-- ===================== PRIVACIDADE ===================== -->
+<div class="modal-fundo" id="privacidade" role="dialog" aria-modal="true" aria-labelledby="pv-titulo">
+  <div class="modal">
+    <h2 id="pv-titulo">Como seus dados são tratados</h2>
+    <p class="modal-sub">Sem meias palavras, para você decidir o que anexa.</p>
+
+    <div class="modal-passos">
+      <div class="modal-passo">
+        <span class="n">1</span>
+        <div>
+          <strong>O material vai inteiro para um modelo de IA</strong>
+          <span>O texto que você digita e o PDF ou foto que anexa são enviados à Anthropic, nos Estados Unidos, para a leitura automática. Se o laudo contiver nome, CPF ou prontuário, esses dados vão junto — a plataforma não os remove.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">2</span>
+        <div>
+          <strong>Nada de paciente é gravado aqui</strong>
+          <span>O servidor guarda apenas sua conta e sua sessão. O caso, os arquivos e o resultado existem só na memória do seu navegador e desaparecem ao fechar a aba. Não há histórico de casos.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">3</span>
+        <div>
+          <strong>Você é o responsável pelo dado do paciente</strong>
+          <span>Perante a LGPD, o controlador é você. Anexe apenas material que possa ser compartilhado com um operador externo, ou tarje a identificação antes de anexar.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button class="primary" type="button" id="pv-fechar" onclick="fecharPrivacidade()">Entendi</button>
+    </div>
+    <p class="modal-nota">Ferramenta de apoio à decisão clínica. Não substitui julgamento médico, laudo laboratorial ou aconselhamento genético.</p>
+  </div>
+</div>
 
 <!-- ===================== BOAS-VINDAS ===================== -->
 <div class="modal-fundo" id="boas-vindas" role="dialog" aria-modal="true" aria-labelledby="bv-titulo">
@@ -1903,7 +1940,7 @@
     <div class="modal-rodape">
       <button class="primary" type="button" id="bv-comecar" onclick="fecharBoasVindas()">Começar</button>
     </div>
-    <p class="modal-nota">A Gena, no canto da tela, reúne o caso conversando se você preferir. Ferramenta de apoio à decisão: não substitui julgamento médico.</p>
+    <p class="modal-nota">A Gena, no canto da tela, reúne o caso conversando se você preferir. Ferramenta de apoio à decisão: não substitui julgamento médico. <button type="button" class="linklike" onclick="fecharBoasVindas(); abrirPrivacidade();">Como seus dados são tratados</button></p>
   </div>
 </div>
 
@@ -2303,6 +2340,30 @@
     }
   });
 
+  // Privacidade: aberto pelo link do passo 1 e pelo modal de boas-vindas.
+  // Sempre disponível — não é aviso que aparece uma vez e some.
+  let focoAntesDaPrivacidade = null;
+
+  function abrirPrivacidade() {
+    focoAntesDaPrivacidade = document.activeElement;
+    document.getElementById('privacidade').classList.add('aberto');
+    setTimeout(() => document.getElementById('pv-fechar').focus(), 60);
+  }
+
+  function fecharPrivacidade() {
+    document.getElementById('privacidade').classList.remove('aberto');
+    if (focoAntesDaPrivacidade && focoAntesDaPrivacidade.focus) focoAntesDaPrivacidade.focus();
+  }
+
+  document.getElementById('privacidade').addEventListener('click', (e) => {
+    if (e.target.id === 'privacidade') fecharPrivacidade();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('privacidade').classList.contains('aberto')) {
+      fecharPrivacidade();
+    }
+  });
+
   function talvezMostrarBoasVindas() {
     let visto = false;
     try { visto = localStorage.getItem(BOAS_VINDAS_KEY) === '1'; } catch (e) { visto = false; }
@@ -2364,7 +2425,12 @@
         // Valor extraído que não bate exatamente com a lista vira opção
         // própria em vez de sumir - melhor mostrar o que a IA leu.
         if (value && !field.options.includes(value)) {
-          input.insertAdjacentHTML('beforeend', `<option value="${value}">${value}</option>`);
+          // API de DOM em vez de HTML: o valor vem da saída do modelo e
+          // interpolado cru permitia injetar atributo no <option>.
+          const extra = document.createElement('option');
+          extra.value = value;
+          extra.textContent = value;
+          input.appendChild(extra);
         }
       } else {
         input = document.createElement('input');
@@ -2467,8 +2533,12 @@
   function renderSources() {
     const sourcesGrid = document.getElementById('sources-grid');
     const sources = currentSources();
+    // esc() obrigatório: `title` carrega o NOME DO ARQUIVO anexado, escolhido
+    // por quem enviou o laudo ao médico. Sem escape, um nome como
+    // laudo<img src=x onerror=...> executa script na origem do app e lê o
+    // token de sessão do localStorage.
     sourcesGrid.innerHTML = (sources.length ? sources : ['Nenhuma fonte informada ainda'])
-      .map((title) => `<div class="field"><label>Origem</label><div class="value">${title}</div></div>`)
+      .map((title) => `<div class="field"><label>Origem</label><div class="value">${esc(title)}</div></div>`)
       .join('');
   }
 
@@ -2647,8 +2717,25 @@
   function isPdfFile(f) {
     return f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
   }
+  // Só os formatos que a leitura automática abre. HEIC/HEIF (padrão do iPhone),
+  // BMP e TIFF são reconhecidos como imagem para dar uma mensagem útil, mas o
+  // servidor os barra antes de gastar chamada.
+  const IMAGENS_SUPORTADAS = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
   function isImageFile(f) {
-    return f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|heic|heif|bmp|tiff?)$/i.test(f.name);
+    return IMAGENS_SUPORTADAS.includes(f.type)
+      || /\.(png|jpe?g|gif|webp|heic|heif|bmp|tiff?)$/i.test(f.name);
+  }
+
+  function formatoNaoSuportado(f) {
+    const ehHeic = /heic|heif/i.test(f.type) || /\.(heic|heif)$/i.test(f.name);
+    if (ehHeic) {
+      return `"${f.name}" está em HEIC, o formato padrão de foto do iPhone, que a leitura automática não abre. Abra a foto, toque em Compartilhar e escolha "Copiar foto" — a cópia sai em JPEG. Ou anexe um print da tela.`;
+    }
+    if (/\.(bmp|tiff?)$/i.test(f.name)) {
+      return `"${f.name}" está num formato que a leitura automática não abre. Converta para JPEG ou PNG, ou anexe um print da tela.`;
+    }
+    return null;
   }
 
   const LIMITE_ARQUIVO = 20 * 1024 * 1024;
@@ -2657,6 +2744,8 @@
   // (típico de arquivo que ainda está no iCloud e não foi baixado) só daria
   // erro depois da chamada paga - e com uma mensagem que não ajuda em nada.
   function problemaNoArquivo(f) {
+    const formato = formatoNaoSuportado(f);
+    if (formato) return formato;
     if (f.size === 0) {
       return `"${f.name}" está vazio (0 bytes). Costuma ser arquivo que ainda está no iCloud/Drive: abra-o uma vez no aparelho para baixar e anexe de novo.`;
     }
@@ -3209,7 +3298,10 @@
       list.innerHTML = '';
       const row = document.createElement('div');
       row.className = 'plaud-item';
-      row.innerHTML = `<span class="d">${err.message}</span>`;
+      const span = document.createElement('span');
+      span.className = 'd';
+      span.textContent = err.message;
+      row.appendChild(span);
       list.appendChild(row);
       if (/expirou/i.test(err.message)) refreshPlaudStatus();
     }

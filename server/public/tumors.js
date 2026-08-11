@@ -53,20 +53,43 @@
    * ------------------------------------------------------------------ */
   const ROMANOS = { i: 1, ii: 2, iii: 3, iv: 4 };
 
-  // Devolve o número do estádio (1 a 4) ou null. Aceita romano e arábico,
-  // com ou sem subletra, com ou sem a palavra "estágio/estadiamento/FIGO/EC".
+  // Estádio em token: romano ou arábico, com subletra, com sub-subdivisão
+  // numérica (IIIA1, IIIC2, IC3) e com o sufixo molecular do FIGO 2023 de
+  // endométrio (IAmPOLEmut, IICmp53abn).
+  const TOKEN_ROMANO = /^(iv|iii|ii|i)([abc]\d?)?(m[a-z0-9]*)?$/;
+  const TOKEN_ARABICO = /^([1-4])([abc]\d?)?(m[a-z0-9]*)?$/;
+
+  /**
+   * Número do estádio (1 a 4), ou null.
+   *
+   * Lê TOKEN A TOKEN, e devolve o primeiro que tem forma de estádio. Ler token
+   * a token é o que evita o erro que existiu aqui: uma busca por \bi\b em
+   * "IIIA1(i)" encontrava o "i" entre parênteses e devolvia estádio 1 para uma
+   * doença estádio III — falso negativo em cima do critério do teste tumoral.
+   */
   function estadioNumero(value) {
-    const v = norm(value)
-      .replace(/\b(estadio|estadiamento|estagio|figo|ec|stage)\b/g, ' ')
-      .replace(/[^a-z0-9]/g, ' ')
+    const limpo = norm(value)
+      .replace(/\b(estadio|estadiamento|estagio|figo|ec|stage|clinico|patologico|p|c)\b/g, ' ')
       .trim();
-    if (!v) return null;
-    const romano = v.match(/\b(iv|iii|ii|i)\b/) || v.match(/^(iv|iii|ii|i)[abc]?\b/);
-    if (romano) return ROMANOS[romano[1]];
-    const arabico = v.match(/\b([1-4])\b/) || v.match(/^([1-4])[abc]?\b/);
-    if (arabico) return parseInt(arabico[1], 10);
+    if (!limpo) return null;
+
+    const tokens = limpo.split(/[^a-z0-9]+/).filter(Boolean);
+    for (const token of tokens) {
+      const romano = token.match(TOKEN_ROMANO);
+      if (romano) return ROMANOS[romano[1]];
+      const arabico = token.match(TOKEN_ARABICO);
+      if (arabico) return parseInt(arabico[1], 10);
+    }
     return null;
   }
+
+  // Estádio preenchido mas em notação que não sabemos ler. Diferente de vazio:
+  // aqui existe informação, só não conseguimos interpretá-la — e o texto do
+  // resultado não pode dizer "não informado".
+  function estadioIlegivel(value) {
+    return filled(value) && estadioNumero(value) === null;
+  }
+
   function estadioAvancado(value) {
     const n = estadioNumero(value);
     return n !== null && n >= 3;
@@ -97,30 +120,100 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * Texto do diagnóstico impresso.
+   *
+   * Vai dentro de um documento que o médico assina, então não pode sair com
+   * espaço duplo, prefixo duplicado ("Carcinoma Carcinoma seroso"), sítio
+   * duplicado ("de tuba uterina de ovário"), órgão ausente, nem travessão
+   * solto quando a histologia está vazia.
+   * ------------------------------------------------------------------ */
+  const SITIOS = [
+    'ovario', 'tuba uterina', 'tubaria', 'peritonio', 'peritoneal',
+    'prostata', 'mama', 'mamario', 'pancreas', 'pancreatico',
+    'colon', 'colorretal', 'reto', 'retal', 'sigmoide', 'ceco',
+    'endometrio', 'uterino', 'utero', 'pulmao', 'pulmonar', 'bronquio',
+  ];
+  const PREFIXOS_GENERICOS = /^(adenocarcinoma|carcinoma|tumor|neoplasia|sarcoma)\b\s*/i;
+
+  function limpar(texto) {
+    return String(texto == null ? '' : texto).replace(/\s+/g, ' ').trim();
+  }
+
+  /**
+   * @param histologia  o que o médico escreveu (pode vir com prefixo e sítio)
+   * @param orgao       o órgão deste tumor, para completar quando faltar
+   * @param padrao      texto usado quando a histologia está vazia
+   */
+  function montaDx(histologia, orgao, padrao) {
+    const bruto = limpar(histologia);
+    if (!filled(bruto)) return padrao;
+
+    const casa = bruto.match(PREFIXOS_GENERICOS);
+    const prefixo = casa ? limpar(casa[1]) : 'Carcinoma';
+    const resto = casa ? limpar(bruto.slice(casa[0].length)) : bruto;
+    const cabeca = resto ? `${prefixo} ${resto}` : prefixo;
+
+    // Se a histologia já nomeia um sítio, acrescentar o órgão duplicaria.
+    const jaTemSitio = SITIOS.some((sitio) => has(bruto, sitio));
+    return jaTemSitio ? cabeca : `${cabeca} de ${orgao}`;
+  }
+
+  // Junta as partes do diagnóstico descartando vazio e normalizando espaço.
+  function juntarDx(partes) {
+    return partes.map(limpar).filter(Boolean).join(', ');
+  }
+
+  /* ------------------------------------------------------------------ *
    * Programas de acesso — curadoria manual, nunca gerada por IA.
    * Reaproveitados entre tumores quando o parceiro de fato cobre aquele
    * tumor; nunca por analogia (foi assim que a GSK entrou por engano no
    * card de próstata na v0.6).
    * ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------ *
+   * Programas de acesso — curadoria manual, com cobertura declarada.
+   *
+   * `cobertura` lista os IDs de tumor para os quais o programa foi
+   * VERIFICADO. O teste "todo programa exibido cobre aquele tumor" quebra a
+   * suíte se um programa aparecer fora da sua cobertura, o que torna
+   * impossível repetir por analogia os dois incidentes que já aconteceram:
+   *   - GSK entrou no card de próstata (o programa é de ovário);
+   *   - "Cuidar Mais - PAF" da Pfizer entrou em próstata e pulmão — PAF é
+   *     Polineuropatia Amiloidótica Familiar, amiloidose hereditária, não
+   *     oncologia. O link levava o urologista a uma página de neurologia.
+   *
+   * Sem verificação documentada, o teste usa A_MAPEAR. Card honesto vale
+   * mais que card errado.
+   * ------------------------------------------------------------------ */
   const PROGRAMA_ID = {
     name: 'ProgramAID (AstraZeneca)',
     note: 'Teste gratuito em tecido tumoral. Se o resultado vier inconclusivo, permite reteste por biópsia líquida sem custo.',
     url: 'https://programaid.com.br/',
+    cobertura: ['ovario', 'prostata', 'mama', 'pulmao'],
+    verificadoEm: '2026-08-11',
+    fonte: 'programaid.com.br/exames — mama, pulmão, ovário, próstata e LLC',
   };
   const PROGRAMA_PFIZER = {
-    name: 'Cuidar Mais - PAF (Pfizer)',
-    note: 'Programa de apoio diagnóstico. Confirmar critérios vigentes.',
-    url: 'https://www.cuidarmaispfizer.com.br/paf-1',
+    name: 'Programa de apoio diagnóstico (Pfizer)',
+    note: 'Existe apoio diagnóstico ligado à terapia com inibidor de PARP em próstata. Portal oficial a confirmar — consulte o representante antes de encaminhar.',
+    url: null,
+    cobertura: ['prostata'],
+    verificadoEm: '2026-08-11',
+    fonte: 'Programa vinculado a talazoparibe + enzalutamida (HRR). URL anterior (/paf-1) removida: era do programa de Polineuropatia Amiloidótica Familiar.',
   };
   const LIFE_GENOMICS = {
     name: 'Life Genomics',
-    note: 'Laboratório parceiro. Confirmar critérios vigentes.',
+    note: 'Laboratório de oncogenética, não é programa gratuito. Confirmar cobertura e valores.',
     url: 'https://lifegenomics.com.br/',
+    cobertura: ['ovario', 'prostata', 'mama', 'pancreas', 'colorretal', 'endometrio', 'pulmao'],
+    verificadoEm: '2026-08-11',
+    fonte: 'Laboratório comercial brasileiro de oncogenética, cobertura ampla.',
   };
   const A_MAPEAR = {
     name: 'Programa a mapear',
-    note: 'Nenhum parceiro confirmado ainda para este teste.',
+    note: 'Nenhum parceiro verificado ainda para este teste neste tumor.',
     url: null,
+    cobertura: null, // null = vale para qualquer tumor
+    verificadoEm: null,
   };
 
   /* ------------------------------------------------------------------ *
@@ -241,7 +334,12 @@
       }
 
       const confirmado = altoGrau && avancado;
-      const faltando = [!filled(v.grau) ? 'grau' : null, !filled(v.estadiamento) ? 'estágio' : null].filter(Boolean).join(' e ');
+      // Um campo preenchido em notação que não sabemos ler conta como
+      // pendente. Sem isso o texto saía com a lacuna vazia — "Confirme  no
+      // laudo" — num documento que o médico assina.
+      const grauPendente = !altoGrau && !baixoGrau;
+      const estagioPendente = !avancado && !inicial;
+      const faltando = [grauPendente ? 'grau' : null, estagioPendente ? 'estágio' : null].filter(Boolean).join(' e ');
 
       return {
         state: confirmado ? 'completo' : 'provisorio',
@@ -249,18 +347,18 @@
         title: confirmado ? 'Este caso tem indicação para 2 testes' : 'Este caso tem indicação provável para 2 testes',
         summary: confirmado
           ? `Carcinoma ${epitelial} de alto grau de ovário, estágio ${v.estadiamento}. Solicite os 2 testes abaixo.`
-          : `Carcinoma ${epitelial} de ovário. Histologia compatível com o par somático + germinativo. Confirme ${faltando} no laudo antes de solicitar o teste somático.`,
-        notes: confirmado ? [] : [{ warn: true, tag: 'A confirmar no laudo',
-          title: faltando.includes(' e ') ? 'Grau e estágio não informados' : (faltando === 'grau' ? 'Grau não informado' : 'Estágio não informado'),
+          : `Carcinoma ${epitelial} de ovário. Histologia compatível com o par somático + germinativo.${faltando ? ` Confirme ${faltando} no laudo antes de solicitar o teste somático.` : ''}`,
+        notes: confirmado || !faltando ? [] : [{ warn: true, tag: 'A confirmar no laudo',
+          title: `${faltando.charAt(0).toUpperCase()}${faltando.slice(1)} a confirmar`,
           body: `A indicação do teste somático assume que ${faltando} está dentro do critério (alto grau, estágio III/IV), o mais comum para esta histologia. O germinativo é indicado de qualquer forma.` }],
       };
     },
     diagnosis(v) {
-      let h = String(v.histologia || '').replace(/^(carcinoma|tumor|neoplasia)\s+/i, '');
-      const parts = ['Carcinoma ' + (h || '-') + ' de ovário'];
-      if (filled(v.grau)) parts.push(lower(v.grau));
-      if (filled(v.estadiamento)) parts.push('estágio ' + v.estadiamento);
-      return parts.join(', ');
+      return juntarDx([
+        montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário'),
+        filled(v.grau) ? lower(v.grau) : '',
+        filled(v.estadiamento) ? 'estágio ' + limpar(v.estadiamento) : '',
+      ]);
     },
   };
 
@@ -362,12 +460,12 @@
       };
     },
     diagnosis(v) {
-      let h = String(v.histologia || '').replace(/^(carcinoma|adenocarcinoma|tumor|neoplasia)\s+/i, '');
-      const parts = ['Adenocarcinoma ' + (h || 'de próstata')];
-      if (filled(v.gleason_grade_group)) parts.push(v.gleason_grade_group);
-      if (filled(v.extensao_doenca)) parts.push(v.extensao_doenca);
-      if (filled(v.categoria_risco_localizado)) parts.push('risco ' + lower(v.categoria_risco_localizado));
-      return parts.join(', ');
+      return juntarDx([
+        montaDx(v.histologia, 'próstata', 'Adenocarcinoma de próstata'),
+        v.gleason_grade_group,
+        v.extensao_doenca,
+        filled(v.categoria_risco_localizado) ? 'risco ' + lower(v.categoria_risco_localizado) : '',
+      ]);
     },
   };
 
@@ -453,10 +551,11 @@
       };
     },
     diagnosis(v) {
-      const parts = [filled(v.histologia) ? v.histologia + ' de mama' : 'Carcinoma de mama'];
-      if (filled(v.subtipo_molecular)) parts.push(v.subtipo_molecular);
-      if (filled(v.extensao_doenca)) parts.push(lower(v.extensao_doenca));
-      return parts.join(', ');
+      return juntarDx([
+        montaDx(v.histologia, 'mama', 'Carcinoma de mama'),
+        v.subtipo_molecular,
+        filled(v.extensao_doenca) ? lower(v.extensao_doenca) : '',
+      ]);
     },
   };
 
@@ -506,7 +605,7 @@
         stat: 'Indicação universal: todo adenocarcinoma ductal, em qualquer estágio',
         description: 'Indicado para todo paciente com adenocarcinoma ductal de pâncreas, independente de idade, estágio ou histórico familiar. Histórico familiar isolado não identifica a maioria dos portadores.',
         justify: 'Adenocarcinoma ductal de pâncreas tem indicação de teste germinativo ao diagnóstico, independente de estágio ou histórico familiar.',
-        programs: [PROGRAMA_ID, LIFE_GENOMICS],
+        programs: [LIFE_GENOMICS],
       };
 
       const somatico = {
@@ -514,7 +613,7 @@
         sample: 'Tecido tumoral', order: 'Tumoral · somático',
         description: 'Em doença metastática, identifica alvos acionáveis e confirma alterações em genes de reparo quando o germinativo é negativo.',
         justify: 'Doença metastática com indicação de perfil somático tumoral.',
-        programs: [PROGRAMA_ID],
+        programs: [A_MAPEAR],
       };
 
       const tests = metastatico ? [germinativo, somatico] : [germinativo];
@@ -527,9 +626,10 @@
       };
     },
     diagnosis(v) {
-      const parts = [filled(v.histologia) ? v.histologia + ' de pâncreas' : 'Adenocarcinoma ductal de pâncreas'];
-      if (filled(v.extensao_doenca)) parts.push(lower(v.extensao_doenca));
-      return parts.join(', ');
+      return juntarDx([
+        montaDx(v.histologia, 'pâncreas', 'Adenocarcinoma ductal de pâncreas'),
+        filled(v.extensao_doenca) ? lower(v.extensao_doenca) : '',
+      ]);
     },
   };
 
@@ -591,7 +691,7 @@
           sample: 'Tecido tumoral (ou biópsia líquida)', order: 'Tumoral · somático',
           description: 'Obrigatório antes de terapia anti-EGFR. RAS mutado contraindica anti-EGFR; BRAF V600E define esquema específico; HER2 amplificado abre linha dirigida.',
           justify: 'Doença metastática com indicação de perfil somático antes da definição de terapia sistêmica dirigida.',
-          programs: [PROGRAMA_ID],
+          programs: [A_MAPEAR],
         });
       }
 
@@ -615,10 +715,11 @@
       };
     },
     diagnosis(v) {
-      const parts = [filled(v.histologia) ? v.histologia + ' colorretal' : 'Carcinoma colorretal'];
-      if (filled(v.extensao_doenca)) parts.push(lower(v.extensao_doenca));
-      if (filled(v.mmr_msi) && !has(v.mmr_msi, 'nao realizado')) parts.push(v.mmr_msi);
-      return parts.join(', ');
+      return juntarDx([
+        montaDx(v.histologia, 'cólon ou reto', 'Carcinoma colorretal'),
+        filled(v.extensao_doenca) ? lower(v.extensao_doenca) : '',
+        filled(v.mmr_msi) && !has(v.mmr_msi, 'nao realizado') ? v.mmr_msi : '',
+      ]);
     },
   };
 
@@ -691,10 +792,11 @@
       };
     },
     diagnosis(v) {
-      const parts = [filled(v.histologia) ? 'Carcinoma ' + v.histologia + ' de endométrio' : 'Carcinoma de endométrio'];
-      if (filled(v.estadiamento)) parts.push('estágio ' + v.estadiamento);
-      if (filled(v.mmr_msi) && !has(v.mmr_msi, 'nao realizado')) parts.push(v.mmr_msi);
-      return parts.join(', ');
+      return juntarDx([
+        montaDx(v.histologia, 'endométrio', 'Carcinoma de endométrio'),
+        filled(v.estadiamento) ? 'estágio ' + limpar(v.estadiamento) : '',
+        filled(v.mmr_msi) && !has(v.mmr_msi, 'nao realizado') ? v.mmr_msi : '',
+      ]);
     },
   };
 
@@ -765,7 +867,7 @@
           stat: 'Cobre EGFR, ALK, ROS1, BRAF, KRAS G12C, MET, RET, NTRK e HER2',
           description: 'Painel amplo indicado antes de definir a primeira linha em doença avançada. Testar gene a gene consome tecido e atrasa a decisão terapêutica. Quando o tecido é insuficiente, a biópsia líquida é alternativa aceita.',
           justify: 'Doença avançada com indicação de painel molecular amplo antes da definição de terapia sistêmica de primeira linha.',
-          programs: [PROGRAMA_ID, PROGRAMA_PFIZER],
+          programs: [PROGRAMA_ID],
         }],
         title: 'Este caso tem indicação para 1 teste',
         summary: 'Doença avançada: painel molecular amplo indicado antes da primeira linha de tratamento.',
@@ -773,9 +875,10 @@
       };
     },
     diagnosis(v) {
-      const parts = [filled(v.histologia) ? v.histologia + ' de pulmão' : 'Carcinoma de pulmão'];
-      if (filled(v.extensao_doenca)) parts.push(lower(v.extensao_doenca));
-      return parts.join(', ');
+      return juntarDx([
+        montaDx(v.histologia, 'pulmão', 'Carcinoma de pulmão'),
+        filled(v.extensao_doenca) ? lower(v.extensao_doenca) : '',
+      ]);
     },
   };
 
@@ -973,6 +1076,6 @@
   return {
     REGISTRY, ORDER, get, list, labels,
     fieldsOf, schemaFields, normalizar, acharTumorPorLabel, encaixarValor, isComum, CHAVES_COMUNS,
-    helpers: { norm, lower, has, filled, num, estadioNumero, estadioAvancado, estadioInicial, grauAlto, grauBaixo },
+    helpers: { norm, lower, has, filled, num, estadioNumero, estadioAvancado, estadioInicial, estadioIlegivel, grauAlto, grauBaixo },
   };
 });

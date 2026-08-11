@@ -1071,3 +1071,79 @@ prova que o servidor processa a resposta corretamente, nunca que o modelo
 consegue produzi-la. Essa camada só se verifica com a API real: é para isso que
 existe `/validacao.html` (seção 22), e rodá-la depois de mexer no schema deixou
 de ser opcional.
+
+## 29. Auditoria por agentes especializados (v1.7)
+
+Cinco auditorias independentes rodaram sobre o código: segurança/privacidade,
+correção clínica, robustez de backend, frontend/acessibilidade e qualidade de
+testes. Cada uma em modo somente-leitura, com a exigência de **provar** cada
+achado. O que segue é o que foi corrigido, com a prova que sustentava.
+
+### 29.1 Achados de segurança corrigidos
+
+| # | Achado | Prova | Correção |
+|---|---|---|---|
+| 1 | **As frases de privacidade da tela eram falsas** | O texto vai cru, o PDF vai inteiro, o schema pede `nome_paciente` | Frases reescritas + nota "Como seus dados são tratados" |
+| 2 | **XSS por nome de arquivo** rouba o token de sessão | `<img onerror>` no nome do PDF executa e lê `localStorage` | `esc()` no único `innerHTML` que faltava |
+| 3 | **Sem teto de gasto**: 240 chamadas pagas em 0,8 s | 1 MB de texto = ~US$ 1,33 por chamada | 40 extrações e 120 conversas por hora, por conta; `fieldSize` 64 KB |
+| 4 | **190 MB em RAM** por requisição num container de 512 MB | 3 uploads simultâneos → RSS 3,8 GB | 3 arquivos por caso |
+| 5 | **Nenhum header de segurança** | Sem CSP, a exfiltração do #2 não encontrava obstáculo | `helmet` com CSP estrita |
+| 6 | **Dado clínico no log** (introduzido na v1.6) | Nome do paciente no stderr de produção | Log passa a registrar tamanho e forma |
+| 7 | `AUTH_MODE=completo` sem email **entregava o token de redefinição na resposta HTTP** | Takeover de qualquer conta em 3 requisições | Trava de boot + `devUrl` nunca em produção |
+| 8 | CORS aberto, CRM sem validação no PATCH, `@acesso.oncogenyx` aceito como email | — | Corrigidos |
+
+**Concessão única e consciente na CSP.** O helmet define `script-src-attr 'none'`
+por padrão, o que bloqueia todo handler inline — e a interface tem 44
+(`onclick`, `onsubmit`, `onchange`, `oninput`). A diretiva foi liberada para
+`'unsafe-inline'`; o resto da política continua estrito: sem script externo,
+sem exfiltração (`connect-src 'self'`), sem enquadramento em iframe, sem
+sequestro de `base-uri` ou de `form-action`. **Próximo passo de endurecimento:**
+migrar os 44 handlers para `addEventListener` e devolver a diretiva para `'none'`.
+
+### 29.2 Achados clínicos corrigidos
+
+**Subestágios FIGO liam errado — nos dois sentidos.** O parser buscava o
+algarismo romano por limite de palavra, então `IIIA1(i)` casava com o `i` entre
+parênteses e virava **estádio 1**: falso negativo em cima do critério do teste
+tumoral. E `IC1`, `IIIA1`, `IIIC1` viravam `null`, o que produzia **falso
+positivo** (HRD indicado em doença estádio I) e um texto quebrado — *"Confirme
+ no laudo"*, com a lacuna vazia, num documento que o médico assina.
+
+O parser passou a ler **token a token**, aceitando romano e arábico, subletra,
+sub-subdivisão (`IIIA1`, `IIIC2`, `IC3`) e o sufixo molecular do FIGO 2023 de
+endométrio (`IAmPOLEmut`, `IICmp53abn`). E `faltando` passou a considerar dado
+ilegível, não só ausente, para o texto nunca sair com lacuna vazia.
+
+**Programa de acesso errado na tela.** O card de próstata e o de pulmão traziam
+*"Cuidar Mais - PAF (Pfizer)"* com link para `/paf-1`. **PAF é Polineuropatia
+Amiloidótica Familiar** — amiloidose hereditária por transtirretina, neurologia
+e cardiologia. Não é oncologia. O urologista que clicasse em "Ver portal
+oficial" num caso de próstata cairia numa página de polineuropatia. É a
+repetição literal do incidente "GSK na próstata": programa associado por
+analogia, sem verificação.
+
+Correção estrutural, não pontual: cada programa passou a declarar `cobertura`
+(IDs de tumor verificados), `verificadoEm` e `fonte`. Um teste percorre todas
+as combinações de valores de todos os tumores e **quebra a suíte** se um
+programa aparecer fora da sua cobertura. Sem verificação documentada, o card
+usa `A_MAPEAR` — card honesto vale mais que card errado. ProgramAID saiu de
+pâncreas e colorretal, onde eu o havia posto por analogia.
+
+**Texto do diagnóstico malformado no documento assinado.** Nove formas de saída
+defeituosa foram provadas: `Carcinoma Carcinoma seroso de endométrio`,
+`...de tuba uterina de ovário` (sítio errado), próstata perdendo o órgão,
+`Carcinoma - de ovário` com histologia vazia, espaços duplos. Os sete
+`diagnosis()` passaram a usar um helper único que normaliza espaço, não duplica
+prefixo, não duplica sítio, sempre nomeia o órgão e nunca deixa travessão solto.
+
+### 29.3 O que a auditoria confirmou estar correto
+
+Registrado porque também é resultado: autenticação aplicada corretamente nas
+rotas caras (401 sem token); nenhum IDOR; sem fixação de sessão; scrypt com
+salt por usuário e comparação em tempo constante; HMAC do `state` OAuth
+correto; todas as consultas SQL parametrizadas; nenhum segredo no histórico do
+git; `npm audit` sem vulnerabilidades; **nenhum dado de paciente em repouso** —
+o servidor guarda apenas conta e sessão; painel HRR de próstata exatamente
+igual ao do PROfound; critério de TNBC em qualquer idade correto; ressalva de
+MLH1 escrita com o rigor certo (BRAF V600E citado no colorretal e omitido no
+endométrio, que é exatamente o correto).
