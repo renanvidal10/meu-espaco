@@ -1010,3 +1010,64 @@ integração HTTP com a API simulada e o contrato da Gena. Nada depende de chave
 nem de rede. `test:navegador` percorre texto, PDF, imagem, ditado por voz,
 remoção de anexo, Gena, erros e o fluxo até o documento — no viewport de iPhone
 e no desktop.
+
+## 28. Incidente 2: as chaves com prefixo que o modelo ignorou (v1.6)
+
+**O sintoma.** Um médico descreveu em texto livre: *"Mulher 61 anos com câncer
+epitelial de ovario seroso de alto grau 3c, e com irmã com câncer de mama aos
+45 anos"*. A revisão voltou com **idade** e **histórico familiar** preenchidos e
+**histologia, grau e estadiamento vazios**.
+
+**A correlação era perfeita e revelou a causa:**
+
+| Campo | Chave no schema | Resultado |
+|---|---|---|
+| idade | `idade` | preenchido |
+| histórico familiar | `historico_familiar` | preenchido |
+| histologia | `ovario__histologia` | **vazio** |
+| grau | `ovario__grau` | **vazio** |
+| estadiamento | `ovario__estadiamento` | **vazio** |
+
+Toda chave simples funcionou. Toda chave com prefixo falhou.
+
+**A causa.** A correção da seção 19 (colisão de valores entre tumores) foi feita
+com chave namespaced por tumor. No papel estava certa; na prática criou um
+schema de **39 propriedades das quais 35 têm de vir vazias**, com nomes que não
+existem em vocabulário clínico nenhum. O modelo preenchia o que reconhecia e
+ignorava o resto.
+
+**O desenho certo (v1.6).** Chave simples de novo — 18 campos, nomes naturais —
+e o problema da colisão resolvido do lado do código, que é onde é barato:
+
+- O `enum` de um campo compartilhado é a **união** dos valores de todos os
+  tumores que o usam. `extensao_doenca` tem os 11 valores dos cinco tumores,
+  então mCRPC é alcançável.
+- **Enum só existe quando TODOS os tumores do campo definem valores.**
+  `histologia` tem lista fechada só no pulmão e é texto livre nos outros seis:
+  impor o enum do pulmão travaria ovário e mama num vocabulário alheio.
+- A **descrição** diz quais valores pertencem a qual subtipo. E quando a
+  orientação difere entre tumores, a descrição traz a de **cada um** — usar a do
+  ovário para os sete é a mesma falha, só que na descrição em vez do enum.
+- `TUMORS.normalizar()` valida o valor recebido contra a lista do tumor
+  identificado, com aproximação por norma e por inclusão. Valor de outro
+  subtipo é **preservado**, não apagado: as regras usam `has()`, que é
+  tolerante, e o médico corrige na revisão. Campo vazio apagaria a indicação.
+- `normalizar()` aceita a chave simples **e** a antiga com prefixo, então uma
+  resposta em qualquer um dos formatos continua funcionando.
+
+**As três travas que ficaram** (`test/schema.test.js`), uma por variante da
+mesma falha:
+
+1. *todo valor de todo tumor é alcançável no schema* — pega a colisão de enum.
+2. *as chaves do schema são nomes de campo reais, sem prefixo sintético* +
+   *o schema é enxuto o bastante para o modelo preencher* (teto de 25 campos) —
+   pegam a volta do desenho com prefixo.
+3. *campo compartilhado leva a orientação de cada tumor, não a de um só* —
+   pega a colisão na descrição.
+
+**A lição de método.** Duas correções seguidas passaram na suíte inteira e
+falharam em produção, porque o stub responde o que eu mando responder — ele
+prova que o servidor processa a resposta corretamente, nunca que o modelo
+consegue produzi-la. Essa camada só se verifica com a API real: é para isso que
+existe `/validacao.html` (seção 22), e rodá-la depois de mexer no schema deixou
+de ser opcional.

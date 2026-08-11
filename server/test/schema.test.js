@@ -59,24 +59,129 @@ test('nenhum campo com lista de valores compartilha chave de schema com outro', 
   }
 });
 
-test('cada tumor com valores fechados tem a SUA lista no schema', () => {
-  const schema = new Map(TUMORS.schemaFields().map((f) => [f.schemaKey, f]));
+// Trava da PRIMEIRA falha vivida (v1.2): o schema levava a lista de valores de
+// um tumor e aplicava a todos, então mCRPC era impossível de extrair.
+test('todo valor de todo tumor é alcançável no schema', () => {
+  const schema = new Map(TUMORS.schemaFields().map((f) => [f.key, f]));
 
   TUMORS.list().forEach((tumor) => {
     tumor.fields.forEach((field) => {
       if (!field.options) return;
-      const chave = TUMORS.scopedKey(tumor.id, field.key);
-      const noSchema = schema.get(chave);
+      const noSchema = schema.get(field.key);
       assert.ok(noSchema, `${tumor.id}.${field.key}: ausente do schema`);
-      assert.deepStrictEqual(
-        noSchema.options, field.options,
-        `${tumor.id}.${field.key}: a lista do schema não é a do tumor`,
+      field.options.forEach((valor) => {
+        assert.ok(
+          !noSchema.options || noSchema.options.includes(valor),
+          `${tumor.id}.${field.key}: o valor "${valor}" não é alcançável no schema`,
+        );
+      });
+    });
+  });
+});
+
+test('campo com lista fechada em uns tumores e livre em outros fica livre', () => {
+  // "histologia" tem lista fechada no pulmão e é texto livre nos outros seis.
+  // Impor o enum do pulmão travaria ovário e mama num vocabulário alheio.
+  TUMORS.schemaFields().forEach((campo) => {
+    if (!campo.options) return;
+    const usam = TUMORS.list().filter((t) => TUMORS.fieldsOf(t).some((f) => f.key === campo.key));
+    usam.forEach((t) => {
+      const doTumor = TUMORS.fieldsOf(t).find((f) => f.key === campo.key);
+      assert.ok(
+        doTumor.options && doTumor.options.length,
+        `${campo.key} tem enum no schema mas é texto livre em ${t.id} — o enum travaria esse tumor`,
       );
     });
   });
 });
 
-test('campos comuns aparecem uma única vez e sem prefixo', () => {
+// Trava da SEGUNDA falha vivida (v1.3): chaves sintéticas com prefixo por
+// tumor ("ovario__histologia"). O schema ficava correto no papel e o modelo
+// deixava TODOS esses campos vazios em uso real, porque o nome não existe em
+// vocabulário clínico nenhum.
+test('as chaves do schema são nomes de campo reais, sem prefixo sintético', () => {
+  const declarados = new Set();
+  TUMORS.list().forEach((t) => TUMORS.fieldsOf(t).forEach((f) => declarados.add(f.key)));
+
+  TUMORS.schemaFields().forEach((campo) => {
+    assert.ok(
+      declarados.has(campo.key),
+      `"${campo.key}" não é um campo declarado por nenhum tumor — parece chave sintética`,
+    );
+    assert.doesNotMatch(
+      campo.key, /__|\$|::/,
+      `"${campo.key}" usa separador sintético; o modelo ignora chaves assim`,
+    );
+  });
+});
+
+// Terceira variante da mesma falha: o campo é compartilhado, a descrição de UM
+// tumor é usada para todos, e o modelo recebe "ex.: Seroso, Endometrioide"
+// para um caso de pulmão.
+test('campo compartilhado leva a orientação de cada tumor, não a de um só', () => {
+  TUMORS.schemaFields().forEach((campo) => {
+    const usam = TUMORS.list().filter((t) => TUMORS.fieldsOf(t).some((f) => f.key === campo.key));
+    if (usam.length < 2) return;
+
+    const descricoes = usam.map((t) => TUMORS.fieldsOf(t).find((f) => f.key === campo.key).ai);
+    const todasIguais = descricoes.every((d) => d === descricoes[0]);
+    if (todasIguais) return; // uma descrição só já serve
+
+    usam.forEach((t) => {
+      assert.ok(
+        campo.ai.includes(t.label),
+        `"${campo.key}": a descrição enviada ao modelo não cobre ${t.label} — ele receberia a orientação de outro tumor`,
+      );
+    });
+  });
+});
+
+test('o schema é enxuto o bastante para o modelo preencher', () => {
+  // 39 propriedades, das quais 35 tinham de vir vazias, foi o que quebrou em
+  // produção. O teto é folgado, mas impede a volta silenciosa daquele desenho.
+  const n = TUMORS.schemaFields().length;
+  assert.ok(n <= 25, `o schema tem ${n} campos; acima de 25 o preenchimento degrada`);
+});
+
+test('encaixarValor() aproxima grafia divergente em vez de descartar', () => {
+  const opcoes = ['Metastático resistente à castração (mCRPC)', 'Localizado'];
+  assert.strictEqual(TUMORS.encaixarValor('Metastático resistente à castração (mCRPC)', opcoes), opcoes[0]);
+  assert.strictEqual(TUMORS.encaixarValor('metastatico resistente a castracao (mcrpc)', opcoes), opcoes[0]);
+  assert.strictEqual(TUMORS.encaixarValor('mCRPC', opcoes), opcoes[0]);
+  // Valor de outro subtipo: preserva o texto em vez de apagar o dado.
+  assert.strictEqual(TUMORS.encaixarValor('Ressecável', opcoes), 'Ressecável');
+  assert.strictEqual(TUMORS.encaixarValor('', opcoes), '');
+});
+
+test('acharTumorPorLabel() tolera espaço, caixa e acento', () => {
+  ['Próstata', 'próstata', '  PRÓSTATA  ', 'Prostata'].forEach((entrada) => {
+    const t = TUMORS.acharTumorPorLabel(entrada);
+    assert.ok(t && t.id === 'prostata', `não reconheceu "${entrada}"`);
+  });
+  assert.strictEqual(TUMORS.acharTumorPorLabel('Melanoma'), null);
+  assert.strictEqual(TUMORS.acharTumorPorLabel(''), null);
+});
+
+// A resposta que o modelo devolveu em produção quando o schema usava prefixo:
+// campos comuns preenchidos, campos do tumor vazios. A normalização precisa
+// aceitar tanto a chave simples quanto a antiga com prefixo.
+test('normalizar() aceita chave simples E chave antiga com prefixo', () => {
+  const simples = TUMORS.normalizar({
+    tipo_tumor: 'Ginecológico - Ovário',
+    histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61',
+  });
+  assert.strictEqual(simples.histologia, 'Seroso');
+  assert.strictEqual(simples.estadiamento, 'IIIC');
+
+  const comPrefixo = TUMORS.normalizar({
+    tipo_tumor: 'Ginecológico - Ovário',
+    ovario__histologia: 'Seroso', ovario__grau: 'Alto grau', idade: '61',
+  });
+  assert.strictEqual(comPrefixo.histologia, 'Seroso');
+  assert.strictEqual(comPrefixo.grau, 'Alto grau');
+});
+
+test('campos comuns aparecem uma única vez', () => {
   const chaves = TUMORS.schemaFields().map((f) => f.schemaKey);
   TUMORS.CHAVES_COMUNS.forEach((k) => {
     const n = chaves.filter((c) => c === k).length;
@@ -130,7 +235,7 @@ test('classify() e diagnosis() só leem campos que o tumor declara', () => {
   });
 });
 
-test('unscope() traz só os campos do tumor identificado', () => {
+test('normalizar() traz só os campos do tumor identificado', () => {
   const bruto = {
     tipo_tumor: 'Próstata',
     prostata__extensao_doenca: 'Metastático resistente à castração (mCRPC)',
@@ -139,7 +244,7 @@ test('unscope() traz só os campos do tumor identificado', () => {
     ovario__histologia: 'Seroso',
     idade: '68',
   };
-  const v = TUMORS.unscope(bruto);
+  const v = TUMORS.normalizar(bruto);
 
   assert.strictEqual(v.extensao_doenca, 'Metastático resistente à castração (mCRPC)');
   assert.strictEqual(v.histologia, 'Adenocarcinoma acinar');
@@ -148,15 +253,15 @@ test('unscope() traz só os campos do tumor identificado', () => {
   assert.ok(!('prostata__histologia' in v), 'chave namespaced vazou para o navegador');
 });
 
-test('unscope() sobrevive a subtipo não identificado', () => {
-  const v = TUMORS.unscope({ tipo_tumor: 'Não identificado', idade: '70' });
+test('normalizar() sobrevive a subtipo não identificado', () => {
+  const v = TUMORS.normalizar({ tipo_tumor: 'Não identificado', idade: '70' });
   assert.strictEqual(v.tipo_tumor, 'Não identificado');
   assert.strictEqual(v.idade, '70');
 });
 
-test('unscope() sobrevive a resposta vazia ou malformada', () => {
+test('normalizar() sobrevive a resposta vazia ou malformada', () => {
   [null, undefined, {}, { tipo_tumor: null }].forEach((entrada) => {
-    const v = TUMORS.unscope(entrada);
+    const v = TUMORS.normalizar(entrada);
     assert.strictEqual(typeof v, 'object');
     TUMORS.CHAVES_COMUNS.forEach((k) => assert.strictEqual(v[k], ''));
   });

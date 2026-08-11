@@ -788,23 +788,30 @@
   function labels() { return list().map((t) => t.label); }
 
   /* ------------------------------------------------------------------ *
-   * Campos comuns x campos de tumor.
+   * Schema de extração: chaves SIMPLES, valores em união.
    *
-   * Chaves iguais entre tumores NÃO podem ser fundidas no schema de
-   * extração: "extensao_doenca" existe em cinco tumores com listas de
-   * valores completamente diferentes (mCRPC só na próstata, "Ressecável"
-   * só no pâncreas), e "histologia" existe nos sete com descrições
-   * diferentes. Fundir fazia o schema levar a lista de UM tumor e aplicá-la
-   * a todos - na prática, mCRPC e N1 eram impossíveis de extrair.
+   * Histórico das duas tentativas, porque a segunda falhou em produção:
    *
-   * Por isso o schema usa chave namespaced por tumor ("prostata__extensao_doenca").
-   * O servidor desfaz o prefixo antes de devolver ao navegador, então o
-   * restante do app continua lendo "extensao_doenca".
+   * v1.2 — uma chave por campo, compartilhada entre tumores. Quebrou porque
+   *   "extensao_doenca" tem listas de valores diferentes em cinco tumores, e
+   *   o schema levava a lista de um só. mCRPC era impossível de extrair.
+   *
+   * v1.3 — chave com prefixo por tumor ("ovario__histologia"). Corrigiu a
+   *   colisão e criou outra falha, pior: 39 propriedades das quais 35 têm de
+   *   vir vazias, com nomes que não existem em vocabulário clínico nenhum.
+   *   Em uso real o modelo preenchia os campos de chave simples (idade,
+   *   histórico familiar) e deixava vazios TODOS os de chave prefixada.
+   *
+   * v1.6 — chave simples de novo (19 campos, nomes naturais), mas o `enum`
+   *   de um campo compartilhado é a UNIÃO dos valores de todos os tumores
+   *   que o usam, e a descrição diz quais valores pertencem a qual subtipo.
+   *   Depois da resposta, `normalizar()` valida o valor contra a lista do
+   *   tumor identificado. Assim o modelo escreve num schema natural e a
+   *   correção acontece do lado do código, que é onde ela é barata.
    * ------------------------------------------------------------------ */
   const CHAVES_COMUNS = COMUNS.map((f) => f.key);
 
   function isComum(key) { return CHAVES_COMUNS.includes(key); }
-  function scopedKey(tumorId, key) { return isComum(key) ? key : `${tumorId}__${key}`; }
 
   // Campos de um tumor, incluindo as justificativas derivadas.
   function fieldsOf(tumor) {
@@ -814,62 +821,158 @@
       if (field.justify) {
         out.push({
           key: field.justify,
-          label: 'Justificativa',
+          label: `Justificativa de ${field.label}`,
           ai: `Se "${field.label}" não estava escrito literalmente e você inferiu a partir de outros achados, explique em 1-2 frases o que levou à conclusão. Vazio se o dado estava escrito.`,
           internal: true,
+          origem: field.key,
         });
       }
     });
     return out;
   }
 
-  // Descrição de todos os campos do schema de extração, já com a chave final.
-  // Campos comuns aparecem uma vez; campos de tumor aparecem um por tumor,
-  // cada um com a sua própria descrição e a sua própria lista de valores.
+  // Um campo por chave distinta, com a união dos valores e a descrição
+  // combinada de todos os tumores que o usam.
   function schemaFields() {
-    const out = [];
-    const comunsVistos = new Set();
+    const porChave = new Map();
+
     list().forEach((tumor) => {
       fieldsOf(tumor).forEach((field) => {
-        if (isComum(field.key)) {
-          if (comunsVistos.has(field.key)) return;
-          comunsVistos.add(field.key);
-          out.push({ ...field, schemaKey: field.key, escopo: null });
-          return;
+        if (!porChave.has(field.key)) {
+          porChave.set(field.key, {
+            key: field.key,
+            label: field.label,
+            internal: Boolean(field.internal),
+            comum: isComum(field.key),
+            porTumor: [],
+            options: [],
+          });
         }
-        out.push({
-          ...field,
-          schemaKey: scopedKey(tumor.id, field.key),
-          escopo: tumor.label,
-          tumorId: tumor.id,
+        const acumulado = porChave.get(field.key);
+        acumulado.porTumor.push({ tumor, ai: field.ai, options: field.options || null });
+        (field.options || []).forEach((o) => {
+          if (!acumulado.options.includes(o)) acumulado.options.push(o);
         });
       });
     });
-    return out;
+
+    return Array.from(porChave.values()).map((campo) => {
+      const usadoPorTodos = campo.comum || campo.porTumor.length === list().length;
+
+      // Só colapsa numa descrição quando ela é IDÊNTICA em todos os tumores.
+      // "histologia" existe nos sete com orientações diferentes: usar a do
+      // ovário para todos é a mesma falha da v1.2, só que na descrição em vez
+      // do enum — o modelo receberia "ex.: Seroso, Endometrioide" para um
+      // caso de pulmão.
+      const descricoesIguais = campo.porTumor.every((p) => p.ai === campo.porTumor[0].ai);
+
+      let ai;
+      if (usadoPorTodos && descricoesIguais) {
+        ai = campo.porTumor[0].ai;
+      } else if (usadoPorTodos) {
+        ai = `Vale para todos os subtipos, com orientação própria em cada um. Use a do subtipo que você identificou. ${campo.porTumor
+          .map((p) => `${p.tumor.label}: ${p.ai}`)
+          .join(' ')}`;
+      } else if (campo.porTumor.length === 1) {
+        ai = `Só para ${campo.porTumor[0].tumor.label}; vazio nos demais subtipos. ${campo.porTumor[0].ai}`;
+      } else {
+        // Campo compartilhado por alguns tumores, com orientação (e às vezes
+        // lista de valores) diferente em cada um. A descrição diz qual vale
+        // para qual, e o enum é a união.
+        const alvos = campo.porTumor.map((p) => p.tumor.label).join(', ');
+        const detalhe = campo.porTumor
+          .map((p) => `${p.tumor.label}: ${p.ai}${p.options ? ` Valores possíveis aqui: ${p.options.map((o) => `"${o}"`).join(', ')}.` : ''}`)
+          .join(' ');
+        ai = `Só para ${alvos}; vazio nos demais subtipos. Use a orientação do subtipo que você identificou. ${detalhe}`;
+      }
+
+      // Lista fechada só quando TODOS os tumores que usam o campo definem
+      // valores. "histologia" tem lista fechada no pulmão e é texto livre nos
+      // outros seis: impor o enum do pulmão travaria ovário e mama num
+      // vocabulário que não é o deles.
+      const todosTemLista = campo.porTumor.every((p) => p.options && p.options.length);
+
+      return {
+        key: campo.key,
+        schemaKey: campo.key,
+        label: campo.label,
+        internal: campo.internal,
+        ai,
+        options: todosTemLista && campo.options.length ? campo.options : null,
+        tumores: campo.porTumor.map((p) => p.tumor.label),
+        escopo: usadoPorTodos ? null : campo.porTumor.map((p) => p.tumor.label).join(', '),
+      };
+    });
   }
 
-  // Converte a resposta do modelo (chaves namespaced) no objeto simples que o
-  // navegador consome. Só traz os campos do tumor identificado.
-  function unscope(raw) {
-    const tumor = list().find((t) => t.label === (raw && raw.tipo_tumor));
+  // Comparação tolerante de rótulo de tumor: o modelo pode devolver com
+  // espaço extra, caixa diferente ou hífen de outro tipo.
+  function acharTumorPorLabel(label) {
+    const alvo = norm(label).replace(/[^a-z0-9]+/g, ' ').trim();
+    if (!alvo) return null;
+    return list().find((t) => norm(t.label).replace(/[^a-z0-9]+/g, ' ').trim() === alvo) || null;
+  }
+
+  // Encaixa o valor devolvido na lista de valores daquele tumor. Se não bater
+  // exatamente, tenta por aproximação — melhor um valor próximo, que a regra
+  // entende, do que campo vazio, que apaga a indicação.
+  function encaixarValor(valor, opcoes) {
+    const bruto = String(valor || '').trim();
+    if (!bruto || !opcoes || !opcoes.length) return bruto;
+    const exato = opcoes.find((o) => o === bruto);
+    if (exato) return exato;
+    const porNorma = opcoes.find((o) => norm(o) === norm(bruto));
+    if (porNorma) return porNorma;
+    const porInclusao = opcoes.find((o) => norm(o).includes(norm(bruto)) || norm(bruto).includes(norm(o)));
+    if (porInclusao) return porInclusao;
+    // Valor de outro subtipo ou grafia inesperada: preserva o texto. As regras
+    // usam has(), que é tolerante, e o médico vê e corrige na revisão.
+    return bruto;
+  }
+
+  /**
+   * Converte a resposta do modelo no objeto que o navegador consome.
+   *
+   * Aceita a chave simples ("histologia") e também a antiga com prefixo
+   * ("ovario__histologia"), para que uma resposta em qualquer um dos dois
+   * formatos continue funcionando.
+   */
+  function normalizar(raw) {
+    const bruto = raw || {};
+    const tumor = acharTumorPorLabel(bruto.tipo_tumor);
+
     const out = {
-      tipo_tumor: (raw && raw.tipo_tumor) || '',
-      tipo_tumor_justificativa: (raw && raw.tipo_tumor_justificativa) || '',
-      fontes_usadas: (raw && raw.fontes_usadas) || [],
-      nome_paciente: (raw && raw.nome_paciente) || '',
+      tipo_tumor: tumor ? tumor.label : String(bruto.tipo_tumor || ''),
+      tipo_tumor_justificativa: String(bruto.tipo_tumor_justificativa || ''),
+      fontes_usadas: Array.isArray(bruto.fontes_usadas) ? bruto.fontes_usadas : [],
+      nome_paciente: String(bruto.nome_paciente || ''),
     };
-    CHAVES_COMUNS.forEach((k) => { out[k] = (raw && raw[k]) || ''; });
+
+    function ler(tumorId, key) {
+      const simples = bruto[key];
+      if (simples !== undefined && simples !== null && String(simples).trim() !== '') return String(simples).trim();
+      const prefixada = bruto[`${tumorId}__${key}`];
+      if (prefixada !== undefined && prefixada !== null) return String(prefixada).trim();
+      return '';
+    }
+
+    CHAVES_COMUNS.forEach((k) => {
+      const v = bruto[k];
+      out[k] = v === undefined || v === null ? '' : String(v).trim();
+    });
+
     if (!tumor) return out;
+
     fieldsOf(tumor).forEach((field) => {
       if (isComum(field.key)) return;
-      out[field.key] = (raw && raw[scopedKey(tumor.id, field.key)]) || '';
+      out[field.key] = encaixarValor(ler(tumor.id, field.key), field.options);
     });
     return out;
   }
 
   return {
     REGISTRY, ORDER, get, list, labels,
-    fieldsOf, schemaFields, unscope, scopedKey, isComum, CHAVES_COMUNS,
+    fieldsOf, schemaFields, normalizar, acharTumorPorLabel, encaixarValor, isComum, CHAVES_COMUNS,
     helpers: { norm, lower, has, filled, num, estadioNumero, estadioAvancado, estadioInicial, grauAlto, grauBaixo },
   };
 });

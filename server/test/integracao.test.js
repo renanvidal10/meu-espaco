@@ -379,7 +379,7 @@ test('subtipo não identificado volta sem inventar campo', async () => {
 
 /* ==================== O QUE O SERVIDOR ENVIA ==================== */
 
-test('o schema enviado tem um bloco de campos por tumor, sem colisão', async () => {
+test('o schema enviado usa chaves simples e cobre os valores de todos os tumores', async () => {
   stub.limpar();
   stub.responderCom({ tipo: 'ok', extracao: { tipo_tumor: 'Próstata' } });
   await extrair({ texto: 'caso' });
@@ -387,17 +387,24 @@ test('o schema enviado tem um bloco de campos por tumor, sem colisão', async ()
   const schema = stub.ultima().corpo.output_config.format.schema;
   const chaves = Object.keys(schema.properties);
 
-  // Cada tumor com lista fechada precisa da SUA lista.
-  const extensoes = chaves.filter((k) => k.endsWith('extensao_doenca'));
-  assert.strictEqual(extensoes.length, 5, 'extensão da doença deveria existir uma vez por tumor');
-  const prostata = schema.properties['prostata__extensao_doenca'];
-  assert.ok(prostata.enum.includes('Metastático resistente à castração (mCRPC)'),
-    'a lista da próstata não chegou ao modelo');
-  const mama = schema.properties['mama__extensao_doenca'];
-  assert.ok(!mama.enum.includes('Metastático resistente à castração (mCRPC)'),
-    'a lista de um tumor vazou para outro');
+  // Nenhuma chave sintética: foi o desenho que o modelo ignorou em produção.
+  chaves.forEach((k) => assert.doesNotMatch(k, /__/, `chave sintética no schema: ${k}`));
 
-  // Campos comuns aparecem uma vez só, sem prefixo.
+  // extensao_doenca existe UMA vez, com a união dos valores dos cinco tumores.
+  assert.strictEqual(chaves.filter((k) => k === 'extensao_doenca').length, 1);
+  const ext = schema.properties.extensao_doenca;
+  ['Metastático resistente à castração (mCRPC)', 'Linfonodo positivo (N1)', 'Ressecável',
+   'Localizado / ressecado', 'Inicial (ressecável)', 'Inicial (operável)'].forEach((v) => {
+    assert.ok(ext.enum.includes(v), `o valor "${v}" não chegou ao modelo`);
+  });
+  assert.ok(ext.enum.includes(''), 'falta a string vazia para "não se aplica"');
+  // A descrição precisa dizer quais valores pertencem a qual subtipo.
+  assert.match(ext.description, /Próstata/);
+  assert.match(ext.description, /mCRPC/);
+
+  // histologia é texto livre: tem lista fechada só no pulmão.
+  assert.ok(!schema.properties.histologia.enum, 'histologia com enum travaria os outros seis tumores');
+
   TUMORS.CHAVES_COMUNS.forEach((k) => {
     assert.ok(chaves.includes(k), `campo comum ${k} ausente`);
     assert.strictEqual(chaves.filter((c) => c === k).length, 1);
@@ -405,6 +412,28 @@ test('o schema enviado tem um bloco de campos por tumor, sem colisão', async ()
 
   assert.strictEqual(schema.additionalProperties, false);
   assert.deepStrictEqual([...schema.required].sort(), [...chaves].sort());
+  assert.ok(chaves.length <= 25, `${chaves.length} propriedades; acima de 25 o preenchimento degrada`);
+});
+
+// O caso exato que falhou em produção: descrição em texto livre de ovário.
+test('caso de ovário em texto livre volta com histologia, grau e estágio', async () => {
+  stub.limpar();
+  stub.responderCom({
+    tipo: 'ok',
+    extracao: {
+      tipo_tumor: 'Ginecológico - Ovário',
+      histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC',
+      idade: '61', historico_familiar: 'Irmã com câncer de mama aos 45 anos',
+    },
+  });
+  const { corpo } = await extrair({
+    texto: 'Mulher 61 anos com câncer epitelial de ovario seroso de alto grau 3c, e com irmã com câncer de mama aos 45 anos',
+  });
+  assert.strictEqual(corpo.extracted.histologia, 'Seroso');
+  assert.strictEqual(corpo.extracted.grau, 'Alto grau');
+  assert.strictEqual(corpo.extracted.estadiamento, 'IIIC');
+  assert.strictEqual(corpo.extracted.idade, '61');
+  assert.match(corpo.extracted.historico_familiar, /Irmã/);
 });
 
 test('o prompt lista os sete subtipos e exige normalização de escrita', async () => {

@@ -66,16 +66,13 @@ function buildSchema() {
     },
   };
 
-  // Um bloco de campos por tumor, com chave namespaced. Campos comuns entram
-  // uma vez só. Ver a explicação longa em public/tumors.js: fundir chaves
-  // iguais fazia a lista de valores de um tumor valer para todos.
+  // Chave simples e natural, uma por campo. Ver a explicação longa em
+  // public/tumors.js: a versão com prefixo por tumor ("ovario__histologia")
+  // corrigia a colisão de valores mas o modelo deixava esses campos vazios em
+  // uso real. Aqui o enum é a união dos valores de todos os tumores que usam o
+  // campo, e TUMORS.normalizar() valida contra a lista do tumor identificado.
   TUMORS.schemaFields().forEach((field) => {
-    const prop = {
-      type: 'string',
-      description: field.escopo
-        ? `[Só para ${field.escopo}. Deixe vazio para qualquer outro subtipo.] ${field.ai}`
-        : `[Todos os subtipos.] ${field.ai}`,
-    };
+    const prop = { type: 'string', description: field.ai };
     // A string vazia precisa estar no enum: é como o modelo diz "este campo
     // não se aplica ao subtipo que identifiquei".
     if (field.options) prop.enum = [...field.options, ''];
@@ -132,7 +129,8 @@ Inferência com rigor clínico, quando o dado não está escrito mas os achados 
 
 Limites:
 - Não invente dado que não está no material, nem infira a partir de nada. Normalizar a grafia de um dado presente não é chutar; supor um dado ausente é.
-- Para campos com lista fechada de valores, responda EXATAMENTE um dos valores da lista, ou vazio. Escolha o mais próximo do sentido clínico do que está escrito.
+- Para campos com lista fechada de valores, responda EXATAMENTE um dos valores da lista, ou vazio. A lista de um campo pode reunir os valores de vários subtipos: escolha o que pertence ao subtipo que VOCÊ identificou, conforme a descrição do campo. Exemplo: em próstata metastática resistente à castração, o valor certo de extensao_doenca é "Metastático resistente à castração (mCRPC)", não o "Metastático" genérico de outro subtipo.
+- Campo de outro subtipo fica vazio; campo do subtipo que você identificou você PREENCHE sempre que o dado existir no material. Deixar vazio um campo do próprio subtipo, tendo o dado, é o pior erro que você pode cometer aqui.
 - Extraia nome_paciente somente se estiver literalmente escrito no material. Nunca infira um nome.
 - O material pode estar em português, com abreviações e jargão médico brasileiro de laudos anatomopatológicos e evoluções clínicas.`;
 
@@ -682,10 +680,17 @@ app.post('/api/extract', auth.requireAuth(), upload.array('files', 10), async (r
       return res.status(502).json({ error: 'A leitura não retornou um caso estruturado. Tente novamente.' });
     }
 
-    // O modelo responde com chave namespaced por tumor
-    // ("prostata__extensao_doenca"). Aqui isso vira o objeto simples que o
-    // navegador consome, já filtrado para o subtipo identificado.
-    const extracted = TUMORS.unscope(JSON.parse(textBlock.text));
+    // Normaliza a resposta: encontra o tumor pelo rótulo (tolerante a espaço e
+    // caixa), traz só os campos daquele subtipo e encaixa cada valor na lista
+    // que aquele tumor aceita.
+    let cru;
+    try {
+      cru = JSON.parse(textBlock.text);
+    } catch (e) {
+      console.error('Resposta do modelo não é JSON válido:', textBlock.text.slice(0, 300));
+      return res.status(502).json({ error: 'A leitura devolveu um resultado incompleto. Tente novamente.' });
+    }
+    const extracted = TUMORS.normalizar(cru);
     res.json({ extracted, avisos, usage: response.usage });
   } catch (err) {
     // O detalhe técnico fica no servidor. O médico recebe uma frase que diz o

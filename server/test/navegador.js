@@ -27,17 +27,15 @@ async function entrar(p) {
   }
 }
 
+// Simula a resposta do modelo com as MESMAS chaves simples do schema real e
+// aplica a MESMA normalização do servidor - senão o teste valida um caminho
+// que não existe em produção.
 function mockExtracao(p, dados, avisos = []) {
   return p.route('**/api/extract', (r) => {
-    const tumor = TUMORS.list().find((t) => t.label === dados.tipo_tumor);
-    const bruto = { tipo_tumor: dados.tipo_tumor, tipo_tumor_justificativa: dados.justificativa || '',
-                    nome_paciente: dados.nome_paciente || '', fontes_usadas: ['teste'] };
-    Object.keys(dados).forEach((k) => {
-      if (/^tipo_tumor|justificativa|nome_paciente$/.test(k)) return;
-      bruto[TUMORS.isComum(k) ? k : TUMORS.scopedKey(tumor.id, k)] = dados[k];
-    });
+    const bruto = { tipo_tumor_justificativa: dados.justificativa || '', fontes_usadas: ['teste'], ...dados };
+    delete bruto.justificativa;
     r.fulfill({ status: 200, contentType: 'application/json',
-      body: JSON.stringify({ extracted: TUMORS.unscope(bruto), avisos }) });
+      body: JSON.stringify({ extracted: TUMORS.normalizar(bruto), avisos }) });
   });
 }
 
@@ -221,7 +219,7 @@ async function rodar(nome, dispositivo) {
     const p = await ctx.newPage();
     p.on('pageerror', (e) => erros.push('nao-identificado: ' + e.message));
     await p.route('**/api/extract', (r) => r.fulfill({ status: 200, contentType: 'application/json',
-      body: JSON.stringify({ extracted: TUMORS.unscope({ tipo_tumor: 'Não identificado' }), avisos: [] }) }));
+      body: JSON.stringify({ extracted: TUMORS.normalizar({ tipo_tumor: 'Não identificado' }), avisos: [] }) }));
     await entrar(p);
     await p.fill('#case-text', 'consulta de rotina');
     await p.click('#btn-extract');
