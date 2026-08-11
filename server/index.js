@@ -65,13 +65,20 @@ function buildSchema() {
     },
   };
 
-  TUMORS.allFields().forEach((field) => {
-    const escopo = `[Preencher apenas para: ${field.tumors.join(', ')}]`;
-    const prop = { type: 'string', description: `${escopo} ${field.ai}` };
-    // enum com string vazia permite ao modelo deixar o campo em branco quando
-    // o tumor identificado não usa aquele campo.
+  // Um bloco de campos por tumor, com chave namespaced. Campos comuns entram
+  // uma vez só. Ver a explicação longa em public/tumors.js: fundir chaves
+  // iguais fazia a lista de valores de um tumor valer para todos.
+  TUMORS.schemaFields().forEach((field) => {
+    const prop = {
+      type: 'string',
+      description: field.escopo
+        ? `[Só para ${field.escopo}. Deixe vazio para qualquer outro subtipo.] ${field.ai}`
+        : `[Todos os subtipos.] ${field.ai}`,
+    };
+    // A string vazia precisa estar no enum: é como o modelo diz "este campo
+    // não se aplica ao subtipo que identifiquei".
     if (field.options) prop.enum = [...field.options, ''];
-    properties[field.key] = prop;
+    properties[field.schemaKey] = prop;
   });
 
   properties.fontes_usadas = {
@@ -94,26 +101,39 @@ function buildSchema() {
 
 const UNIFIED_SCHEMA = buildSchema();
 
-const UNIFIED_SYSTEM_PROMPT = `Você é o motor de extração clínica do OncoGenYX, uma ferramenta de triagem genética em oncologia.
+const UNIFIED_SYSTEM_PROMPT = `Você é o motor de extração clínica do OncoGenYX, uma ferramenta de triagem genética em oncologia. Quem lê o material do outro lado é um oncologista, e o que você extrai vira a base de uma solicitação de exame assinada por ele.
 
 Sua tarefa tem duas etapas, nessa ordem:
 
 1. IDENTIFIQUE o subtipo oncológico a partir do próprio material (texto digitado, laudo em PDF, foto de laudo) e preencha tipo_tumor e tipo_tumor_justificativa. Pistas por subtipo:
 ${TUMORS.list().map((t) => `   - ${t.label}: ${t.detect}`).join('\n')}
-   Use "Não identificado" apenas se o material realmente não permitir determinar com segurança — nesse caso deixe todos os demais campos vazios.
+   Use "Não identificado" apenas se o material realmente não permitir determinar com segurança.
 
-2. EXTRAIA somente os campos marcados para o subtipo que você identificou. Cada campo traz, na própria descrição, para quais tumores ele deve ser preenchido. Campos de outros tumores ficam vazios. Os campos comuns (faixa etária, histórico familiar, testes prévios, fontes, nome) preencha sempre que disponíveis.
+2. PREENCHA os campos do subtipo identificado. Cada campo diz, na própria descrição, a qual subtipo pertence. Campos de outros subtipos ficam vazios. Os campos marcados "[Todos os subtipos.]" você preenche sempre que o dado existir.
 
 Você NÃO decide qual teste pedir e NÃO dá conduta terapêutica — apenas estrutura o que está no material. A decisão de indicação é do motor de regras da plataforma.
 
-Regras de interpretação:
-- Interprete o SENTIDO clínico, nunca faça transcrição literal ingênua. Normalize para a nomenclatura padrão mesmo quando a escrita for não-canônica: numeral arábico em vez de romano ("estadiamento 3C" para "IIIC"), abreviação, sinônimo, jargão de prontuário brasileiro, ou notação TNM.
-- Estadiamento frequentemente não está escrito por extenso e precisa ser inferido dos achados cirúrgicos e patológicos (lateralidade, integridade da cápsula, envolvimento de superfície, contagem de linfonodos por sítio, achados peritoneais/omentais). Faça a inferência com o rigor de um oncologista da especialidade e explique o raciocínio no campo de justificativa correspondente.
+=== A REGRA MAIS IMPORTANTE ===
+
+Você INTERPRETA, não transcreve. Um dado escrito de forma não-canônica é um dado PRESENTE, e deixá-lo em branco é um erro grave — não é prudência. Só deixe vazio o que realmente não está no material.
+
+Normalize sempre, inclusive quando a escrita for informal, abreviada, com erro de digitação ou fora do padrão do laudo:
+- Numeral arábico para romano: "estágio 4" → "IV"; "estadiamento 3C" → "IIIC"; "EC IIIB" → "IIIB".
+- Erro de digitação e grafia aproximada: "endometeioide"/"endometrioide"/"endometrióide" → "Endometrioide"; "ceroso" → "Seroso"; "adeno" → "Adenocarcinoma".
+- Idade em qualquer forma: "Paciente de 86 anos" → "86"; "mulher, 61a" → "61"; "sexagenária" → vazio (não é idade exata).
+- Grau: "G3", "grau 3", "pouco diferenciado", "alto grau" → "Alto grau"; "G1", "grau 1", "bem diferenciado" → "Baixo grau".
+- Jargão de prontuário brasileiro: "CA de ovário" → carcinoma de ovário; "bloqueio hormonal" → terapia de privação androgênica.
+
+Inferência com rigor clínico, quando o dado não está escrito mas os achados o determinam:
+- Estadiamento costuma precisar ser inferido dos achados cirúrgicos e patológicos (lateralidade, integridade da cápsula, envolvimento de superfície, linfonodos por sítio, achados peritoneais/omentais) ou do TNM. Faça a inferência e explique no campo de justificativa correspondente.
+- Extensão da doença vem do contexto: metástase à distância (M1) indica doença metastática; início de bloqueio hormonal pela primeira vez sugere hormônio-sensível; progressão sob enzalutamida/abiraterona sugere resistência à castração.
 - Grau histopatológico e estadiamento são eixos independentes — nunca deduza um a partir do outro.
-- Extensão da doença costuma vir do contexto: metástase à distância (M1) indica doença metastática; início de bloqueio hormonal pela primeira vez sugere hormônio-sensível; progressão sob terapia hormonal sugere resistência à castração.
-- O material pode estar em português, com abreviações e jargão médico brasileiro de laudos anatomopatológicos e evoluções clínicas.
-- Não invente dado que não está no material. Campo vazio é melhor que chute — mas normalizar a grafia de um dado que está lá não é chutar, é interpretar corretamente.
-- Extraia nome_paciente somente se estiver literalmente escrito no material. Nunca infira um nome.`;
+
+Limites:
+- Não invente dado que não está no material, nem infira a partir de nada. Normalizar a grafia de um dado presente não é chutar; supor um dado ausente é.
+- Para campos com lista fechada de valores, responda EXATAMENTE um dos valores da lista, ou vazio. Escolha o mais próximo do sentido clínico do que está escrito.
+- Extraia nome_paciente somente se estiver literalmente escrito no material. Nunca infira um nome.
+- O material pode estar em português, com abreviações e jargão médico brasileiro de laudos anatomopatológicos e evoluções clínicas.`;
 
 /* ============================ AUTENTICAÇÃO ============================ */
 
@@ -541,7 +561,10 @@ app.post('/api/extract', auth.requireAuth(), upload.array('files', 10), async (r
       return res.status(502).json({ error: 'A extração não retornou texto estruturado.' });
     }
 
-    const extracted = JSON.parse(textBlock.text);
+    // O modelo responde com chave namespaced por tumor
+    // ("prostata__extensao_doenca"). Aqui isso vira o objeto simples que o
+    // navegador consome, já filtrado para o subtipo identificado.
+    const extracted = TUMORS.unscope(JSON.parse(textBlock.text));
     res.json({ extracted, usage: response.usage });
   } catch (err) {
     console.error('Erro na extração:', err);

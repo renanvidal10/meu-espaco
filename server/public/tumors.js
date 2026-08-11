@@ -42,6 +42,54 @@
   function lower(value) {
     return String(value || '').toLowerCase();
   }
+  /* ------------------------------------------------------------------ *
+   * Normalizadores clínicos.
+   *
+   * O campo da revisão é editável: o médico corrige à mão e escreve do jeito
+   * dele. "4", "IV", "Estágio IV", "EC 4" são o mesmo estádio; "G3", "grau 3"
+   * e "pouco diferenciado" são o mesmo grau. A regra tem que entender todos -
+   * senão o motor devolve "sem indicação" para um caso que tem indicação, que
+   * é o pior erro possível aqui.
+   * ------------------------------------------------------------------ */
+  const ROMANOS = { i: 1, ii: 2, iii: 3, iv: 4 };
+
+  // Devolve o número do estádio (1 a 4) ou null. Aceita romano e arábico,
+  // com ou sem subletra, com ou sem a palavra "estágio/estadiamento/FIGO/EC".
+  function estadioNumero(value) {
+    const v = norm(value)
+      .replace(/\b(estadio|estadiamento|estagio|figo|ec|stage)\b/g, ' ')
+      .replace(/[^a-z0-9]/g, ' ')
+      .trim();
+    if (!v) return null;
+    const romano = v.match(/\b(iv|iii|ii|i)\b/) || v.match(/^(iv|iii|ii|i)[abc]?\b/);
+    if (romano) return ROMANOS[romano[1]];
+    const arabico = v.match(/\b([1-4])\b/) || v.match(/^([1-4])[abc]?\b/);
+    if (arabico) return parseInt(arabico[1], 10);
+    return null;
+  }
+  function estadioAvancado(value) {
+    const n = estadioNumero(value);
+    return n !== null && n >= 3;
+  }
+  function estadioInicial(value) {
+    const n = estadioNumero(value);
+    return n !== null && n <= 2;
+  }
+
+  // Grau alto/baixo tolerando escala numérica, ISUP e descrição verbal.
+  function grauAlto(value) {
+    if (!filled(value)) return false;
+    if (has(value, 'alto', 'high grade')) return true;
+    if (has(value, 'pouco diferenciado', 'indiferenciado')) return true;
+    return /\b(g\s*[23]|grau\s*[23])\b/.test(norm(value));
+  }
+  function grauBaixo(value) {
+    if (!filled(value)) return false;
+    if (has(value, 'baixo', 'low grade')) return true;
+    if (has(value, 'bem diferenciado')) return true;
+    return /\b(g\s*1|grau\s*1)\b/.test(norm(value));
+  }
+
   // Número tolerante a vírgula decimal e a unidade colada ("18,4 ng/mL").
   function num(value) {
     const match = String(value || '').replace(',', '.').match(/-?\d+(\.\d+)?/);
@@ -78,11 +126,15 @@
   /* ------------------------------------------------------------------ *
    * Campos comuns a todos os tumores.
    * ------------------------------------------------------------------ */
+  // Idade em anos, não faixa. A faixa quinquenal existia por pseudonimização,
+  // mas idade isolada não identifica ninguém e é critério clínico direto em
+  // vários sítios (mama <=50). Pedir faixa obrigava o motor a adivinhar o
+  // limite quando a idade estava escrita com todas as letras no material.
   const CAMPO_IDADE = {
-    key: 'idade_faixa',
-    label: 'Faixa etária',
-    placeholder: 'Ex.: 60-64 anos',
-    ai: 'Faixa etária de 5 anos (ex.: "60-64 anos"). Vazio se não informado.',
+    key: 'idade',
+    label: 'Idade (anos)',
+    placeholder: 'Ex.: 62',
+    ai: 'Idade do paciente em anos, apenas o número. Extraia de qualquer forma que apareça ("86 anos", "paciente de 86a", "oitenta e seis anos" -> "86"). Vazio se não informado.',
   };
   const CAMPO_HISTORICO = {
     key: 'historico_familiar',
@@ -117,7 +169,7 @@
     short: 'Ovário',
     detect: 'carcinoma de ovário, tuba uterina ou peritônio; menção a estadiamento FIGO, CA-125, histologia serosa/endometrioide/células claras/mucinosa de ovário',
     fields: [
-      { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Seroso',
+      { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Seroso', decisivo: true,
         ai: 'Histologia do tumor de ovário (ex.: "Seroso", "Endometrioide", "Células claras", "Mucinoso", "Carcinossarcoma").' },
       { key: 'grau', label: 'Grau (laudo patológico)', placeholder: 'Ex.: Alto grau',
         ai: 'Grau histopatológico: "Alto grau" ou "Baixo grau". "G3"/"grau 3" é alto grau; "G1"/"grau 1" é baixo grau. Nunca deduza a partir do estágio - grau e estágio são eixos independentes.' },
@@ -130,6 +182,10 @@
     // Só sinaliza grau/estágio como pendentes quando eles realmente mudam o
     // resultado - ou seja, quando a histologia é elegível ao par somático.
     relevance(v) {
+      // Sem histologia ainda não se sabe se grau e estágio importam. Dizer
+      // "não influencia" nesse momento é informação errada: influencia sim,
+      // assim que a histologia for preenchida.
+      if (!filled(v.histologia)) return null;
       const elegivel = HISTOLOGIAS_HRD.some((h) => has(v.histologia, h));
       return { grau: elegivel, estadiamento: elegivel };
     },
@@ -169,10 +225,10 @@
         };
       }
 
-      const altoGrau = has(v.grau, 'alto');
-      const baixoGrau = has(v.grau, 'baixo');
-      const avancado = /^(iii|iv)/i.test(norm(v.estadiamento));
-      const inicial = filled(v.estadiamento) && !avancado;
+      const altoGrau = grauAlto(v.grau);
+      const baixoGrau = grauBaixo(v.grau);
+      const avancado = estadioAvancado(v.estadiamento);
+      const inicial = estadioInicial(v.estadiamento);
 
       if (baixoGrau || inicial) {
         return {
@@ -223,7 +279,7 @@
         ai: 'Escore de Gleason e/ou Grade Group (ISUP), como relatado.' },
       { key: 'psa', label: 'PSA (ng/mL)', placeholder: 'Ex.: 18,4',
         ai: 'PSA em ng/mL, como relatado.' },
-      { key: 'extensao_doenca', label: 'Extensão da doença', placeholder: 'Ex.: Metastático resistente à castração (mCRPC)',
+      { key: 'extensao_doenca', label: 'Extensão da doença', placeholder: 'Ex.: Metastático resistente à castração (mCRPC)', decisivo: true,
         justify: 'extensao_justificativa',
         options: ['Localizado', 'Linfonodo positivo (N1)', 'Metastático hormônio-sensível (mHSPC)', 'Metastático resistente à castração (mCRPC)'],
         ai: 'Extensão da doença. Infira do TNM e do contexto: M1 = metastático; início de bloqueio hormonal/ADT pela primeira vez = mHSPC; progressão em enzalutamida/abiraterona = mCRPC; linfonodo regional positivo sem metástase à distância = "Linfonodo positivo (N1)". Explique em extensao_justificativa quando inferir.' },
@@ -326,21 +382,19 @@
     fields: [
       { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Carcinoma ductal invasivo',
         ai: 'Histologia (ex.: "Carcinoma ductal invasivo", "Carcinoma lobular invasivo").' },
-      { key: 'subtipo_molecular', label: 'Subtipo (RE/RP/HER2)', placeholder: 'Ex.: Triplo-negativo',
+      { key: 'subtipo_molecular', label: 'Subtipo (RE/RP/HER2)', placeholder: 'Ex.: Triplo-negativo', decisivo: true,
         options: ['Luminal (RH+/HER2-)', 'HER2 positivo', 'Triplo-negativo'],
         ai: 'Subtipo por imuno-histoquímica. RE e/ou RP positivos com HER2 negativo = "Luminal (RH+/HER2-)". HER2 positivo (IHQ 3+ ou FISH amplificado) = "HER2 positivo". RE, RP e HER2 todos negativos = "Triplo-negativo".' },
-      { key: 'extensao_doenca', label: 'Extensão da doença', placeholder: 'Ex.: Inicial (operável)',
+      { key: 'extensao_doenca', label: 'Extensão da doença', placeholder: 'Ex.: Inicial (operável)', decisivo: true,
         options: ['Inicial (operável)', 'Localmente avançado', 'Metastático'],
         justify: 'extensao_justificativa',
         ai: 'Extensão: "Inicial (operável)", "Localmente avançado" ou "Metastático". Infira do TNM e do contexto clínico e explique em extensao_justificativa quando inferir.' },
-      { key: 'idade_diagnostico', label: 'Idade ao diagnóstico', placeholder: 'Ex.: 44',
-        ai: 'Idade em anos ao diagnóstico do câncer de mama, apenas o número.' },
       ...COMUNS,
     ],
     hint: 'Subtipo (RE/RP/HER2) e idade ao diagnóstico são os eixos que mais mudam a indicação germinativa. Extensão da doença define o teste somático.',
     classify(v) {
       const subtipo = v.subtipo_molecular;
-      const idade = num(v.idade_diagnostico);
+      const idade = num(v.idade);
       const metastatico = has(v.extensao_doenca, 'metastatico');
       const triploNeg = has(subtipo, 'triplo');
       const luminal = has(subtipo, 'luminal', 'rh+');
@@ -415,9 +469,9 @@
     short: 'Pâncreas',
     detect: 'adenocarcinoma ductal de pâncreas; menção a CA 19-9, cabeça/corpo/cauda do pâncreas, FOLFIRINOX, gencitabina',
     fields: [
-      { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Adenocarcinoma ductal',
+      { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Adenocarcinoma ductal', decisivo: true,
         ai: 'Histologia (ex.: "Adenocarcinoma ductal", "Neuroendócrino"). O critério de teste universal vale para adenocarcinoma ductal (PDAC).' },
-      { key: 'extensao_doenca', label: 'Extensão da doença', placeholder: 'Ex.: Metastático',
+      { key: 'extensao_doenca', label: 'Extensão da doença', placeholder: 'Ex.: Metastático', decisivo: true,
         options: ['Ressecável', 'Borderline / localmente avançado', 'Metastático'],
         justify: 'extensao_justificativa',
         ai: 'Extensão: "Ressecável", "Borderline / localmente avançado" ou "Metastático". Explique em extensao_justificativa quando inferir.' },
@@ -490,11 +544,11 @@
     fields: [
       { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Adenocarcinoma',
         ai: 'Histologia (ex.: "Adenocarcinoma", "Adenocarcinoma mucinoso").' },
-      { key: 'extensao_doenca', label: 'Extensão da doença', placeholder: 'Ex.: Metastático',
+      { key: 'extensao_doenca', label: 'Extensão da doença', placeholder: 'Ex.: Metastático', decisivo: true,
         options: ['Localizado / ressecado', 'Metastático'],
         justify: 'extensao_justificativa',
         ai: 'Extensão: "Localizado / ressecado" ou "Metastático". Explique em extensao_justificativa quando inferir.' },
-      { key: 'mmr_msi', label: 'Status MMR / MSI (se já feito)', placeholder: 'Ex.: dMMR / MSI-alto',
+      { key: 'mmr_msi', label: 'Status MMR / MSI (se já feito)', placeholder: 'Ex.: dMMR / MSI-alto', decisivo: true,
         options: ['dMMR / MSI-alto', 'pMMR / MSS', 'Não realizado'],
         ai: 'Status de reparo de erro de pareamento: "dMMR / MSI-alto", "pMMR / MSS" ou "Não realizado" se ainda não foi testado.' },
       ...COMUNS,
@@ -577,12 +631,12 @@
     short: 'Endométrio',
     detect: 'carcinoma de endométrio ou uterino; menção a endometrioide de útero, seroso uterino, histerectomia, POLE, classificação molecular de endométrio',
     fields: [
-      { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Endometrioide',
+      { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Endometrioide', decisivo: true,
         ai: 'Histologia do carcinoma de endométrio (ex.: "Endometrioide", "Seroso", "Células claras", "Carcinossarcoma").' },
       { key: 'estadiamento', label: 'Estadiamento (FIGO)', placeholder: 'Ex.: IA',
         justify: 'estadiamento_justificativa',
         ai: 'Estágio FIGO no formato canônico romano. Normalize "1A" para "IA". Explique em estadiamento_justificativa quando inferir.' },
-      { key: 'mmr_msi', label: 'Status MMR / MSI (se já feito)', placeholder: 'Ex.: dMMR',
+      { key: 'mmr_msi', label: 'Status MMR / MSI (se já feito)', placeholder: 'Ex.: dMMR', decisivo: true,
         options: ['dMMR / MSI-alto', 'pMMR / MSS', 'Não realizado'],
         ai: 'Status de reparo: "dMMR / MSI-alto", "pMMR / MSS" ou "Não realizado".' },
       ...COMUNS,
@@ -653,10 +707,10 @@
     short: 'Pulmão',
     detect: 'câncer de pulmão; menção a adenocarcinoma pulmonar, carcinoma escamoso de pulmão, NSCLC, EGFR, ALK, ROS1, PD-L1, nódulo pulmonar',
     fields: [
-      { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Adenocarcinoma',
+      { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Adenocarcinoma', decisivo: true,
         options: ['Adenocarcinoma', 'Carcinoma escamoso', 'Não pequenas células sem outra especificação', 'Pequenas células'],
         ai: 'Histologia pulmonar. "Pequenas células" é uma via clínica distinta e deve ser marcada como tal quando for o caso.' },
-      { key: 'extensao_doenca', label: 'Extensão da doença', placeholder: 'Ex.: Metastático',
+      { key: 'extensao_doenca', label: 'Extensão da doença', placeholder: 'Ex.: Metastático', decisivo: true,
         options: ['Inicial (ressecável)', 'Localmente avançado', 'Metastático'],
         justify: 'extensao_justificativa',
         ai: 'Extensão: "Inicial (ressecável)", "Localmente avançado" ou "Metastático". Explique em extensao_justificativa quando inferir.' },
@@ -733,27 +787,89 @@
   function list() { return ORDER.map((id) => REGISTRY[id]); }
   function labels() { return list().map((t) => t.label); }
 
-  // Todos os campos distintos, com o tumor de origem — usado para montar o
-  // schema único de extração no servidor.
-  function allFields() {
-    const seen = new Map();
-    list().forEach((tumor) => {
-      tumor.fields.forEach((field) => {
-        if (!seen.has(field.key)) seen.set(field.key, { ...field, tumors: [tumor.short] });
-        else seen.get(field.key).tumors.push(tumor.short);
-        if (field.justify && !seen.has(field.justify)) {
-          seen.set(field.justify, {
-            key: field.justify,
-            label: 'Justificativa',
-            ai: `Se o campo "${field.key}" foi inferido e não estava escrito literalmente, explique em 1-2 frases quais achados levaram à conclusão. Vazio caso contrário.`,
-            internal: true,
-            tumors: [tumor.short],
-          });
-        }
-      });
+  /* ------------------------------------------------------------------ *
+   * Campos comuns x campos de tumor.
+   *
+   * Chaves iguais entre tumores NÃO podem ser fundidas no schema de
+   * extração: "extensao_doenca" existe em cinco tumores com listas de
+   * valores completamente diferentes (mCRPC só na próstata, "Ressecável"
+   * só no pâncreas), e "histologia" existe nos sete com descrições
+   * diferentes. Fundir fazia o schema levar a lista de UM tumor e aplicá-la
+   * a todos - na prática, mCRPC e N1 eram impossíveis de extrair.
+   *
+   * Por isso o schema usa chave namespaced por tumor ("prostata__extensao_doenca").
+   * O servidor desfaz o prefixo antes de devolver ao navegador, então o
+   * restante do app continua lendo "extensao_doenca".
+   * ------------------------------------------------------------------ */
+  const CHAVES_COMUNS = COMUNS.map((f) => f.key);
+
+  function isComum(key) { return CHAVES_COMUNS.includes(key); }
+  function scopedKey(tumorId, key) { return isComum(key) ? key : `${tumorId}__${key}`; }
+
+  // Campos de um tumor, incluindo as justificativas derivadas.
+  function fieldsOf(tumor) {
+    const out = [];
+    tumor.fields.forEach((field) => {
+      out.push(field);
+      if (field.justify) {
+        out.push({
+          key: field.justify,
+          label: 'Justificativa',
+          ai: `Se "${field.label}" não estava escrito literalmente e você inferiu a partir de outros achados, explique em 1-2 frases o que levou à conclusão. Vazio se o dado estava escrito.`,
+          internal: true,
+        });
+      }
     });
-    return Array.from(seen.values());
+    return out;
   }
 
-  return { REGISTRY, ORDER, get, list, labels, allFields, helpers: { norm, lower, has, filled, num } };
+  // Descrição de todos os campos do schema de extração, já com a chave final.
+  // Campos comuns aparecem uma vez; campos de tumor aparecem um por tumor,
+  // cada um com a sua própria descrição e a sua própria lista de valores.
+  function schemaFields() {
+    const out = [];
+    const comunsVistos = new Set();
+    list().forEach((tumor) => {
+      fieldsOf(tumor).forEach((field) => {
+        if (isComum(field.key)) {
+          if (comunsVistos.has(field.key)) return;
+          comunsVistos.add(field.key);
+          out.push({ ...field, schemaKey: field.key, escopo: null });
+          return;
+        }
+        out.push({
+          ...field,
+          schemaKey: scopedKey(tumor.id, field.key),
+          escopo: tumor.label,
+          tumorId: tumor.id,
+        });
+      });
+    });
+    return out;
+  }
+
+  // Converte a resposta do modelo (chaves namespaced) no objeto simples que o
+  // navegador consome. Só traz os campos do tumor identificado.
+  function unscope(raw) {
+    const tumor = list().find((t) => t.label === (raw && raw.tipo_tumor));
+    const out = {
+      tipo_tumor: (raw && raw.tipo_tumor) || '',
+      tipo_tumor_justificativa: (raw && raw.tipo_tumor_justificativa) || '',
+      fontes_usadas: (raw && raw.fontes_usadas) || [],
+      nome_paciente: (raw && raw.nome_paciente) || '',
+    };
+    CHAVES_COMUNS.forEach((k) => { out[k] = (raw && raw[k]) || ''; });
+    if (!tumor) return out;
+    fieldsOf(tumor).forEach((field) => {
+      if (isComum(field.key)) return;
+      out[field.key] = (raw && raw[scopedKey(tumor.id, field.key)]) || '';
+    });
+    return out;
+  }
+
+  return {
+    REGISTRY, ORDER, get, list, labels,
+    fieldsOf, schemaFields, unscope, scopedKey, isComum, CHAVES_COMUNS,
+    helpers: { norm, lower, has, filled, num, estadioNumero, estadioAvancado, estadioInicial, grauAlto, grauBaixo },
+  };
 });

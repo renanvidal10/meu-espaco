@@ -1237,6 +1237,97 @@
     border-radius: 3px;
     cursor: text;
   }
+  /* ---- faixa de cobertura (tela 1) ----
+     Sete subtipos numa frase corrida viravam um parágrafo que ninguém lê.
+     Como chips, viram uma informação escaneável de relance. */
+  .cobertura {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    margin: 0 0 22px;
+  }
+  .cobertura-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-right: 2px;
+  }
+  .chips { display: contents; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 3px 10px;
+    white-space: nowrap;
+  }
+  .como-funciona {
+    margin-left: auto;
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+  @media (max-width: 560px) {
+    /* Linha própria: solto no meio dos chips, o link parecia mais um chip. */
+    .como-funciona { margin-left: 0; flex-basis: 100%; text-align: left; padding-top: 2px; }
+  }
+
+  /* ---- modal de boas-vindas ----
+     Aparece uma vez por navegador. O fluxo tem quatro passos, mas ninguém
+     lê um parágrafo de instrução antes de começar - então a explicação vem
+     em três linhas e sai da frente. */
+  .modal-fundo {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(20, 30, 26, 0.5);
+    backdrop-filter: blur(2px);
+  }
+  .modal-fundo.aberto { display: flex; }
+  .modal {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 30px 70px -30px rgba(20, 30, 26, 0.55);
+    padding: 24px 22px 20px;
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    animation: modal-entra .2s ease both;
+  }
+  @keyframes modal-entra { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .modal { animation: none; } }
+  .modal h2 { font-size: 18px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .modal .modal-sub { font-size: 12.5px; color: var(--ink-muted); margin: 0 0 18px; line-height: 1.5; }
+  .modal-passos { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+  .modal-passo { display: flex; gap: 12px; align-items: flex-start; }
+  .modal-passo .n {
+    flex-shrink: 0;
+    width: 24px; height: 24px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-soft-border);
+    color: var(--accent);
+    font-size: 11.5px; font-weight: 700;
+  }
+  .modal-passo strong { display: block; font-size: 13px; margin-bottom: 2px; }
+  .modal-passo span { font-size: 12px; color: var(--ink-muted); line-height: 1.45; }
+  .modal-rodape { display: flex; align-items: center; gap: 10px; }
+  .modal-rodape .primary { flex: 1; min-height: 44px; }
+  .modal-nota { font-size: 11px; color: var(--ink-faint); margin: 12px 0 0; line-height: 1.45; }
+
   .step-curto { display: none; }
 
   /* ==================== CELULAR / APLICATIVO INSTALADO ====================
@@ -1570,13 +1661,18 @@
   <section class="screen active" id="screen-0">
     <div class="eyebrow" id="eyebrow-0">Oncologia · passo 1 de 4</div>
     <h1>Descreva o caso</h1>
-    <p class="lede">Descreva o caso com suas palavras ou anexe o laudo - a plataforma identifica sozinha o subtipo oncológico e aplica os critérios daquela especialidade. Você também pode chamar a Gena, no canto da tela, e reunir o caso conversando.</p>
-    <p class="hint" id="tumores-cobertos" style="margin:-10px 0 20px;"></p>
+    <p class="lede">Anexe o laudo ou descreva o caso. O subtipo oncológico é identificado sozinho.</p>
+
+    <div class="cobertura">
+      <span class="cobertura-label">Cobertura</span>
+      <span class="chips" id="tumores-cobertos"></span>
+      <button class="linklike como-funciona" type="button" onclick="abrirBoasVindas()">Como funciona</button>
+    </div>
 
     <div class="mode-panel active" id="mode-form">
       <div class="card">
         <h3>Como você quer inserir os dados?</h3>
-        <p class="hint">Pode combinar mais de uma fonte para o mesmo caso. Arraste arquivos pra qualquer lugar desta área, ou clique nos tiles abaixo pra selecionar (pode escolher vários de uma vez).</p>
+        <p class="hint">Pode combinar mais de uma fonte. Arraste arquivos para esta área ou escolha abaixo.</p>
         <div class="dropzone" id="dropzone">
           <div class="intake-grid">
             <button class="intake-tile" id="tile-pdf" type="button" onclick="document.getElementById('input-pdf').click()">
@@ -1611,7 +1707,7 @@
         </div>
         <div class="ocr-disclaimer" id="extract-error" style="display:none; background:#fde2e2; color:#7a1f1f;"></div>
 
-        <textarea id="case-text" placeholder="Descreva o caso com suas palavras, ou cole uma transcrição. Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC, mãe com câncer de mama aos 58 anos, sem teste genético prévio..."></textarea>
+        <textarea id="case-text" placeholder="Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC."></textarea>
 
         <div class="voice-panel" id="voice-panel">
           <div class="voice-row">
@@ -1760,6 +1856,43 @@
   </section>
 
 </main>
+
+<!-- ===================== BOAS-VINDAS ===================== -->
+<div class="modal-fundo" id="boas-vindas" role="dialog" aria-modal="true" aria-labelledby="bv-titulo">
+  <div class="modal">
+    <h2 id="bv-titulo">Como o OncoGenYX funciona</h2>
+    <p class="modal-sub">Três passos até a solicitação pronta para assinar.</p>
+
+    <div class="modal-passos">
+      <div class="modal-passo">
+        <span class="n">1</span>
+        <div>
+          <strong>Entre com o caso</strong>
+          <span>Laudo em PDF, foto, texto colado ou ditado por voz. Pode combinar mais de um.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">2</span>
+        <div>
+          <strong>Confira o que foi lido</strong>
+          <span>O subtipo é identificado sozinho e os campos daquela especialidade aparecem preenchidos. Corrija o que precisar.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">3</span>
+        <div>
+          <strong>Receba a indicação e o documento</strong>
+          <span>Quais testes têm indicação, por quê, onde solicitar e o formulário pronto para baixar.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button class="primary" type="button" id="bv-comecar" onclick="fecharBoasVindas()">Começar</button>
+    </div>
+    <p class="modal-nota">A Gena, no canto da tela, reúne o caso conversando se você preferir. Ferramenta de apoio à decisão: não substitui julgamento médico.</p>
+  </div>
+</div>
 
 <!-- ===================== GENA — assistente flutuante ===================== -->
 <div class="gena" id="gena">
@@ -1937,6 +2070,9 @@
     applyDoctorInfo();
     document.body.classList.remove('gate-active');
     refreshPlaudStatus();
+    // Só depois de entrar: um modal por cima da tela de acesso seria um
+    // obstáculo antes mesmo de o médico saber o que é a ferramenta.
+    talvezMostrarBoasVindas();
   }
 
   // Modo de acesso vindo do servidor. Enquanto não é conhecido, a tela fica
@@ -2117,13 +2253,48 @@
   function tumor() { return TUMORS.get(currentSubtype); }
 
   // Popula o seletor uma única vez, na ordem de prevalência definida no registro.
-  // Lista os subtipos cobertos na tela 1, direto do registro: o médico sabe
-  // de antemão se o caso dele está no escopo, em vez de descobrir depois de
-  // anexar o laudo.
+  // Chips de cobertura na tela 1, direto do registro: o médico vê de relance
+  // se o caso dele está no escopo, sem ler um parágrafo.
   (function listarTumoresCobertos() {
     const el = document.getElementById('tumores-cobertos');
-    if (el) el.textContent = 'Subtipos cobertos nesta versão: ' + TUMORS.list().map((t) => t.short).join(', ') + '.';
+    if (!el) return;
+    el.innerHTML = TUMORS.list().map((t) => `<span class="chip">${t.short}</span>`).join('');
   })();
+
+  // ===================== BOAS-VINDAS =====================
+  // Mostrado uma vez por navegador. Reabrir é sempre possível pelo link
+  // "Como funciona" - a explicação não some para quem quiser consultar.
+  const BOAS_VINDAS_KEY = 'oncogenyx.boas-vindas.v1';
+  let focoAntesDoModal = null;
+
+  function abrirBoasVindas() {
+    focoAntesDoModal = document.activeElement;
+    document.getElementById('boas-vindas').classList.add('aberto');
+    setTimeout(() => document.getElementById('bv-comecar').focus(), 60);
+  }
+
+  function fecharBoasVindas() {
+    document.getElementById('boas-vindas').classList.remove('aberto');
+    try { localStorage.setItem(BOAS_VINDAS_KEY, '1'); } catch (e) { /* modo privado */ }
+    if (focoAntesDoModal && focoAntesDoModal.focus) focoAntesDoModal.focus();
+  }
+
+  // Clique no fundo e Esc fecham - um modal sem saída óbvia irrita mais do
+  // que a informação que ele carrega.
+  document.getElementById('boas-vindas').addEventListener('click', (e) => {
+    if (e.target.id === 'boas-vindas') fecharBoasVindas();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('boas-vindas').classList.contains('aberto')) {
+      fecharBoasVindas();
+    }
+  });
+
+  function talvezMostrarBoasVindas() {
+    let visto = false;
+    try { visto = localStorage.getItem(BOAS_VINDAS_KEY) === '1'; } catch (e) { visto = false; }
+    if (!visto) abrirBoasVindas();
+  }
 
   (function fillSubtypeSelect() {
     const select = document.getElementById('field-subtipo');
@@ -2190,7 +2361,10 @@
       input.className = 'value editable';
       input.id = 'f-' + field.key;
       input.value = value;
-      input.classList.toggle('missing', !value);
+      // Amarelo só em campo que muda o resultado. Pintar todo campo vazio de
+      // alerta transforma "opcional" em "erro" e treina o médico a ignorar
+      // o aviso - inclusive quando ele importa.
+      input.classList.toggle('missing', Boolean(field.decisivo) && !value);
       input.addEventListener('input', onFieldInput);
       input.addEventListener('change', onFieldInput);
       wrap.appendChild(input);
@@ -2213,7 +2387,8 @@
   }
 
   function onFieldInput(event) {
-    event.target.classList.toggle('missing', !event.target.value.trim());
+    const field = tumor().fields.find((f) => 'f-' + f.key === event.target.id);
+    event.target.classList.toggle('missing', Boolean(field && field.decisivo) && !event.target.value.trim());
     applyRelevance();
   }
 
@@ -2234,15 +2409,15 @@
   function applyRelevance() {
     const t = tumor();
     if (typeof t.relevance !== 'function') return;
-    const relevance = t.relevance(readFields());
-    Object.keys(relevance).forEach((key) => {
-      const el = document.getElementById('f-' + key);
+    const relevance = t.relevance(readFields()) || {};
+    t.fields.forEach((field) => {
+      if (!(field.key in relevance)) return;
+      const el = document.getElementById('f-' + field.key);
       if (!el) return;
-      const relevant = relevance[key];
-      el.classList.toggle('missing', relevant && !el.value.trim());
+      const relevante = relevance[field.key];
+      el.classList.toggle('missing', relevante && !el.value.trim());
       if (el.tagName === 'INPUT') {
-        const field = t.fields.find((f) => f.key === key);
-        el.placeholder = relevant ? (field.placeholder || '') : 'Não influencia a indicação neste perfil';
+        el.placeholder = relevante ? (field.placeholder || '') : 'Não se aplica a este perfil';
       }
     });
   }

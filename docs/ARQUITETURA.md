@@ -77,7 +77,7 @@ Converte o dado bruto (já pseudonimizado) em um **objeto clínico estruturado**
 ```
 CasoClinico {
   codigo_caso: "R.L.V.-0142"
-  sexo, idade_faixa
+  sexo, idade
   subtipo_oncologico: enum [Ginecológico, Geniturinário, Mama, Pulmão, ...]
   histologia, grau, estadiamento
   biomarcadores_ja_conhecidos: []
@@ -748,3 +748,95 @@ As citações permanecem nos prompts de extração quando são instrução técn
 modelo (ex.: a definição das categorias de risco na próstata), porque ali o nome
 da diretriz é o que ancora a resposta correta — e esse texto nunca é exibido ao
 médico.
+
+## 19. Incidente: colisão de chaves no schema de extração (v1.3)
+
+**O que aconteceu.** A v1.2 montava o schema de extração fundindo campos de
+mesmo nome entre tumores. `extensao_doenca` existe em cinco tumores com listas
+de valores completamente diferentes; a fusão fazia o schema levar a lista de
+**um** deles e aplicá-la a todos. Na prática, o modelo só podia responder com
+os valores da mama:
+
+| Tumor | Valores que a regra precisa | Valores que o schema permitia |
+|---|---|---|
+| Próstata | Localizado, N1, mHSPC, mCRPC | Inicial (operável), Localmente avançado, Metastático |
+| Pâncreas | Ressecável, Borderline, Metastático | idem |
+| Colorretal | Localizado / ressecado, Metastático | idem |
+| Pulmão | Inicial (ressecável), Localmente avançado, Metastático | idem |
+
+Ou seja: **mCRPC e "Linfonodo positivo (N1)" eram impossíveis de extrair.** Um
+caso de próstata metastática resistente à castração — o cenário de maior
+impacto terapêutico do sítio — não chegava íntegro ao motor. O mesmo valia para
+`histologia`, que recebia a descrição do ovário para os sete tumores e perdia a
+lista fechada do pulmão.
+
+**Por que os testes não pegaram.** A suíte de ponta a ponta simulava a
+extração e **injetava os valores corretos à mão**. Ela exercitava o motor e a
+tela, nunca o schema. Um teste que mocka a fronteira valida tudo menos a
+fronteira.
+
+**Correção.** O schema passa a usar chave namespaced por tumor
+(`prostata__extensao_doenca`), cada uma com a sua descrição e a sua lista. O
+servidor desfaz o prefixo em `TUMORS.unscope()` antes de responder, então o
+navegador continua lendo `extensao_doenca`. Ver seção 15.
+
+**O que ficou para não repetir.** `server/test/` (roda com `npm test`):
+
+- `schema.test.js` — integridade do contrato. Falha se duas chaves de schema
+  colidirem, se a lista de valores do schema divergir da do tumor, se
+  `classify()` ler um campo que o tumor não declara (pega renomeação
+  esquecida), se um teste indicado vier sem amostra, justificativa ou programa.
+- `regras.test.js` — 62 casos clínicos com grafia variada, incluindo o caso
+  real que expôs o problema.
+
+E a suíte de navegador passou a **usar o mesmo `unscope()` do servidor** em vez
+de injetar valores prontos.
+
+## 20. Tolerância de escrita no motor (v1.3)
+
+O campo da revisão é editável: o médico corrige à mão e escreve do jeito dele.
+A regra passou a normalizar antes de comparar.
+
+- `estadioNumero()` aceita romano e arábico, com ou sem subletra, com ou sem
+  prefixo: `IV`, `4`, `estágio 4`, `IIIC`, `3C`, `FIGO IV`, `EC IIIB`.
+  Antes, `/^(iii|iv)/` exigia romano — "estágio 4" era lido como estádio
+  desconhecido e o caso perdia a indicação do teste somático.
+- `grauAlto()` / `grauBaixo()` aceitam `Alto grau`, `alto`, `G3`, `grau 3`,
+  `pouco diferenciado`, `indiferenciado` — e os equivalentes de baixo grau.
+- `num()` aceita vírgula decimal e unidade colada (`18,4 ng/mL`, `86 anos`).
+- `filled()` trata `Não relatado` / `Nenhum relatado` como ausência de
+  conteúdo, não como conteúdo.
+
+A mesma exigência foi para o prompt de extração, com exemplos explícitos —
+inclusive de erro de digitação (`endometeioide` → `Endometrioide`). A regra
+declarada ao modelo é: **dado escrito de forma não-canônica é dado presente, e
+deixá-lo em branco é erro, não prudência.**
+
+### Idade unificada
+
+`idade_faixa` (faixa quinquenal) virou `idade` (anos). A faixa existia por
+pseudonimização, mas idade isolada não identifica ninguém, é critério clínico
+direto (mama ≤50) e obrigava o modelo a converter "paciente de 86 anos" numa
+faixa — conversão que ele simplesmente não fazia. Mama deixou de ter campo
+próprio de idade: era duplicidade na mesma tela.
+
+### Campo decisivo
+
+Só campo marcado `decisivo: true` no registro aparece destacado em amarelo
+quando vazio. Pintar todo campo vazio de alerta transforma "opcional" em
+"erro" e treina o médico a ignorar o aviso — inclusive quando ele importa.
+O ovário vai além: `relevance()` devolve `null` enquanto a histologia estiver
+vazia, porque nesse momento ainda não se sabe se grau e estágio influenciam.
+
+## 21. Primeiro acesso e densidade de texto (v1.3)
+
+Três correções de leitura, todas na tela 1:
+
+- **Boas-vindas em modal**, uma vez por navegador, com o fluxo em três linhas
+  e um botão "Começar". Reabre pelo link "Como funciona" — a explicação não
+  some para quem quiser consultar. Fecha com Esc, com clique no fundo e
+  devolve o foco para onde estava.
+- **Cobertura em chips** em vez de frase corrida. Sete subtipos numa linha de
+  texto viravam um parágrafo que ninguém lê; como chips, é escaneável.
+- **Textos encurtados**: o exemplo dentro do campo de texto tinha três linhas
+  e competia com o próprio campo.
