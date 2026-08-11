@@ -1362,3 +1362,96 @@ endometrioide, versão FIGO 2023, "N/A" contado como história familiar, e o
 número do PROfound descrito como "~20-25%" quando o publicado é 27,9%)
 seguem registrados e sem decisão. Nenhum deles suprime teste de paciente
 elegível.
+
+## 31. As duas auditorias que faltavam, e o que elas acharam (v1.8)
+
+A §29.5 registrava que as auditorias de **frontend/acessibilidade** e de
+**qualidade de testes** tinham sido interrompidas, e mandava não afirmar que o
+produto passava nessas duas frentes. Elas rodaram. Os relatórios completos
+estão em `docs/auditoria-frontend.md` (31 achados) e `docs/auditoria-testes.md`
+(cobertura, 50 mutações, 5 execuções para flakiness).
+
+### 31.1 O que os números diziam antes
+
+| Medida | Antes | Depois |
+|---|---|---|
+| Combinações de contraste reprovadas | 56 | 0 nas 18 medidas automaticamente |
+| Card do veredito no tema escuro | 1,88:1 | 7,86:1 |
+| Título da solicitação impresso no tema escuro | 1,17:1 sobre papel | 15,3:1 |
+| Mutações sobreviventes | 9 de 50 | 0 de 9 (reverificadas) |
+| Bateria de navegador | não executava | 48 verificações |
+| Bateria de acessibilidade | não existia | 20 verificações |
+| Testes offline | 179 | 205 |
+| Diretórios vazados em `/tmp` por execução | 5 | 0 |
+
+### 31.2 Os três achados que não eram de acessibilidade
+
+**O veredito com ✓ verde e nenhum teste.** Os quatro botões da barra de passos
+eram clicáveis desde o início. Entrar e clicar em "3 Resultado da triagem"
+produzia o card do veredito com o glifo de sucesso, título "Resultado da
+triagem", texto "-" e zero testes. Para um oncologista isso lê como *nenhum
+teste indicado*, que é um veredito clínico — produzido do nada, sem nenhum
+caso ter sido processado. É o pior modo de falha que esta interface teve.
+Agora cada passo só abre depois de ter sido calculado, e `goTo()` não
+ultrapassa isso nem por chamada direta.
+
+**A suíte apagava o banco de produção.** `robustez.test.js` carrega
+`store.js` no próprio processo e chama `limparExpirados()`, que é `DELETE`.
+`store.js` lia `DATABASE_URL` do ambiente. Numa máquina com a URL de produção
+exportada, `npm test` apagaria as sessões de médicos reais. A recusa passou a
+morar no próprio `store.js`, não no script de teste, para que esquecer de
+exportar a variável certa não cause estrago.
+
+**A bateria de navegador não rodava.** `require('playwright')` estourava
+`MODULE_NOT_FOUND` e o script morria antes do primeiro caso; ela ainda
+dependia de alguém ter deixado um servidor de pé na porta 3311. Toda a camada
+de interface estava sem verificação, aparecendo na lista de comandos como se
+existisse. **Um teste que não roda é pior que teste ausente.**
+
+### 31.3 A lição de método
+
+Três defeitos desta rodada se escondiam da própria suíte, e pelo mesmo motivo:
+**a verificação existia e não exercitava nada**.
+
+- A asserção de caractere de controle rodava dentro de um `if (status === 200)`
+  que nunca era verdadeiro. Zero asserções executadas, teste verde.
+- O teste do teto de memória aceitava `413 || 400` e passava pelo 400 do
+  multer, deixando as linhas do teto descobertas nas três medições.
+- `fonte()` lia o arquivo inteiro, comentários inclusive, então `assert.match`
+  passava se a string existisse num comentário — e comentário é exatamente
+  onde se escreve o nome do defeito recém-corrigido.
+
+O padrão comum: **um teste verde não é evidência de nada até você saber por
+qual caminho ele passou.** As correções seguem essa leitura — status exato em
+vez de alternativa, asserção fora do `if` condicional, leitura de fonte sem
+comentários, e reverificação das 9 mutações contra a árvore limpa.
+
+### 31.4 Um erro meu, pego pelos próprios testes
+
+Ao reaplicar as mutações para conferir, rodei um `git stash` seguido de `git
+checkout --` que desfez silenciosamente três correções já feitas
+(`ehDmmr`, a revogação de sessões na troca de senha, e o listener de erro de
+porta). Os arquivos voltaram ao commit anterior sem nenhum aviso.
+
+O que pegou foram os três testes escritos junto com aquelas correções, que
+falharam na execução seguinte apontando exatamente o que tinha sumido. É o
+argumento prático a favor de escrever o teste no mesmo commit da correção: ele
+protege contra o próprio autor.
+
+### 31.5 O que continua sem cobertura
+
+Honestidade sobre o que **não** foi verificado:
+
+- **`store.js` no Postgres continua com zero teste.** Todo `if (usingPostgres)`
+  nunca executou — incluindo o `ON CONFLICT` idempotente e o `consumeReset` de
+  uso único, as duas correções de concorrência que os comentários afirmam ter
+  sido feitas. Exige um Postgres real na suíte.
+- Cobertura por arquivo: `plaud.js` 29%, `email.js` 24%, `auth.js` 50% das
+  funções.
+- Validador W3C: o proxy bloqueou `validator.w3.org`. A validação estrutural
+  foi feita em navegador.
+- Leitor de tela real, Safari e Firefox: não testados. As correções de anúncio
+  foram verificadas pela árvore de acessibilidade do Chromium, que é uma boa
+  aproximação, não a coisa real.
+- Instalabilidade PWA: não há service worker; a ausência está confirmada, a
+  instalabilidade real não foi medida.
