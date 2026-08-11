@@ -1504,6 +1504,35 @@
     }
   }
 
+  /* Visível só para leitor de tela: sai do fluxo sem `display:none`, que o
+     tiraria também da árvore de acessibilidade. */
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  /* O link de salto só aparece quando recebe foco. Sem ele, quem navega por
+     teclado atravessa 7 controles de cabeçalho antes do primeiro campo, a
+     cada troca de tela. */
+  .pular-para-conteudo {
+    position: absolute;
+    left: 12px; top: -60px;
+    z-index: 200;
+    padding: 10px 16px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: 13px; font-weight: 600;
+    text-decoration: none;
+    transition: top .15s ease;
+  }
+  .pular-para-conteudo:focus { top: 12px; }
+
   /* ================================================================== *
    * ACESSIBILIDADE — correções medidas, não estimadas (ver §31)
    * Este bloco fica no fim de propósito: ele precisa vencer as regras
@@ -1553,6 +1582,7 @@
 </head>
 
 <body>
+<a class="pular-para-conteudo" href="#conteudo-principal">Pular para o conteúdo</a>
 
 <div class="gate" id="gate">
   <div class="gate-shell">
@@ -1738,14 +1768,19 @@
   </div>
 </div>
 
-<div class="steps" id="steps">
-  <button class="step-btn active" data-step="0"><span class="num">1</span><span class="step-longo">Novo caso</span><span class="step-curto">Caso</span></button>
-  <button class="step-btn" data-step="1"><span class="num">2</span><span class="step-longo">Revisão do caso</span><span class="step-curto">Revisão</span></button>
-  <button class="step-btn" data-step="2"><span class="num">3</span><span class="step-longo">Resultado da triagem</span><span class="step-curto">Resultado</span></button>
-  <button class="step-btn" data-step="3"><span class="num">4</span><span class="step-longo">Programas e solicitação</span><span class="step-curto">Programas</span></button>
-</div>
+<nav class="steps" id="steps" aria-label="Etapas da triagem">
+  <button class="step-btn active" data-step="0" aria-current="step" aria-label="Passo 1: novo caso"><span class="num" aria-hidden="true">1</span><span class="step-longo">Novo caso</span><span class="step-curto">Caso</span></button>
+  <button class="step-btn" data-step="1" aria-label="Passo 2: revisão do caso"><span class="num" aria-hidden="true">2</span><span class="step-longo">Revisão do caso</span><span class="step-curto">Revisão</span></button>
+  <button class="step-btn" data-step="2" aria-label="Passo 3: resultado da triagem"><span class="num" aria-hidden="true">3</span><span class="step-longo">Resultado da triagem</span><span class="step-curto">Resultado</span></button>
+  <button class="step-btn" data-step="3" aria-label="Passo 4: programas e solicitação"><span class="num" aria-hidden="true">4</span><span class="step-longo">Programas e solicitação</span><span class="step-curto">Programas</span></button>
+</nav>
 
-<main>
+<!-- Região viva única para anunciar a troca de tela a leitor de tela.
+     `polite` de propósito: a mudança de passo não deve interromper a leitura
+     em curso, só entrar na fila. -->
+<p id="anuncio-tela" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+
+<main id="conteudo-principal">
 
   <!-- SCREEN 1 - INGESTÃO -->
   <section class="screen active" id="screen-0">
@@ -1795,8 +1830,9 @@
         <div class="ocr-disclaimer" id="ocr-disclaimer" style="display:none;">
           PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto abaixo - tudo é combinado na estruturação do caso.
         </div>
-        <div class="ocr-disclaimer" id="extract-error" style="display:none; background:#fde2e2; color:#7a1f1f;"></div>
+        <div class="ocr-disclaimer" id="extract-error" role="alert" style="display:none; background:#fde2e2; color:#7a1f1f;"></div>
 
+        <label class="sr-only" for="case-text">Descrição do caso clínico</label>
         <textarea id="case-text" placeholder="Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC."></textarea>
 
         <div class="voice-panel" id="voice-panel">
@@ -1808,7 +1844,7 @@
             <span class="voice-time mono" id="voice-time">00:00</span>
           </div>
           <p class="hint" style="margin:8px 0 0;">O texto falado aparece direto no campo abaixo, em tempo real, à medida que você fala - o áudio nunca sai do seu navegador. Funciona no Chrome e no Edge; peça permissão de microfone quando o navegador solicitar.</p>
-          <p class="hint" id="voice-unsupported" style="display:none; margin-top:8px; color:var(--warn);">Seu navegador não suporta ditado por voz nativo. Tente no Chrome ou Edge, ou digite/cole o texto diretamente.</p>
+          <p class="hint" id="voice-unsupported" role="status" style="display:none; margin-top:8px; color:var(--warn);">Seu navegador não suporta ditado por voz nativo. Tente no Chrome ou Edge, ou digite/cole o texto diretamente.</p>
         </div>
 
         <div class="plaud-row">
@@ -1887,7 +1923,7 @@
     <div class="eyebrow" id="eyebrow-2">Oncologia · passo 3 de 4</div>
     <h1>Resultado da triagem</h1>
 
-    <div class="verdict" id="verdict-box">
+    <div class="verdict" id="verdict-box" aria-live="polite">
       <span class="glyph" id="verdict-glyph">✓</span>
       <div>
         <span class="verdict-count-pill" id="verdict-count-pill" style="display:none;"></span>
@@ -1914,7 +1950,7 @@
     <div class="eyebrow" id="eyebrow-3">Oncologia · passo 4 de 4</div>
     <h1>Programas de acesso e modelo de solicitação</h1>
     <p class="lede">A plataforma direciona ao portal oficial de cada laboratório ou parceiro - nunca processa a solicitação. Informe o nome do paciente para gerar o documento pronto para baixar e assinar.</p>
-    <p class="hint" id="programs-note" style="display:none; margin: -10px 0 20px;"></p>
+    <p class="hint" id="programs-note" role="status" style="display:none; margin: -10px 0 20px;"></p>
 
     <div class="validate-flag">
       <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
@@ -1941,7 +1977,7 @@
 
     <div class="foot-nav">
       <button class="ghost" type="button" onclick="goTo(2)">← Voltar</button>
-      <button class="primary" type="button" onclick="goTo(0)">Iniciar novo caso</button>
+      <button class="primary" type="button" onclick="clearIntake(); goTo(0);">Iniciar novo caso</button>
     </div>
   </section>
 
@@ -2394,6 +2430,54 @@
   const BOAS_VINDAS_KEY = 'oncogenyx.boas-vindas.v1';
   let focoAntesDoModal = null;
 
+  // ===================== ARMADILHA DE FOCO =====================
+  // Os dois modais declaravam `aria-modal="true"` e não prendiam o foco: um
+  // Tab a partir do botão do rodapé já saía para a página de trás, e
+  // Shift+Tab a partir do botão de fechar caía direto num controle da tela 1.
+  // Para leitor de tela e para teclado, a promessa de modalidade era falsa —
+  // o usuário continuava navegando por um conteúdo que estava visualmente
+  // bloqueado, sem nenhuma pista de que havia saído do diálogo.
+  const FOCAVEIS = [
+    'a[href]', 'button:not([disabled])', 'input:not([disabled])',
+    'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
+
+  function focaveisDe(container) {
+    return Array.from(container.querySelectorAll(FOCAVEIS))
+      .filter((el) => el.offsetParent !== null || el === document.activeElement);
+  }
+
+  function prenderFoco(container, evento) {
+    if (evento.key !== 'Tab') return;
+    const itens = focaveisDe(container);
+    if (!itens.length) {
+      evento.preventDefault();
+      return;
+    }
+    const primeiro = itens[0];
+    const ultimo = itens[itens.length - 1];
+    const atual = document.activeElement;
+
+    // Recicla nas duas pontas. O `!container.contains(atual)` cobre o caso de
+    // o foco já ter escapado por outro caminho (clique no fundo, por exemplo).
+    if (evento.shiftKey && (atual === primeiro || !container.contains(atual))) {
+      evento.preventDefault();
+      ultimo.focus();
+    } else if (!evento.shiftKey && (atual === ultimo || !container.contains(atual))) {
+      evento.preventDefault();
+      primeiro.focus();
+    }
+  }
+
+  function ligarArmadilha(idDoModal) {
+    const el = document.getElementById(idDoModal);
+    el.addEventListener('keydown', (e) => {
+      if (el.classList.contains('aberto')) prenderFoco(el, e);
+    });
+  }
+  ligarArmadilha('boas-vindas');
+  ligarArmadilha('privacidade');
+
   function abrirBoasVindas() {
     focoAntesDoModal = document.activeElement;
     document.getElementById('boas-vindas').classList.add('aberto');
@@ -2670,6 +2754,7 @@
       renderFields(extracted);
 
       renderSources();
+      liberarPasso(1);
       goTo(1);
     } catch (err) {
       errorBox.textContent = (err.message || 'Não foi possível extrair o caso. Tente novamente.');
@@ -2691,17 +2776,42 @@
 
   function genaOpen() { return document.getElementById('gena').classList.contains('open'); }
 
+  let focoAntesDaGena = null;
+
   function toggleGena(force) {
     const root = document.getElementById('gena');
     const open = typeof force === 'boolean' ? force : !genaOpen();
     root.classList.toggle('open', open);
     document.getElementById('gena-fab').setAttribute('aria-expanded', String(open));
     if (open) {
+      focoAntesDaGena = document.activeElement;
       document.getElementById('gena-badge').classList.remove('on');
       if (!genaMessages.length) genaPush('assistant', GENA_GREETING);
       setTimeout(() => document.getElementById('gena-input').focus(), 60);
+    } else if (focoAntesDaGena && focoAntesDaGena.focus) {
+      // O botão flutuante some quando o painel abre. Sem devolver o foco, quem
+      // fecha por teclado é largado num ponto arbitrário do DOM e não tem como
+      // reabrir a Gena por Tab.
+      const alvo = document.getElementById('gena-fab') || focoAntesDaGena;
+      setTimeout(() => alvo.focus(), 60);
     }
   }
+
+  // Esc fecha a Gena, como fecha os dois modais. Era o único painel do produto
+  // que ignorava a tecla.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && genaOpen()) toggleGena(false);
+  });
+
+  // Em tela estreita o painel cobre a viewport inteira: nesse caso ele é um
+  // diálogo de fato e precisa prender o foco, senão o leitor de tela continua
+  // percorrendo o conteúdo que está visualmente coberto.
+  document.getElementById('gena').addEventListener('keydown', (e) => {
+    const painel = document.getElementById('gena');
+    if (!genaOpen()) return;
+    const cobreTudo = painel.getBoundingClientRect().width >= window.innerWidth - 8;
+    if (cobreTudo) prenderFoco(painel, e);
+  });
 
   function genaPush(role, text) {
     genaMessages.push({ role, content: text });
@@ -2927,6 +3037,9 @@
 
     genaReset();
     refreshFileTiles();
+    // O caso anterior deixou de existir: os passos seguintes voltam a ficar
+    // fora de alcance até uma nova extração.
+    reiniciarPassos();
   }
 
   // Rotea arquivo solto por tipo: PDF vira "Laudo em PDF", imagem vira "Foto do laudo".
@@ -3020,7 +3133,9 @@
 
     // Sem teste indicado não existe programa de acesso para mostrar - o
     // botão volta para a revisão em vez de levar a uma tela vazia.
+    liberarPasso(2);
     if (tests.length) {
+      liberarPasso(3);
       nextBtn.textContent = 'Ver programas de acesso →';
       nextBtn.onclick = () => goTo(3);
     } else {
@@ -3248,23 +3363,77 @@
     }
   }
 
-  function goTo(i) {
-    document.querySelectorAll('.screen').forEach((el, idx) => el.classList.toggle('active', idx === i));
+  // Passo mais adiantado já alcançado de verdade. Existe porque os quatro
+  // botões da barra eram clicáveis desde o início: entrar e clicar em
+  // "3 Resultado da triagem" mostrava o card do veredito com o glifo ✓ VERDE
+  // de sucesso, título "Resultado da triagem", texto "-" e zero testes
+  // listados. Para um oncologista, um card verde com check e sem teste nenhum
+  // lê exatamente como "nenhum teste indicado" — que é um veredito clínico,
+  // não uma tela vazia. É o pior modo de falha que esta interface tinha.
+  let passoMaximo = 0;
+
+  function liberarPasso(i) {
+    if (i > passoMaximo) passoMaximo = i;
+    sincronizarPassos();
+  }
+
+  function reiniciarPassos() {
+    passoMaximo = 0;
+    sincronizarPassos();
+  }
+
+  function sincronizarPassos() {
     document.querySelectorAll('.step-btn').forEach((el, idx) => {
-      el.classList.toggle('active', idx === i);
-      el.classList.toggle('done', idx < i);
+      const bloqueado = idx > passoMaximo;
+      el.disabled = bloqueado;
+      el.setAttribute('aria-disabled', bloqueado ? 'true' : 'false');
+      el.title = bloqueado ? 'Disponível depois de estruturar o caso' : '';
+    });
+  }
+
+  function goTo(i) {
+    // Nunca avança além do que foi realmente calculado, nem por clique na
+    // barra, nem por chamada direta.
+    const alvo = Math.min(i, passoMaximo);
+    document.querySelectorAll('.screen').forEach((el, idx) => el.classList.toggle('active', idx === alvo));
+    document.querySelectorAll('.step-btn').forEach((el, idx) => {
+      el.classList.toggle('active', idx === alvo);
+      el.classList.toggle('done', idx < alvo);
+      if (idx === alvo) el.setAttribute('aria-current', 'step');
+      else el.removeAttribute('aria-current');
       // Se a barra de passos estiver rolando (telas estreitas), traz o passo
       // atual para a área visível - senão o médico avança e o indicador de
       // onde ele está fica fora da tela.
-      if (idx === i && el.scrollIntoView) {
+      if (idx === alvo && el.scrollIntoView) {
         el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    anunciarTela(alvo);
   }
+
+  // Troca de tela era completamente silenciosa: o foco ficava no <body> e nada
+  // era falado. Quem usa leitor de tela acionava "Estruturar caso", a tela
+  // mudava, e a única pista era o Tab seguinte retomar de um ponto arbitrário
+  // do DOM. Mover o foco para o título resolve as duas coisas de uma vez — o
+  // anúncio e o ponto de partida da navegação.
+  function anunciarTela(i) {
+    const tela = document.getElementById('screen-' + i);
+    if (!tela) return;
+    const titulo = tela.querySelector('h1');
+    const vivo = document.getElementById('anuncio-tela');
+    if (vivo) vivo.textContent = `Passo ${i + 1} de 4: ${titulo ? titulo.textContent.trim() : ''}`;
+    if (titulo) {
+      titulo.setAttribute('tabindex', '-1');
+      // Sem o atraso o foco compete com a animação de entrada da tela.
+      setTimeout(() => titulo.focus({ preventScroll: true }), 80);
+    }
+  }
+
   document.querySelectorAll('.step-btn').forEach((btn, idx) => {
     btn.addEventListener('click', () => goTo(idx));
   });
+  sincronizarPassos();
   document.getElementById('case-text').addEventListener('input', function () {
     document.getElementById('tile-text').classList.toggle('selected', this.value.trim().length > 0);
   });
@@ -3424,6 +3593,9 @@
     avisos.forEach((a) => {
       const div = document.createElement('div');
       div.className = 'ocr-disclaimer aviso-arquivo';
+      // Sem isto o médico que usa leitor de tela anexa um HEIC, o aviso
+      // aparece na tela e ele não ouve absolutamente nada.
+      div.setAttribute('role', 'alert');
       const motivo = document.createElement('span');
       motivo.textContent = a.motivo || '';
       div.appendChild(motivo);

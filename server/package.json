@@ -10,7 +10,8 @@
     "test": "node --test test/*.test.js",
     "test:navegador": "node test/navegador.js",
     "test:contraste": "node test/contraste.js",
-    "test:tudo": "npm test && npm run test:navegador && npm run test:contraste"
+    "test:a11y": "node test/acessibilidade.js",
+    "test:tudo": "npm test && npm run test:navegador && npm run test:contraste && npm run test:a11y"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
