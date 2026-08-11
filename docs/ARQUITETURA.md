@@ -1192,3 +1192,131 @@ Isso produziu uma janela de minutos em que `index.js` chamava uma função já
 removida de `tumors.js`, capturada em requisições reais. A lição: **arquivos que
 formam um contrato único devem mudar no mesmo commit**, e auditoria e correção
 não deveriam correr sobre a mesma árvore ao mesmo tempo.
+
+## 30. Lacunas clínicas com diretriz levantada, aguardando decisão (v1.8)
+
+A regra do projeto é **diretriz primeiro, código depois**: nenhuma regra
+clínica entra no motor sem estar aqui, com fonte e critério de disparo exato.
+Esta seção existe porque a auditoria clínica encontrou casos em que a
+plataforma **não emite teste para um paciente que as diretrizes mandam
+testar** — o erro mais caro que uma ferramenta de triagem pode cometer, porque
+é silencioso: a tela diz "nenhum teste indicado" e o oncologista segue em
+frente.
+
+Nada abaixo foi codificado. Cada item traz o comportamento medido hoje, a
+diretriz levantada, e o critério proposto. **Aguardam aprovação clínica.**
+
+### 30.1 C2 — Câncer de mama em homem não tem critério nenhum
+
+**Hoje:** o registro de mama não tem campo de sexo. Um homem de 67 anos,
+luminal, doença inicial, cai em `sem-indicacao` — "nenhum teste genético
+indicado no momento". Não é uma regra frouxa: é a ausência do dado. O caso não
+tem como ser representado no formulário.
+
+**Diretriz:** NCCN *Genetic/Familial High-Risk Assessment: Breast, Ovarian,
+Pancreatic, and Prostate* — câncer de mama masculino qualifica para teste
+germinativo **em qualquer idade**, independentemente de história familiar. O
+teste se estende à indicação de aconselhamento para parentes de primeiro grau.
+
+**Critério proposto:** criar o campo `sexo` em mama (`Feminino` / `Masculino`);
+se `Masculino`, emitir painel germinativo (mínimo BRCA1/2, PALB2) sempre,
+sem depender de idade, subtipo ou extensão.
+
+**Custo de não fazer:** o homem com câncer de mama é justamente o subgrupo com
+maior prevalência de BRCA2 patogênico. Hoje ele recebe "nenhum teste".
+
+### 30.2 C3 — Colorretal abaixo dos 50 anos não é critério
+
+**Hoje:** adenocarcinoma colorretal, 44 anos, localizado, pMMR/MSS, sem
+história familiar → `sem-indicacao`, com a nota "Rastreio universal já
+cumprido". A idade não entra na decisão; só entram MMR/MSI, polipose e
+história familiar.
+
+**Diretriz:** NCCN Colorectal — **painel multigênico para todo paciente com
+diagnóstico de câncer colorretal abaixo de 50 anos**, independentemente do
+status de MMR e de história familiar; considerar painel também acima de 50.
+Painel mínimo: APC, MUTYH, MLH1, MSH2, MSH6, PMS2, EPCAM, BMPR1A, SMAD4, PTEN,
+STK11. Base: variante germinativa patogênica em cerca de 1 em cada 6 pacientes
+com colorretal.
+
+**Critério proposto:** em colorretal, `idade < 50` → painel germinativo
+multigênico, sozinho e suficiente, sem exigir dMMR nem história familiar.
+
+**Custo de não fazer:** o colorretal de início precoce é hoje o cenário que
+mais cresce, e é exatamente o que a regra atual deixa passar.
+
+### 30.3 C4 — Pulmão ressecável não emite nenhum teste
+
+**Hoje:** adenocarcinoma de pulmão, 62 anos, doença inicial (ressecável),
+painel não realizado → `sem-indicacao`, com a nota "Painel indicado se a
+doença avançar". Ou seja: a plataforma manda esperar a doença progredir.
+
+**Diretriz:** NCCN NSCLC — no mínimo **EGFR, ALK e PD-L1 em todo tumor
+ressecável de estágio IB a IIIB**. A razão é terapêutica e é categoria 1:
+osimertinibe adjuvante em EGFR mutado (ADAURA, IB–IIIA) e alectinibe adjuvante
+em ALK rearranjado (ALINA, IB ≥4 cm, II e IIIA).
+
+**Critério proposto:** em pulmão, `extensao_doenca = "Inicial (ressecável)"` e
+`painel_previo = "Não realizado"` → emitir teste somático mínimo (EGFR, ALK,
+PD-L1), com a justificativa apontando elegibilidade a terapia-alvo adjuvante.
+A nota "indicado se a doença avançar" sai.
+
+**Custo de não fazer:** o paciente perde a janela adjuvante inteira. Quando a
+doença avançar, o benefício de sobrevida livre de doença já não é recuperável.
+
+### 30.4 C5 — Endométrio pMMR se contradiz na própria tela
+
+**Hoje:** endometrioide, IA, pMMR/MSS, 58 anos → `sem-indicacao` com a nota
+"Rastreio universal já cumprido", enquanto o texto do card diz para
+"considerar POLE e p53". A tela afirma duas coisas incompatíveis: que não há
+teste e que há dois testes a considerar.
+
+**Diretriz:** ESGO/ESTRO/ESP (2025) e NCCN — a classificação molecular do
+carcinoma de endométrio é composta por quatro grupos (POLEmut, MMRd, p53abn,
+NSMP) e o algoritmo hierárquico (POLE > MMRd > p53abn) se aplica a **todo**
+carcinoma de endométrio, não apenas aos dMMR. MMR isolado não fecha a
+classificação: um tumor pMMR ainda pode ser POLEmut ou p53abn, e a diferença
+muda a conduta adjuvante nos dois extremos (desescalonar em POLEmut,
+intensificar em p53abn).
+
+**Critério proposto:** em endométrio, `mmr_msi = "pMMR / MSS"` deixa de cair
+em `sem-indicacao` e passa a emitir a complementação da classificação
+molecular: sequenciamento do domínio exonuclease de POLE + imuno-histoquímica
+de p53. O estado passa a ser `completo`, não `sem-indicacao`, e a
+autocontradição desaparece.
+
+### 30.5 A1 — Tumor borderline de ovário recebe teste que o próprio card nega
+
+**Hoje:** "Tumor borderline seroso", IA, 34 anos → estado `parcial`, com
+painel germinativo BRCA1/2 emitido. O card de HRD diz corretamente que não se
+aplica, mas o germinativo sai assim mesmo.
+
+**Diretriz:** tumores borderline (baixo potencial de malignidade) não são
+carcinomas e não fazem parte do espectro BRCA-associado que sustenta a
+indicação de teste germinativo universal em carcinoma epitelial de ovário.
+
+**Critério proposto:** reconhecer "borderline" / "baixo potencial de
+malignidade" na histologia e devolver estado próprio — nem `completo` nem
+`parcial`, mas uma resposta explícita de que a entidade está fora do escopo da
+triagem, com a orientação de que teste germinativo segue indicado se houver
+história familiar que o justifique por si.
+
+**Nota:** este é o único item da seção em que a correção **reduz** teste.
+Todos os outros quatro aumentam.
+
+### 30.6 Como decidir
+
+Os cinco itens acima não são equivalentes em risco. Se for para aprovar em
+ordem, a ordem é: **C2 e C3 primeiro** (paciente elegível recebendo "nenhum
+teste", correção pequena e sem ambiguidade), **C4 e C5 em seguida** (mudam a
+forma do resultado na tela, exigem revisar o texto dos cards), **A1 por
+último** (é o único que retira algo, e retirar exige mais confiança no
+reconhecimento da histologia).
+
+Os achados de menor severidade levantados na mesma auditoria (M1–M8, B1–B4:
+pâncreas localmente avançado, assimetria de MMR entre colorretal e endométrio,
+igualdade estrita em `altoRisco` de próstata, histologia mista, G2 em
+endometrioide, versão FIGO 2023, "N/A" contado como história familiar, e o
+número do PROfound descrito como "~20-25%" quando o publicado é 27,9%)
+seguem registrados e sem decisão. Nenhum deles suprime teste de paciente
+elegível.
