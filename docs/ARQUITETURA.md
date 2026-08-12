@@ -2026,3 +2026,78 @@ fonte primária — nem quando o parecer está corrigindo a gente.
 
 Este mesmo dado é o que sustenta a pergunta B ao advisor (painel germinativo
 de colorretal em todas as idades).
+
+---
+
+## 38. As três decisões do Renan: NCCN como diretriz soberana (v1.14)
+
+Levadas as três divergências, a decisão foi a mesma nas três: **seguir o NCCN,
+e seguir à risca quando houver divergência entre diretrizes.** Isso estabelece
+uma regra de desempate permanente para o projeto, não só para estes três casos.
+
+### 38.1 Regra de desempate (vale daqui para frente)
+
+Quando duas diretrizes divergem, **o NCCN prevalece**. Diretriz de sociedade
+específica (ASCO-SSO, ESGO, SGO) entra como **contexto informado ao médico**,
+nunca como gatilho de indicação concorrente. E — ponto igualmente importante —
+**"pode ser considerado" no NCCN não vira "indicado" no app.** O verbo da
+diretriz é preservado: o que o NCCN recomenda, o app indica; o que o NCCN
+coloca como consideração, o app apresenta como nota, e a decisão fica com o
+médico.
+
+### 38.2 Mama — corte etário permanece em 50 anos
+
+**Decisão: NCCN.** O gatilho isolado de idade continua sendo **50 anos ou
+menos** (NCCN BOPP v2.2026). A ASCO-SSO 2024 (JCO, DOI 10.1200/JCO.23.02225)
+recomenda oferecer teste BRCA1/2 a toda paciente até os 65 anos — critério mais
+largo, **não adotado**. Passa a constar no documento como divergência conhecida
+e registrada, para que o médico saiba que ela existe e não pense que foi
+esquecida. Nenhuma mudança de código.
+
+### 38.3 Colorretal — o que o NCCN recomenda, e o que ele apenas considera
+
+O NCCN Genetic/Familial (Colorectal, Endometrial, Gastric) separa três
+situações, e o app passa a espelhar essa separação exatamente:
+
+| Situação | NCCN | App |
+| --- | --- | --- |
+| Diagnóstico **abaixo de 50 anos** | Painel multigênico **recomendado** | Indica (já indicava) |
+| Tumor **dMMR/MSI-alto**, qualquer idade | Investigação germinativa **recomendada** | Indica (já indicava) |
+| **50 anos ou mais**, pMMR, **com** história familiar oncológica relevante | Atende aos critérios de avaliação de risco — **recomendado** | **Passa a indicar** (novo) |
+| **50 anos ou mais**, pMMR, **sem** história familiar | *"Pode ser considerado"* | **Nota**, não indicação (novo) |
+
+A quarta linha é a que mais importa para o caráter do produto. A evidência a
+favor de testar todo mundo é forte (Uson Jr. 2022: 15,5% de portadores em série
+não selecionada, ~60% deles fora dos critérios dirigidos — §37.6), e teria sido
+fácil transformar isso em indicação. Não foi feito: **o app não pode ser mais
+agressivo que a diretriz que ele cita.** O oncologista que percebe o app
+indicando o que o NCCN só considera para de confiar em tudo o mais que o app
+indica. A evidência aparece na nota, com a fonte, e a decisão é dele.
+
+### 38.4 Pulmão — RET fica fora da doença ressecável
+
+**Decisão: NCCN.** Na doença ressecável o app continua pedindo **EGFR, ALK e
+PD-L1** — os marcadores com terapia adjuvante estabelecida no NCCN (ADAURA,
+ALINA). O LIBRETTO-432 (fase 3, selpercatinibe adjuvante em RET+ estágio
+IB–IIIA, desfecho primário atingido, apresentado em 2026) é evidência boa e
+recente, mas **ainda não incorporada ao NCCN nem à prática regulada local** —
+e o app não antecipa diretriz. RET permanece onde já estava: no painel amplo da
+doença localmente avançada ou metastática.
+
+**Gatilho de revisão:** quando o NCCN NSCLC incorporar RET aos marcadores da
+doença ressecável, esta regra muda. Fica registrado para não depender de alguém
+lembrar.
+
+### 38.5 Sobre a classificação do MMR por imuno-histoquímica
+
+O Renan levantou, com razão, que a imuno-histoquímica de MMR não é nem teste
+germinativo nem sequenciamento somático. Está certo, e o app já não chama esse
+teste de "somático" para o médico: o rótulo visível é **"Tumoral · universal ·
+prioridade"**, e o material é "Tecido tumoral".
+
+No código o campo `kind` é binário (`germinativo` / `somatico`) e serve a
+exatamente duas coisas: escolher o ícone do card e decidir se a frase de
+história familiar entra na justificativa. Não é uma taxonomia clínica e não
+aparece para o médico. Fica como está — renomear traria risco sem ganho —, mas
+registrado aqui para que ninguém leia `kind: 'somatico'` como afirmação
+clínica de que a IHQ é um teste somático.

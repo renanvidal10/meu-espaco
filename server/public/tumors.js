@@ -915,6 +915,30 @@
         });
       }
 
+      // 50 anos ou mais, pMMR. O NCCN separa duas situações aqui, e o app
+      // espelha a separação em vez de achatar as duas: COM história familiar
+      // relevante o paciente atende aos critérios de avaliação de risco
+      // (recomendação), SEM história familiar o painel "pode ser considerado"
+      // (nota, não indicação). Ver §38.3.
+      if (!precoce && !dmmr && idade !== null) {
+        if (temHistoricoFamiliar(v)) {
+          tests.push({
+            id: 'germinativo-crc-familiar', kind: 'germinativo',
+            name: 'Painel germinativo multigênico (APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11)',
+            sample: 'Sangue periférico', order: 'Sangue · germinativo',
+            description: 'História familiar oncológica relevante atende aos critérios de avaliação de risco genético, independentemente da idade e do status de MMR.',
+            justify: `Carcinoma colorretal aos ${idade} anos com história familiar oncológica relatada (${v.historico_familiar}): atende aos critérios de avaliação de risco genético, com indicação de painel germinativo multigênico independentemente do status de MMR.`,
+            programs: [LIFE_GENOMICS],
+          });
+        } else {
+          notasExtras.push({
+            tag: 'Decisão do médico',
+            title: 'Painel germinativo pode ser considerado mesmo sem critério formal',
+            body: 'Acima dos 50 anos, com tumor pMMR e sem história familiar, o painel germinativo multigênico não é recomendação formal — a diretriz o coloca como "pode ser considerado". Vale saber: em série prospectiva não selecionada por idade ou história familiar, 15,5% dos pacientes com colorretal tinham variante patogênica, e cerca de 60% deles estavam fora dos critérios dirigidos (Uson Jr. et al., Clin Gastroenterol Hepatol 2022). A decisão é sua.',
+          });
+        }
+      }
+
       if (dmmr) {
         notasExtras.push({
           tag: 'Ordem importa',
@@ -950,7 +974,8 @@
           title: 'Nenhum teste adicional indicado por esta regra',
           summary: 'MMR/MSI já realizado com resultado proficiente (pMMR/MSS) e doença não metastática.',
           notes: [{ tag: 'Já realizado', title: 'Rastreio universal já cumprido',
-            body: 'Reavalie se a doença progredir para metastática, quando passa a haver indicação de perfil somático para terapia-alvo.' }],
+            body: 'Reavalie se a doença progredir para metastática, quando passa a haver indicação de perfil somático para terapia-alvo.' },
+          ...notasExtras],
         };
       }
 

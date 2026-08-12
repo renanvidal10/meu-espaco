@@ -549,6 +549,19 @@ rodar('Pulmão', [
     valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'pMMR / MSS', idade: '50' },
     estado: 'sem-indicacao', testes: [],
   },
+  // --- 38.3 colorretal acima de 50: o que o NCCN recomenda x o que considera ---
+  {
+    nome: 'B1 colorretal 62a pMMR COM historia familiar — painel germinativo indicado',
+    tumor: 'colorretal',
+    valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'pMMR / MSS', idade: '62', historico_familiar: 'Mãe com câncer de cólon aos 55 anos' },
+    estado: 'completo', testes: ['germinativo-crc-familiar'],
+  },
+  {
+    nome: 'B1 colorretal 62a pMMR SEM historia familiar — segue sem indicacao',
+    tumor: 'colorretal',
+    valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'pMMR / MSS', idade: '62' },
+    estado: 'sem-indicacao', testes: [],
+  },
   {
     nome: 'C3 colorretal 44a dMMR metastatico — os tres testes',
     tumor: 'colorretal',
@@ -838,5 +851,48 @@ test('o teste HRD de ovário oferece a via gratuita, que existe e tem o mesmo cr
       assert.ok(p.cobertura && p.cobertura.includes('ovario'),
         `ovario/${histologia}: programa "${p.name}" sem cobertura declarada para ovário`);
     }
+  }
+});
+
+test('o app não é mais agressivo que a diretriz que ele cita (§38.3)', () => {
+  // 50+, pMMR, sem história familiar: o NCCN coloca o painel germinativo como
+  // "pode ser considerado", não como recomendação. O app tem de entregar isso
+  // como NOTA — nunca como teste indicado. Se algum dia alguém transformar a
+  // nota em indicação para "não perder portador", este teste quebra.
+  const semHistoria = TUMORS.get('colorretal').classify({
+    histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado',
+    mmr_msi: 'pMMR / MSS', idade: '62', historico_familiar: '', testes_previos: '',
+  });
+  assert.strictEqual(semHistoria.state, 'sem-indicacao');
+  assert.deepStrictEqual(nomesDosTestes(semHistoria), []);
+
+  const nota = (semHistoria.notes || []).find((n) => /considerad/i.test(n.title || ''));
+  assert.ok(nota, 'a nota de "pode ser considerado" sumiu do resultado');
+  assert.match(nota.body, /15,5%/, 'a nota perdeu o dado que sustenta a consideração');
+  assert.match(nota.body, /Uson/, 'a nota perdeu a fonte');
+
+  // E a história familiar é o que vira recomendação de verdade.
+  const comHistoria = TUMORS.get('colorretal').classify({
+    histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado',
+    mmr_msi: 'pMMR / MSS', idade: '62',
+    historico_familiar: 'Mãe com câncer de cólon aos 55 anos', testes_previos: '',
+  });
+  assert.ok(nomesDosTestes(comHistoria).includes('germinativo-crc-familiar'));
+  assert.match(
+    comHistoria.tests.find((t) => t.id === 'germinativo-crc-familiar').justify,
+    /hist[óo]ria familiar/i,
+    'a justificativa não diz ao médico o que disparou a indicação',
+  );
+});
+
+test('RET fica fora da doença ressecável enquanto o NCCN não incorporar (§38.4)', () => {
+  const ressecavel = TUMORS.get('pulmao').classify({
+    histologia: 'Adenocarcinoma', extensao_doenca: 'Ressecável',
+    estadiamento: 'IIA', idade: '64', historico_familiar: '', testes_previos: '',
+  });
+  const dirigido = (ressecavel.tests || []).find((t) => t.id === 'alvo-adjuvante-nsclc');
+  if (dirigido) {
+    assert.ok(!/\bRET\b/.test(dirigido.name + ' ' + dirigido.description),
+      'RET entrou na pesquisa dirigida da doença ressecável sem o NCCN ter incorporado');
   }
 });
