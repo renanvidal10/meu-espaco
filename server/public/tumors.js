@@ -333,13 +333,32 @@
   // GSK ou de um consórcio de indústrias, qual o portal canônico de entrada, e
   // se a elegibilidade exige primeira linha de tratamento.
   const HRD_PATROCINADO = {
-    name: 'Teste HRD sem custo (myChoice CDx)',
-    note: 'Teste HRD patrocinado pela indústria, sem custo para o paciente, para carcinoma seroso ou endometrioide de alto grau de ovário, tuba uterina ou peritônio. A solicitação é feita pelo laboratório parceiro, que inscreve o paciente e encaminha os blocos.',
+    name: 'Teste HRD sem custo (GSK · myChoice CDx)',
+    note: 'Patrocinado pela GSK, sem custo para o paciente. Elegível: carcinoma seroso ou endometrioide de ALTO GRAU de ovário, tuba uterina ou peritônio, EM PRIMEIRA LINHA de tratamento. A solicitação não é feita por portal — o médico pede ao laboratório parceiro (Lâmina), que inscreve o paciente, seleciona os blocos e encaminha para o teste.',
     url: 'https://laminalab.com.br/teste-deficiencia-de-recombinacao-homologa-hrd-em-cancer-de-ovario/',
     cobertura: ['ovario'],
     amostra: 'tecido',
+    // A restrição de PRIMEIRA LINHA é do programa, não da diretriz: a
+    // indicação clínica de HRD vale em III/IV independentemente da linha, mas
+    // a via gratuita só cobre a primeira. Sem isso escrito, o médico de um
+    // caso em segunda linha encaminharia o paciente e levaria uma recusa.
+    linhaDeTratamento: 'primeira',
     verificadoEm: '2026-08-12',
-    fonte: 'Colaboração Myriad/GSK para ampliar acesso a HRD (comunicado Myriad, BioSpace) e página do Laboratório Lâmina descrevendo critério e via de solicitação. Patrocinador nominal e portal canônico a confirmar com o time comercial.',
+    fonte: 'Patrocínio GSK confirmado (comunicado Myriad Genetics e BioSpace sobre a colaboração para ampliar acesso a HRD em 9 países, Brasil incluído) e página do Laboratório Lâmina com critério e via de solicitação. Portal do médico na GSK (gsk-on.com.br) não pôde ser verificado daqui — bloqueado pela política de rede do ambiente.',
+  };
+
+  // Consórcio de cinco farmacêuticas (AstraZeneca, Bayer, BMS, Pfizer e Roche)
+  // que custeia perfil genômico completo em pulmão não pequenas células. A
+  // iniciativa começou em 2017 e já passou de 20 mil exames gratuitos. É a via
+  // de acesso mais relevante deste tumor e não estava no card.
+  const MAPEAMENTO_PULMAO = {
+    name: 'Mapeamento Pulmão (consórcio de cinco farmacêuticas)',
+    note: 'Perfil genômico completo sem custo em câncer de pulmão não pequenas células, por painel abrangente (FoundationOne CDx). Iniciativa conjunta de AstraZeneca, Bayer, BMS, Pfizer e Roche. A inclusão do paciente é feita pelo serviço de patologia ou pelo representante da indústria.',
+    url: 'https://www.roche.com.br/imprensa/cinco-farmaceuticas-se-unem-para-ampliar-acesso-ao-diagnostico-molecular-de-cancer-de-pulmao-no-brasil',
+    cobertura: ['pulmao'],
+    amostra: 'tecido',
+    verificadoEm: '2026-08-12',
+    fonte: 'Comunicado da Roche Brasil sobre a união das cinco farmacêuticas para ampliar o diagnóstico molecular de câncer de pulmão. Link em uso é o do comunicado — portal próprio de inscrição não localizado.',
   };
 
   const LIFE_GENOMICS = {
@@ -1083,7 +1102,7 @@
             stat: 'Terapia adjuvante dirigida é categoria 1 em EGFR mutado e em ALK rearranjado',
             description: 'Em doença ressecável de estágio IB a IIIB, EGFR e ALK definem elegibilidade a terapia-alvo adjuvante, e PD-L1 orienta a imunoterapia adjuvante. Um painel amplo cobre os três e evita nova solicitação de tecido.',
             justify: 'Doença ressecável com indicação de pesquisa de EGFR, ALK e PD-L1 para definição de elegibilidade a terapia adjuvante dirigida.',
-            programs: [PROGRAMA_ID],
+            programs: [MAPEAMENTO_PULMAO, PROGRAMA_ID],
           }],
           title: 'Este caso tem indicação para 1 teste',
           summary: 'Doença ressecável: EGFR, ALK e PD-L1 definem a elegibilidade a terapia adjuvante — a janela é agora, não à progressão.',
@@ -1110,7 +1129,7 @@
           stat: 'Cobre EGFR, ALK, ROS1, BRAF, KRAS G12C, MET, RET, NTRK e HER2',
           description: 'Painel amplo indicado antes de definir a primeira linha em doença avançada. Testar gene a gene consome tecido e atrasa a decisão terapêutica. Quando o tecido é insuficiente, a biópsia líquida é alternativa aceita.',
           justify: 'Doença avançada com indicação de painel molecular amplo antes da definição de terapia sistêmica de primeira linha.',
-          programs: [PROGRAMA_ID],
+          programs: [MAPEAMENTO_PULMAO, PROGRAMA_ID],
         }],
         title: 'Este caso tem indicação para 1 teste',
         summary: 'Doença avançada: painel molecular amplo indicado antes da primeira linha de tratamento.',
