@@ -1,0 +1,379 @@
+<meta charset="utf-8" />
+<title>Critérios de Testagem Genética em Oncologia</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 16mm; }
+
+  :root {
+    --tinta: #1a1a1a;
+    --tinta-media: #4a4a4a;
+    --tinta-fraca: #737373;
+    --regua: #d4d4d4;
+    --verde: #0f6b5c;
+    --verde-fundo: #f0f6f4;
+    --serif: "Iowan Old Style", Palatino, "Palatino Linotype", Georgia, serif;
+    --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 10.5pt;
+    line-height: 1.5;
+    color: var(--tinta);
+    background: #fff;
+  }
+
+  .folha { max-width: 190mm; margin: 0 auto; padding: 10mm 6mm; }
+
+  /* ---------- cabeçalho ---------- */
+  header.capa { border-bottom: 2.5pt solid var(--tinta); padding-bottom: 6mm; margin-bottom: 8mm; }
+  .eyebrow {
+    font-family: var(--sans); font-size: 7.5pt; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--verde);
+    margin-bottom: 2mm;
+  }
+  h1 { font-size: 20pt; margin: 0; line-height: 1.15; letter-spacing: -.01em; font-weight: 600; }
+  .capa p { margin: 3mm 0 0; color: var(--tinta-media); font-size: 10pt; max-width: 150mm; }
+  .capa .data { font-family: var(--sans); font-size: 8pt; color: var(--tinta-fraca); margin-top: 4mm; }
+
+  /* ---------- tumor ---------- */
+  .tumor {
+    border-top: 1pt solid var(--regua);
+    padding-top: 5mm;
+    margin-bottom: 7mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .tumor:first-of-type { border-top: none; padding-top: 0; }
+
+  .tumor h2 {
+    font-size: 13pt; margin: 0 0 3mm; font-weight: 600;
+    color: var(--verde); letter-spacing: -.005em;
+  }
+
+  .bloco { margin-bottom: 3.5mm; }
+  .bloco:last-child { margin-bottom: 0; }
+
+  .rotulo {
+    font-family: var(--sans); font-size: 7.5pt; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-fraca);
+    margin-bottom: 1.5mm;
+  }
+
+  ul { margin: 0; padding-left: 5mm; }
+  li { margin-bottom: 1.2mm; }
+  li:last-child { margin-bottom: 0; }
+  li strong { font-weight: 650; }
+
+  .teste-linha { margin-bottom: 2mm; }
+  .teste-linha:last-child { margin-bottom: 0; }
+  .teste-nome { font-weight: 650; }
+  .teste-quem { color: var(--tinta-media); }
+
+  .excecao {
+    font-size: 9.5pt; color: var(--tinta-media);
+    background: #faf8f2; border-left: 2pt solid #c9a227;
+    padding: 2mm 3mm; margin-top: 2.5mm;
+  }
+
+  .diretriz {
+    font-family: var(--sans); font-size: 8pt; line-height: 1.45;
+    color: var(--tinta-media);
+    background: var(--verde-fundo); border-left: 2pt solid var(--verde);
+    padding: 2.5mm 3mm; margin-top: 3mm;
+  }
+  .diretriz .rotulo { color: var(--verde); margin-bottom: 1mm; }
+
+  /* ---------- acesso ---------- */
+  .acesso { margin-top: 10mm; border-top: 2.5pt solid var(--tinta); padding-top: 5mm; break-inside: avoid; }
+  .acesso h2 { font-size: 13pt; margin: 0 0 2mm; font-weight: 600; }
+  .acesso > p { margin: 0 0 4mm; color: var(--tinta-media); font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  th, td { text-align: left; padding: 2mm 2.5mm 2mm 0; vertical-align: top; border-bottom: .5pt solid var(--regua); }
+  th { font-family: var(--sans); font-size: 7.5pt; text-transform: uppercase; letter-spacing: .07em; color: var(--tinta-fraca); font-weight: 700; }
+  td.tumor-col { font-weight: 650; white-space: nowrap; padding-right: 4mm; }
+  td .cond { display: block; color: var(--tinta-media); font-size: 8.5pt; margin-top: .8mm; }
+
+  /* ---------- rodapé ---------- */
+  .rodape {
+    margin-top: 10mm; border-top: 1pt solid var(--regua); padding-top: 4mm;
+    font-family: var(--sans); font-size: 7.5pt; line-height: 1.5; color: var(--tinta-fraca);
+  }
+  .assinatura { margin-top: 8mm; display: flex; gap: 10mm; break-inside: avoid; }
+  .assinatura div { flex: 1; }
+  .assinatura .linha { border-bottom: .75pt solid var(--tinta); height: 10mm; }
+  .assinatura span { font-family: var(--sans); font-size: 7.5pt; text-transform: uppercase; letter-spacing: .06em; color: var(--tinta-fraca); display: block; margin-top: 1.5mm; }
+</style>
+
+<div class="folha">
+
+<header class="capa">
+  <div class="eyebrow">OncoGenYX · Documento de validação clínica</div>
+  <h1>Critérios de testagem genética em oncologia</h1>
+  <p>Quem testar, o que testar e em que momento da doença, por sítio tumoral — com a diretriz que sustenta cada critério.</p>
+  <div class="data">Versão de 12 de agosto de 2026 · 7 sítios tumorais</div>
+</header>
+
+<!-- ============================ OVÁRIO ============================ -->
+<section class="tumor">
+  <h2>Ovário, tuba uterina e peritônio</h2>
+
+  <div class="bloco">
+    <div class="rotulo">Quem testar</div>
+    <ul>
+      <li><strong>Teste germinativo:</strong> todo carcinoma epitelial, ao diagnóstico — independentemente de idade, estágio ou história familiar.</li>
+      <li><strong>Teste somático (HRD):</strong> carcinoma <strong>seroso ou endometrioide de alto grau</strong>, estágio <strong>FIGO III ou IV</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="bloco">
+    <div class="rotulo">O que testar</div>
+    <div class="teste-linha"><span class="teste-nome">Painel germinativo BRCA1/2</span> <span class="teste-quem">— sangue periférico.</span></div>
+    <div class="teste-linha"><span class="teste-nome">HRD somático</span> <span class="teste-quem">— tecido tumoral. Inclui BRCA1/2 tumoral no mesmo teste. Define elegibilidade a manutenção com inibidor de PARP.</span></div>
+  </div>
+
+  <div class="excecao"><strong>Fora do critério:</strong> tumor borderline (baixo potencial de malignidade) não é carcinoma invasivo e está fora do espectro BRCA-associado. Histologias não epiteliais seguem outra diretriz.</div>
+
+  <div class="diretriz">
+    <div class="rotulo">Diretriz</div>
+    NCCN Ovarian Cancer, Fallopian Tube Cancer and Primary Peritoneal Cancer · NCCN Genetic/Familial High-Risk Assessment: Breast, Ovarian, Pancreatic and Prostate (v2.2026) · SGO Clinical Practice Statement on Genetic Testing in Ovarian Cancer · ESMO-ESGO Consensus.
+  </div>
+</section>
+
+<!-- ============================ MAMA ============================ -->
+<section class="tumor">
+  <h2>Mama</h2>
+
+  <div class="bloco">
+    <div class="rotulo">Quem testar</div>
+    <ul>
+      <li><strong>Teste germinativo</strong> — basta <em>um</em> destes critérios:
+        <ul>
+          <li>Paciente do <strong>sexo masculino</strong>, em qualquer idade.</li>
+          <li>Diagnóstico aos <strong>50 anos ou menos</strong>, qualquer subtipo.</li>
+          <li>Subtipo <strong>triplo-negativo</strong>, em qualquer idade.</li>
+          <li><strong>Doença metastática</strong>, qualquer subtipo.</li>
+          <li><strong>História familiar</strong> oncológica relevante.</li>
+        </ul>
+      </li>
+      <li><strong>Teste somático:</strong> doença <strong>metastática luminal</strong> (RH+/HER2−).</li>
+    </ul>
+  </div>
+
+  <div class="bloco">
+    <div class="rotulo">O que testar</div>
+    <div class="teste-linha"><span class="teste-nome">Painel germinativo BRCA1/2, PALB2 e genes de alto risco</span> <span class="teste-quem">— sangue periférico. Define elegibilidade a inibidor de PARP em cenário adjuvante de alto risco e metastático.</span></div>
+    <div class="teste-linha"><span class="teste-nome">Painel somático PIK3CA, ESR1 e alvos acionáveis</span> <span class="teste-quem">— tecido tumoral ou biópsia líquida. ESR1 deve ser reavaliado à progressão sob terapia endócrina.</span></div>
+  </div>
+
+  <div class="excecao"><strong>Ponto em aberto:</strong> o corte etário em uso é <strong>50 anos</strong> (NCCN). A ASCO-SSO recomenda oferecer teste germinativo a todo paciente diagnosticado aos <strong>65 anos ou menos</strong> — critério mais largo. Decisão pendente de validação.</div>
+
+  <div class="diretriz">
+    <div class="rotulo">Diretriz</div>
+    NCCN Genetic/Familial High-Risk Assessment: Breast, Ovarian, Pancreatic and Prostate (v2.2026) · ASCO-SSO "Germline Testing in Patients With Breast Cancer" — Journal of Clinical Oncology, 2024 (DOI 10.1200/JCO.23.02225).
+  </div>
+</section>
+
+<!-- ============================ PRÓSTATA ============================ -->
+<section class="tumor">
+  <h2>Próstata</h2>
+
+  <div class="bloco">
+    <div class="rotulo">Quem testar</div>
+    <ul>
+      <li><strong>Teste germinativo</strong> — basta <em>um</em> destes critérios:
+        <ul>
+          <li><strong>Doença metastática</strong>, hormônio-sensível (mHSPC) ou resistente à castração (mCRPC).</li>
+          <li><strong>Linfonodo positivo</strong> (N1).</li>
+          <li>Doença localizada de risco <strong>alto ou muito alto</strong>.</li>
+          <li>Histologia <strong>intraductal ou cribriforme</strong>, em qualquer risco.</li>
+          <li><strong>Ascendência judaica Ashkenazi</strong>.</li>
+          <li><strong>História familiar</strong> oncológica relevante.</li>
+        </ul>
+      </li>
+      <li><strong>Teste somático (HRR):</strong> doença <strong>metastática</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="bloco">
+    <div class="rotulo">O que testar</div>
+    <div class="teste-linha"><span class="teste-nome">Painel germinativo BRCA1/2, ATM, CHEK2, PALB2, HOXB13 e genes de MMR</span> <span class="teste-quem">— sangue periférico.</span></div>
+    <div class="teste-linha"><span class="teste-nome">Painel somático HRR (15 genes)</span> <span class="teste-quem">— tecido tumoral ou biópsia líquida. BRCA1/2, ATM, BARD1, BRIP1, CDK12, CHEK1/2, FANCL, PALB2, PPP2R2A, RAD51B/C/D, RAD54L. Define elegibilidade a inibidor de PARP. Alteração HRR presente em 27,9% dos casos metastáticos (PROfound).</span></div>
+  </div>
+
+  <div class="excecao"><strong>Ponto em aberto:</strong> risco <strong>intermediário desfavorável</strong> não dispara o teste germinativo na regra atual. Confirmar se deve entrar.</div>
+
+  <div class="diretriz">
+    <div class="rotulo">Diretriz</div>
+    NCCN Prostate Cancer · NCCN Genetic/Familial High-Risk Assessment (v2.2026) · AUA/SUO Advanced Prostate Cancer Guideline · EAU-EANM-ESTRO-ESUR-ISUP-SIOG Guidelines on Prostate Cancer · Estudo PROfound (de Bono et al., NEJM 2020).
+  </div>
+</section>
+
+<!-- ============================ COLORRETAL ============================ -->
+<section class="tumor">
+  <h2>Colorretal</h2>
+
+  <div class="bloco">
+    <div class="rotulo">Quem testar</div>
+    <ul>
+      <li><strong>MMR / MSI:</strong> <strong>todo</strong> carcinoma colorretal, ao diagnóstico — independentemente de idade ou história familiar.</li>
+      <li><strong>Painel germinativo multigênico:</strong> diagnóstico <strong>abaixo dos 50 anos</strong> — independentemente do status de MMR e de história familiar.</li>
+      <li><strong>Painel germinativo de Lynch:</strong> tumor <strong>dMMR / MSI-alto</strong>.</li>
+      <li><strong>Perfil somático:</strong> doença <strong>metastática</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="bloco">
+    <div class="rotulo">O que testar</div>
+    <div class="teste-linha"><span class="teste-nome">Pesquisa de MMR / MSI</span> <span class="teste-quem">— tecido tumoral, por imuno-histoquímica das proteínas de reparo ou análise de instabilidade de microssatélites. Informa prognóstico, elegibilidade a imunoterapia e risco familiar.</span></div>
+    <div class="teste-linha"><span class="teste-nome">Painel germinativo multigênico</span> <span class="teste-quem">— sangue periférico. APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11. Variante germinativa patogênica em cerca de 1 a cada 6 pacientes com colorretal.</span></div>
+    <div class="teste-linha"><span class="teste-nome">Painel germinativo de Lynch</span> <span class="teste-quem">— sangue periférico. MLH1, MSH2, MSH6, PMS2, EPCAM. Perda isolada de MLH1 exige antes afastar causa esporádica (metilação do promotor ou BRAF V600E).</span></div>
+    <div class="teste-linha"><span class="teste-nome">Perfil somático RAS, BRAF V600E e HER2</span> <span class="teste-quem">— tecido tumoral ou biópsia líquida. Obrigatório antes de terapia anti-EGFR.</span></div>
+  </div>
+
+  <div class="diretriz">
+    <div class="rotulo">Diretriz</div>
+    NCCN Colon Cancer · NCCN Rectal Cancer · NCCN Genetic/Familial High-Risk Assessment: Colorectal, Endometrial and Gastric (v2.2026).
+  </div>
+</section>
+
+<!-- ============================ PULMÃO ============================ -->
+<section class="tumor">
+  <h2>Pulmão — não pequenas células</h2>
+
+  <div class="bloco">
+    <div class="rotulo">Quem testar</div>
+    <ul>
+      <li><strong>Doença ressecável</strong> (estágio IB a IIIB): pesquisa dirigida para decisão adjuvante, <strong>antes de a doença avançar</strong>.</li>
+      <li><strong>Doença localmente avançada ou metastática:</strong> painel molecular amplo <strong>antes de definir a primeira linha</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="bloco">
+    <div class="rotulo">O que testar</div>
+    <div class="teste-linha"><span class="teste-nome">EGFR, ALK e PD-L1</span> <span class="teste-quem">— tecido tumoral (peça cirúrgica). EGFR e ALK definem elegibilidade a terapia-alvo adjuvante; PD-L1 orienta a imunoterapia adjuvante.</span></div>
+    <div class="teste-linha"><span class="teste-nome">Painel molecular amplo</span> <span class="teste-quem">— tecido tumoral ou biópsia líquida. EGFR, ALK, ROS1, BRAF, KRAS G12C, MET, RET, NTRK e HER2. Testar gene a gene consome tecido e atrasa a decisão terapêutica.</span></div>
+  </div>
+
+  <div class="excecao"><strong>Janela adjuvante:</strong> adiar o teste em doença ressecável para depois da progressão perde a indicação adjuvante, cujo benefício em sobrevida livre de doença não é recuperável na doença avançada. <strong>Fora do critério:</strong> carcinoma de pequenas células segue via clínica distinta.</div>
+
+  <div class="diretriz">
+    <div class="rotulo">Diretriz</div>
+    NCCN Non-Small Cell Lung Cancer (v2.2026) · Estudo ADAURA — osimertinibe adjuvante em EGFR mutado (Wu et al., NEJM 2020; Tsuboi et al., NEJM 2023) · Estudo ALINA — alectinibe adjuvante em ALK rearranjado (Wu et al., NEJM 2024).
+  </div>
+</section>
+
+<!-- ============================ PÂNCREAS ============================ -->
+<section class="tumor">
+  <h2>Pâncreas</h2>
+
+  <div class="bloco">
+    <div class="rotulo">Quem testar</div>
+    <ul>
+      <li><strong>Teste germinativo:</strong> <strong>todo</strong> adenocarcinoma ductal (PDAC), ao diagnóstico — independentemente de idade, estágio ou história familiar.</li>
+      <li><strong>Perfil somático:</strong> doença <strong>metastática</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="bloco">
+    <div class="rotulo">O que testar</div>
+    <div class="teste-linha"><span class="teste-nome">Painel germinativo BRCA1/2, PALB2, ATM e genes de MMR</span> <span class="teste-quem">— sangue periférico.</span></div>
+    <div class="teste-linha"><span class="teste-nome">Perfil somático tumoral</span> <span class="teste-quem">— tecido tumoral. Identifica alvos acionáveis e confirma alterações em genes de reparo quando o germinativo é negativo.</span></div>
+  </div>
+
+  <div class="excecao"><strong>Por que a indicação é universal:</strong> em série de 854 pacientes com PDAC, apenas 3 de 33 portadores de mutação deletéria (9%) tinham história familiar relevante — triar por história familiar deixa passar 91% dos portadores. <strong>Fora do critério:</strong> tumor neuroendócrino de pâncreas segue outra diretriz.</div>
+
+  <div class="diretriz">
+    <div class="rotulo">Diretriz</div>
+    NCCN Pancreatic Adenocarcinoma · NCCN Genetic/Familial High-Risk Assessment: Breast, Ovarian, Pancreatic and Prostate (v2.2026).
+  </div>
+</section>
+
+<!-- ============================ ENDOMÉTRIO ============================ -->
+<section class="tumor">
+  <h2>Endométrio</h2>
+
+  <div class="bloco">
+    <div class="rotulo">Quem testar</div>
+    <ul>
+      <li><strong>Classificação molecular:</strong> <strong>todo</strong> carcinoma de endométrio — independentemente de idade, grau ou estágio.</li>
+      <li><strong>Painel germinativo de Lynch:</strong> tumor <strong>dMMR</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="bloco">
+    <div class="rotulo">O que testar</div>
+    <div class="teste-linha"><span class="teste-nome">Classificação molecular completa</span> <span class="teste-quem">— tecido tumoral. MMR/MSI por imuno-histoquímica, sequenciamento do domínio exonuclease de <strong>POLE</strong>, e imuno-histoquímica de <strong>p53</strong>.</span></div>
+    <div class="teste-linha"><span class="teste-nome">Painel germinativo de Lynch</span> <span class="teste-quem">— sangue periférico. MLH1, MSH2, MSH6, PMS2, EPCAM.</span></div>
+  </div>
+
+  <div class="excecao"><strong>MMR sozinho não fecha a classificação.</strong> O algoritmo é hierárquico — POLE prevalece sobre MMRd, que prevalece sobre p53 anormal — então um tumor pMMR ainda pode ser POLEmut ou p53 anormal, grupos com prognóstico oposto entre si e conduta adjuvante distinta.</div>
+
+  <div class="diretriz">
+    <div class="rotulo">Diretriz</div>
+    NCCN Uterine Neoplasms (v2.2026) · ESGO/ESTRO/ESP Guidelines for the Management of Patients with Endometrial Carcinoma (2025) · NCCN Genetic/Familial High-Risk Assessment: Colorectal, Endometrial and Gastric (v2.2026).
+  </div>
+</section>
+
+<!-- ============================ ACESSO ============================ -->
+<section class="acesso">
+  <h2>Vias de acesso sem custo</h2>
+  <p>Programas patrocinados pela indústria, verificados em agosto de 2026. A elegibilidade do programa pode ser mais estreita que a indicação clínica.</p>
+
+  <table>
+    <thead>
+      <tr><th>Sítio</th><th>Programa e condição</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="tumor-col">Ovário</td>
+        <td>
+          <strong>Teste HRD sem custo — GSK, metodologia myChoice CDx</strong>
+          <span class="cond">Elegível: seroso ou endometrioide de alto grau de ovário, tuba uterina ou peritônio, <strong>em primeira linha</strong> de tratamento. A solicitação não é por portal — o médico pede ao laboratório parceiro, que inscreve a paciente e encaminha os blocos.</span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tumor-col">Pulmão</td>
+        <td>
+          <strong>Mapeamento Pulmão — consórcio AstraZeneca, Bayer, BMS, Pfizer e Roche</strong>
+          <span class="cond">Perfil genômico completo sem custo em não pequenas células, por painel abrangente. Inclusão pelo serviço de patologia ou pelo representante da indústria.</span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tumor-col">Ovário, mama,<br />próstata, pulmão</td>
+        <td>
+          <strong>ProgramAID — AstraZeneca</strong>
+          <span class="cond">Teste sem custo em tecido tumoral. Resultado inconclusivo permite reteste por biópsia líquida sem custo adicional.</span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tumor-col">Próstata</td>
+        <td>
+          <strong>Apoio diagnóstico — Pfizer</strong>
+          <span class="cond">Vinculado à terapia com inibidor de PARP. Portal oficial a confirmar — consultar o representante antes de encaminhar.</span>
+        </td>
+      </tr>
+      <tr>
+        <td class="tumor-col">Colorretal,<br />pâncreas, endométrio</td>
+        <td>
+          <strong>Sem programa patrocinado localizado</strong>
+          <span class="cond">Busca realizada em agosto de 2026 sem resultado. Registrado como busca sem resultado, não como inexistência confirmada.</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="assinatura">
+  <div><div class="linha"></div><span>Médico responsável pela validação</span></div>
+  <div><div class="linha"></div><span>CRM</span></div>
+  <div><div class="linha"></div><span>Data</span></div>
+</div>
+
+<div class="rodape">
+  Este documento descreve critérios de triagem para <strong>indicação de exame genético</strong>. Não constitui recomendação terapêutica nem substitui aconselhamento genético — casos com critério para síndrome hereditária devem ser encaminhados ao especialista. As diretrizes citadas são as vigentes na data desta versão e devem ser reconfirmadas a cada revisão.
+</div>
+
+</div>
