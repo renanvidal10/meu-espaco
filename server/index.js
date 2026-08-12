@@ -171,6 +171,7 @@ const {
   schemaDoSubtipo,
   promptDoSubtipo,
   extracaoAbandonada,
+  valeSegundaLeitura,
   conflitoDeSitioGinecologico,
 } = require('./extracao.js');
 
@@ -843,13 +844,56 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), reserva
       extracted.tipo_tumor_justificativa = 'O material sugere um sítio oncológico que ainda não está mapeado nesta versão.';
     }
 
-    // ===== RECUPERAÇÃO DA EXTRAÇÃO ABANDONADA =====
-    // Medido contra a API real: ovário e endométrio às vezes voltam com tudo
-    // vazio, status 200 e nenhum aviso. Uma segunda chamada com o schema
-    // reduzido ao subtipo já identificado recupera o caso. O custo extra só
-    // acontece nesse cenário, que é raro — e é infinitamente menor que o de um
-    // oncologista revisar um caso em branco achando que o laudo não tinha nada.
-    if (extracaoAbandonada(extracted)) {
+    // ===== CONFERÊNCIA DETERMINÍSTICA DO SÍTIO GINECOLÓGICO =====
+    // Vem ANTES da segunda leitura de propósito: se o subtipo estiver errado,
+    // reler os campos do subtipo errado só produz um caso errado mais completo.
+    //
+    // Medido, N=20 pelo fluxo real: 6 trocas de subtipo, e em TODAS as 6 o
+    // material nomeava o sítio certo, literalmente. Quando o laudo diz o órgão
+    // e a leitura diz outro, quem tem razão é o laudo — não é palpite contra
+    // palpite, é texto contra inferência. Por isso aqui corrige, e não apenas
+    // avisa. A trava contra excesso está na própria conferência: ela só se
+    // pronuncia quando o material nomeia UM sítio; citando os dois
+    // ("metástase ovariana de primário endometrial"), ela se cala.
+    const materialEmTexto = [text, textoDosPdfs].filter(Boolean).join('\n\n');
+    const conflito = conflitoDeSitioGinecologico(extracted.tipo_tumor, materialEmTexto);
+    if (conflito.conflita) {
+      const lidoAntes = extracted.tipo_tumor;
+      console.warn(`Conflito de sítio: leitura disse "${lidoAntes}", material nomeia "${conflito.esperado}". Corrigindo.`);
+      extracted.tipo_tumor = conflito.esperado;
+      extracted.subtipo_corrigido_de = lidoAntes;
+      // Os campos vieram do schema do subtipo errado: o que não pertence ao
+      // subtipo certo é descartado, e a segunda leitura abaixo repõe o resto.
+      const certo = TUMORS.acharTumorPorLabel(conflito.esperado);
+      const permitidos = new Set(TUMORS.fieldsOf(certo).map((f) => f.key));
+      for (const chave of Object.keys(extracted)) {
+        if (TUMORS.isComum(chave) || permitidos.has(chave)) continue;
+        if (['tipo_tumor', 'tipo_tumor_justificativa', 'fontes_usadas', 'nome_paciente',
+          'subtipo_corrigido_de', 'subtipo_em_conflito'].includes(chave)) continue;
+        delete extracted[chave];
+      }
+      avisos.push({
+        arquivo: 'Subtipo corrigido',
+        motivo: `A leitura classificou como "${lidoAntes}", mas o material nomeia ${conflito.esperado.replace('Ginecológico - ', '').toLowerCase()}: "${conflito.trecho}"`,
+        comoResolver: `O subtipo foi corrigido para "${conflito.esperado}" com base no que está escrito no material. Confirme no campo abaixo — a triagem inteira depende dele.`,
+        recuperado: true,
+      });
+    }
+
+    // ===== SEGUNDA LEITURA COM SCHEMA DIRIGIDO =====
+    // Medido contra a API real, mesmo texto, N=10 por condição:
+    //   schema unificado (21 propriedades) — ovário 7/10, endométrio 1/10
+    //   schema dirigido  (4 a 11 campos)   — ovário 10/10, endométrio 10/10
+    // e a chamada dirigida custa 1/5 da unificada. A segunda leitura é mais
+    // barata E mais certeira que a primeira, então ela não é mais um socorro
+    // de exceção: roda sempre que sobrou campo decisivo vazio. Quando não
+    // sobrou, não há o que ganhar e nada é gasto.
+    const abandonou = extracaoAbandonada(extracted);
+    // Uso das DUAS chamadas somado: sem isto o custo real da segunda leitura
+    // fica invisível, e uma decisão de arquitetura tomada sobre custo precisa
+    // do custo inteiro na mesa.
+    let usoSegunda = null;
+    if (valeSegundaLeitura(extracted)) {
       const tumor = TUMORS.acharTumorPorLabel(extracted.tipo_tumor);
       const schemaFoco = tumor && schemaDoSubtipo(tumor.id);
       let recuperou = false;
@@ -864,6 +908,7 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), reserva
             output_config: { format: { type: 'json_schema', schema: schemaFoco } },
             messages: [{ role: 'user', content: montaMensagem(content) }],
           });
+          usoSegunda = segunda.usage;
           const blocoSegunda = segunda.content.find((b) => b.type === 'text');
           const cruSegunda = blocoSegunda ? JSON.parse(blocoSegunda.text) : null;
           if (cruSegunda && typeof cruSegunda === 'object' && !Array.isArray(cruSegunda)) {
@@ -884,10 +929,14 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), reserva
         }
       }
 
-      // Recuperou ou não, o médico é informado. O silêncio é o defeito que
-      // esta seção existe para eliminar: sem aviso, uma tela de revisão em
-      // branco parece "o laudo não tinha esses dados".
-      avisos.push(recuperou
+      // O aviso é para o ABANDONO — o caso em que a primeira leitura desistiu
+      // por inteiro e a tela ficaria em branco sem explicação. A segunda
+      // leitura de rotina (faltava um campo, foi buscar) não merece aviso: um
+      // alerta que aparece toda hora deixa de ser lido, e aí o que importa
+      // passa despercebido junto.
+      if (!abandonou) {
+        // nada a comunicar: a releitura é parte normal do fluxo
+      } else avisos.push(recuperou
         ? {
           arquivo: 'Leitura automática',
           motivo: 'A primeira leitura do material voltou incompleta.',
@@ -901,25 +950,7 @@ app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), reserva
         });
     }
 
-    // ===== CONFERÊNCIA DETERMINÍSTICA DO SÍTIO GINECOLÓGICO =====
-    // O modo de falha que sobra depois da recuperação é a troca de subtipo:
-    // campos preenchidos, tumor errado, nada vazio para detectar. Medido, nos
-    // casos de troca o material NOMEIA o sítio certo literalmente — e isso se
-    // confere aqui, de graça, sem depender do modelo. Não corrige sozinho:
-    // entrega ao médico o trecho literal e o subtipo que o material sugere.
-    const materialEmTexto = [text, textoDosPdfs].filter(Boolean).join('\n\n');
-    const conflito = conflitoDeSitioGinecologico(extracted.tipo_tumor, materialEmTexto);
-    if (conflito.conflita) {
-      console.warn(`Conflito de sítio: leitura disse "${extracted.tipo_tumor}", material nomeia "${conflito.esperado}".`);
-      extracted.subtipo_em_conflito = conflito.esperado;
-      avisos.push({
-        arquivo: 'Subtipo identificado',
-        motivo: `A leitura classificou como "${extracted.tipo_tumor}", mas o material menciona ${conflito.esperado.replace('Ginecológico - ', '').toLowerCase()}: "${conflito.trecho}"`,
-        comoResolver: `Confirme o subtipo no campo abaixo antes de seguir — a triagem inteira depende dele. Se o correto for "${conflito.esperado}", troque no seletor e os campos serão remontados.`,
-      });
-    }
-
-    res.json({ extracted, avisos, usage: response.usage });
+    res.json({ extracted, avisos, usage: response.usage, usageSegunda: usoSegunda });
   } catch (err) {
     // O detalhe técnico fica no servidor. O médico recebe uma frase que diz o
     // que houve e o que fazer - nunca o JSON cru da API, que além de não

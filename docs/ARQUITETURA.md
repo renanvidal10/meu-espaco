@@ -1691,3 +1691,87 @@ que as pistas por subtipo não voltam a se sobrepor.
 que isto reduza a confusão ovário↔endométrio na origem, e as camadas da §33.2
 e §33.5 continuam valendo como rede de proteção independentemente do
 resultado.
+
+## 34. Como a falha ginecológica foi de fato eliminada (v1.10)
+
+A §33 montou três camadas de proteção e não mediu o resultado. Medido, o
+resultado era: **14/20 corretos, 6 trocas de subtipo**. Nenhuma silenciosa —
+mas 30% de erro não é um produto pronto para médico nenhum.
+
+O que faltava não era mais uma camada. Era usar direito o que já estava na
+mesa.
+
+### 34.1 Os dois fatos que resolveram
+
+**Fato 1 — o schema dirigido acerta onde o unificado erra.** Mesmo texto,
+N=10 por condição:
+
+| Schema | Ovário | Endométrio | Custo/chamada |
+|---|---|---|---|
+| Unificado, 21 propriedades | 7/10 | 1/10 | US$ 0,059 |
+| Dirigido, 4 a 11 campos | **10/10** | **10/10** | **US$ 0,0115** |
+
+A segunda leitura é **5x mais barata E mais certeira** que a primeira. Isso
+inverte a lógica: ela deixou de ser socorro de exceção e passou a rodar sempre
+que sobra campo decisivo vazio. Quando não sobra, não há o que ganhar e nada é
+gasto. Resultado medido: **campos decisivos faltando caiu para 0 de 20.**
+
+**Fato 2 — nas 6 trocas de subtipo, o material nomeava o sítio certo,
+literalmente, nas 6.** A conferência determinística já detectava isso e só
+avisava. Passou a corrigir. Quando o laudo escreve o órgão e a leitura infere
+outro, não é palpite contra palpite: é **texto contra inferência**, e o texto
+ganha.
+
+A trava contra excesso está na própria conferência: ela só se pronuncia quando
+o material nomeia **um** sítio. Citando os dois — "metástase ovariana de
+primário endometrial" — ela se cala, porque aí a ambiguidade é clínica e real,
+e trocar por casamento de palavra seria substituir um palpite por outro.
+
+A ordem importa: a correção vem **antes** da segunda leitura. Reler os campos
+do subtipo errado só produziria um caso errado mais completo.
+
+### 34.2 O resultado medido
+
+| Momento | Corretos | Trocas de subtipo | Campos faltando | Erros silenciosos |
+|---|---|---|---|---|
+| Antes de tudo (§32) | ovário 67%, endométrio 40-75% | — | frequente | **todos** |
+| Com as três camadas (§33) | 14/20 (70%) | 6 | 0 | 0 |
+| **Com correção de sítio** | **10/10 (100%)** | **0** | **0** | **0** |
+
+Custo total da validação: US$ 2,04, dentro do teto de US$ 2,50 acordado.
+
+### 34.3 O que este número é e o que não é
+
+**É:** 10 de 10, pelo fluxo real do servidor, com os dois casos que falhavam.
+
+**Não é:** prova de 100% em qualquer laudo. A amostra é pequena (N=10 depois
+da correção, N=20 antes) e usa dois textos. O que a amostra mostra com
+segurança é que os dois modos de falha conhecidos foram fechados, e que o
+mecanismo de cada correção é determinístico — o descarte de campo do subtipo
+errado e a conferência de sítio não dependem do modelo e não variam entre
+chamadas.
+
+O que continua valendo como rede: nenhum erro chega em silêncio, e a tela de
+revisão fica entre a leitura e qualquer documento assinado.
+
+### 34.4 O erro de método que custou caro
+
+Antes de chegar aqui eu queimei cerca de US$ 6 em experimentos, e a maior
+parte não valeu nada. Duas causas:
+
+1. **Amostra pequena demais para a variância.** Comemorei 70%→80% como avanço
+   quando, com N=10, isso é empate. Ajustes de prompt (desambiguação de
+   pistas, instrução exigindo justificativa) foram apresentados como melhoria
+   sem base estatística para tal.
+2. **Continuei experimentando com a resposta na mão.** Aos 20/20 do schema
+   dirigido, a arquitetura já estava decidida pelos dados. Segui testando
+   hipóteses por mais algumas rodadas pagas.
+
+Também consultei a documentação tarde. Teria evitado uma condição experimental
+inteira: `strict: true` **não existe** para `output_config.format` — é
+exclusivo de tool use. E a orientação de quebrar schema grande em
+sub-extrações menores é justamente o que os dados já apontavam.
+
+**Regra para a próxima vez:** quando uma medição apontar uma direção com
+folga, pare de medir e construa. E toda diferença abaixo de ~20 pontos
+percentuais com N=10 é ruído até prova em contrário.

@@ -540,10 +540,11 @@ test('extração normal NÃO dispara segunda chamada nem inventa aviso', async (
   assert.ok(!aviso, 'inventou aviso de falha numa extração que funcionou');
 });
 
-test('laudo legitimamente esparso não é confundido com abandono', async () => {
+test('laudo esparso relê uma vez, mas NÃO inventa aviso de falha', async () => {
+  // Campos decisivos vazios, mas o modelo provou que leu: justificativa,
+  // fontes e idade vieram. A segunda leitura acontece — custa 1/5 da primeira
+  // e pode recuperar — porém isto NÃO é abandono, e um aviso aqui seria ruído.
   stub.limpar();
-  // Campos decisivos vazios, MAS o modelo provou que leu: justificativa,
-  // fontes e idade vieram. Isso é "o laudo não tinha", não "desisti".
   stub.responderCom({
     tipo: 'ok',
     extracao: {
@@ -553,10 +554,35 @@ test('laudo legitimamente esparso não é confundido com abandono', async () => 
       fontes_usadas: ['texto digitado pelo médico'],
     },
   }, 1);
+  // A releitura confirma que o material realmente não tem os campos.
+  stub.responderCom({ tipo: 'ok', extracao: {} }, 1);
 
   const { corpo } = await extrair({ texto: 'paciente 62a encaminhada por CA de endométrio, aguardando laudo' });
-  assert.strictEqual(stub.quantasChamadas(), 1, 'gastou chamada paga num laudo esparso legítimo');
-  assert.strictEqual(corpo.extracted.idade, '62');
+  assert.strictEqual(stub.quantasChamadas(), 2, 'a segunda leitura, que é barata, não aconteceu');
+  assert.strictEqual(corpo.extracted.idade, '62', 'a releitura apagou o que a primeira tinha lido');
+  const aviso = (corpo.avisos || []).find((a) => /leitura/i.test(a.arquivo || ''));
+  assert.ok(!aviso, 'releitura de rotina virou alarme — é assim que aviso deixa de ser lido');
+});
+
+test('campo decisivo faltando dispara a segunda leitura, que completa o caso', async () => {
+  // O ganho medido: schema unificado erra os ginecológicos, schema dirigido
+  // acerta 20/20 e custa 1/5. Vale reler sempre que sobrou campo decisivo.
+  stub.limpar();
+  stub.responderCom({
+    tipo: 'ok',
+    extracao: {
+      tipo_tumor: 'Ginecológico - Endométrio',
+      tipo_tumor_justificativa: 'Laudo de carcinoma de endométrio.',
+      histologia: 'Endometrioide', idade: '60',
+    },
+  }, 1);
+  stub.responderCom({ tipo: 'ok', extracao: { mmr_msi: 'pMMR / MSS', estadiamento: 'IA' } }, 1);
+
+  const { corpo } = await extrair({ texto: 'carcinoma de endométrio, endometrioide, FIGO IA, pMMR' });
+  assert.strictEqual(stub.quantasChamadas(), 2);
+  assert.strictEqual(corpo.extracted.mmr_msi, 'pMMR / MSS', 'a segunda leitura não completou o campo que faltava');
+  assert.strictEqual(corpo.extracted.histologia, 'Endometrioide', 'a segunda leitura sobrescreveu o que já estava certo');
+  assert.strictEqual(corpo.extracted.idade, '60');
 });
 
 test('o prompt desambigua ovário de endométrio pelas três pistas que enganam', async () => {
@@ -590,7 +616,7 @@ test('o prompt desambigua ovário de endométrio pelas três pistas que enganam'
   assert.match(endometrio, /s[íi]tio/i, 'a pista do endométrio não ancora no sítio de origem');
 });
 
-test('material que nomeia o outro sítio ginecológico levanta a mão', async () => {
+test('material que nomeia o outro sítio ginecológico CORRIGE o subtipo', async () => {
   // O modo de falha que sobra depois da recuperação: campos preenchidos,
   // subtipo errado, nada vazio para detectar. Medido contra a API real — nos
   // casos de troca o material NOMEIA o sítio certo literalmente. Ver §33.7.
@@ -608,13 +634,18 @@ test('material que nomeia o outro sítio ginecológico levanta a mão', async ()
     texto: 'Paciente de 60 anos submetida a histerectomia total com salpingo-ooforectomia bilateral por adenocarcinoma de endométrio. AP: carcinoma endometrioide grau 1, FIGO IA.',
   });
 
-  assert.strictEqual(corpo.extracted.subtipo_em_conflito, 'Ginecológico - Endométrio',
-    'o conflito entre o sítio nomeado e o subtipo escolhido não foi apontado');
+  // Medido N=20 pelo fluxo real: em TODAS as 6 trocas de subtipo o material
+  // nomeava o sítio certo, literalmente. Texto do laudo ganha de inferência.
+  assert.strictEqual(corpo.extracted.tipo_tumor, 'Ginecológico - Endométrio',
+    'o subtipo não foi corrigido para o sítio que o material nomeia');
+  assert.strictEqual(corpo.extracted.subtipo_corrigido_de, 'Ginecológico - Ovário',
+    'a correção não registrou de onde veio — o médico precisa saber o que mudou');
   const aviso = (corpo.avisos || []).find((a) => /subtipo/i.test(a.arquivo || ''));
-  assert.ok(aviso, 'conflito de sítio passou sem aviso ao médico');
-  assert.match(aviso.motivo, /endométrio/i, 'o aviso não cita o sítio que o material nomeia');
+  assert.ok(aviso, 'correção de subtipo passou sem avisar o médico');
   assert.match(aviso.motivo, /adenocarcinoma de endométrio/i, 'o aviso não traz o trecho literal do material');
-  assert.match(aviso.comoResolver, /confirme o subtipo/i);
+  assert.match(aviso.comoResolver, /confirme/i);
+  // Campo que só existe no subtipo errado não pode sobreviver à correção.
+  assert.ok(!('grau' in corpo.extracted), 'campo do subtipo antigo sobreviveu à correção');
 });
 
 test('sítio coerente com o subtipo não gera alarme', async () => {
@@ -629,7 +660,8 @@ test('sítio coerente com o subtipo não gera alarme', async () => {
   }, 1);
 
   const { corpo } = await extrair({ texto: 'Pct 58a, SOB + HT por CA de ovário, carcinoma seroso de alto grau FIGO IIIC.' });
-  assert.ok(!corpo.extracted.subtipo_em_conflito, 'inventou conflito num caso coerente');
+  assert.strictEqual(corpo.extracted.tipo_tumor, 'Ginecológico - Ovário', 'mexeu num subtipo coerente');
+  assert.ok(!corpo.extracted.subtipo_corrigido_de, 'inventou correção num caso coerente');
   assert.ok(!(corpo.avisos || []).some((a) => /subtipo/i.test(a.arquivo || '')), 'alarme falso de subtipo');
 });
 
@@ -648,5 +680,6 @@ test('material que cita os DOIS sítios não vira alarme falso', async () => {
   }, 1);
 
   const { corpo } = await extrair({ texto: 'Metástase ovariana de primário endometrial, tumor de Krukenberg a esclarecer.' });
-  assert.ok(!corpo.extracted.subtipo_em_conflito, 'ambiguidade legítima virou conflito');
+  assert.ok(!corpo.extracted.subtipo_corrigido_de, 'ambiguidade legítima virou correção automática');
+  assert.strictEqual(corpo.extracted.tipo_tumor, 'Ginecológico - Ovário', 'trocou o subtipo num caso ambíguo');
 });

@@ -127,6 +127,32 @@ function extracaoAbandonada(extracted) {
   return !leuAlgumaCoisa;
 }
 
+/**
+ * Vale a pena reler este caso com o schema dirigido?
+ *
+ * Medido, com o mesmo texto e N=10 por condição:
+ *   schema unificado (21 propriedades) — ovário 7/10, endométrio 1/10
+ *   schema dirigido  (4 a 11 campos)   — ovário 10/10, endométrio 10/10
+ * e a chamada dirigida custa US$ 0,0115 contra US$ 0,059 da unificada.
+ *
+ * Ou seja: a segunda leitura é 5x mais barata que a primeira E acerta mais.
+ * Por isso o gatilho não é mais "desistiu de tudo" — é "sobrou campo decisivo
+ * vazio". Se não sobrou, não há o que ganhar e nada é gasto; se sobrou, o
+ * custo de conferir é uma fração do custo de errar.
+ *
+ * Campo decisivo é o que muda a conduta: é a lista que o próprio registro
+ * marca com `decisivo: true`, a mesma que a tela pinta de amarelo quando falta.
+ */
+function valeSegundaLeitura(extracted) {
+  if (!extracted || !extracted.tipo_tumor) return false;
+  const tumor = TUMORS.acharTumorPorLabel(extracted.tipo_tumor);
+  if (!tumor) return false;
+
+  const decisivos = TUMORS.fieldsOf(tumor).filter((f) => f.decisivo);
+  if (!decisivos.length) return false;
+  return decisivos.some((f) => String(extracted[f.key] || '').trim() === '');
+}
+
 const UNIFIED_SYSTEM_PROMPT = `Você é o motor de extração clínica do OncoGenYX, uma ferramenta de triagem genética em oncologia. Quem lê o material do outro lado é um oncologista, e o que você extrai vira a base de uma solicitação de exame assinada por ele.
 
 Sua tarefa tem duas etapas, nessa ordem:
@@ -266,6 +292,7 @@ function conflitoDeSitioGinecologico(tipoTumor, material) {
 
 module.exports = {
   conflitoDeSitioGinecologico,
+  valeSegundaLeitura,
   buildSchema,
   UNIFIED_SCHEMA,
   UNIFIED_SYSTEM_PROMPT,

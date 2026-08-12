@@ -2776,8 +2776,8 @@
       // Conflito de sítio conferido pelo servidor no texto do material: é a
       // suspeita mais forte que existe, porque não veio de palpite nenhum —
       // veio de o material nomear um sítio e a leitura ter escolhido o outro.
-      if (extracted.subtipo_em_conflito) {
-        tipoJustEl.textContent = `O material menciona ${extracted.subtipo_em_conflito.replace('Ginecológico - ', '').toLowerCase()}, mas a leitura classificou como ${extracted.tipo_tumor}. Confirme o subtipo antes de seguir — a triagem inteira depende dele.`;
+      if (extracted.subtipo_corrigido_de) {
+        tipoJustEl.textContent = `A leitura havia classificado como ${extracted.subtipo_corrigido_de}, e foi corrigido para ${extracted.tipo_tumor} porque é o sítio nomeado no material. Confirme antes de seguir — a triagem inteira depende disto.`;
         tipoJustEl.className = 'hint confirmar-subtipo';
         tipoJustEl.style.display = '';
         campoSubtipo.classList.add('confirmar');
