@@ -318,6 +318,30 @@
     verificadoEm: '2026-08-11',
     fonte: 'Programa vinculado a talazoparibe + enzalutamida (HRR). URL anterior (/paf-1) removida: era do programa de Polineuropatia Amiloidótica Familiar.',
   };
+  // Teste HRD patrocinado, sem custo para o paciente, com metodologia myChoice
+  // CDx (Myriad). O critério de elegibilidade é EXATAMENTE o mesmo que esta
+  // regra já usa para indicar HRD — seroso ou endometrioide de alto grau de
+  // ovário, tuba uterina ou peritônio — o que torna a ausência dele no card um
+  // erro grave: o médico via a indicação do exame e nenhuma via gratuita para
+  // obtê-lo, quando ela existe.
+  //
+  // A solicitação NÃO é feita num portal: o médico pede ao laboratório
+  // parceiro, que inscreve o paciente, seleciona os blocos de tecido e
+  // encaminha para o teste.
+  //
+  // A CONFIRMAR com o time comercial (ver §36): se o patrocínio é nominal da
+  // GSK ou de um consórcio de indústrias, qual o portal canônico de entrada, e
+  // se a elegibilidade exige primeira linha de tratamento.
+  const HRD_PATROCINADO = {
+    name: 'Teste HRD sem custo (myChoice CDx)',
+    note: 'Teste HRD patrocinado pela indústria, sem custo para o paciente, para carcinoma seroso ou endometrioide de alto grau de ovário, tuba uterina ou peritônio. A solicitação é feita pelo laboratório parceiro, que inscreve o paciente e encaminha os blocos.',
+    url: 'https://laminalab.com.br/teste-deficiencia-de-recombinacao-homologa-hrd-em-cancer-de-ovario/',
+    cobertura: ['ovario'],
+    amostra: 'tecido',
+    verificadoEm: '2026-08-12',
+    fonte: 'Colaboração Myriad/GSK para ampliar acesso a HRD (comunicado Myriad, BioSpace) e página do Laboratório Lâmina descrevendo critério e via de solicitação. Patrocinador nominal e portal canônico a confirmar com o time comercial.',
+  };
+
   const LIFE_GENOMICS = {
     name: 'Life Genomics',
     note: 'Laboratório de oncogenética, não é programa gratuito. Confirmar cobertura e valores.',
@@ -443,7 +467,7 @@
         stat: '~50% dos carcinomas de alto grau são HRD positivo',
         description: 'Avalia deficiência de recombinação homóloga no tecido tumoral (já inclui a análise de BRCA1/2 tumoral no mesmo teste). Define elegibilidade a terapia de manutenção com inibidor de PARP.',
         justify: 'Elegível para avaliação de status HRD tumoral para definição de elegibilidade a terapia de manutenção com inibidor de PARP.',
-        programs: [PROGRAMA_ID],
+        programs: [HRD_PATROCINADO, PROGRAMA_ID],
       };
 
       if (!HISTOLOGIAS_HRD.some((h) => has(v.histologia, h))) {

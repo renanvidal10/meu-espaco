@@ -1828,3 +1828,72 @@ faltava era ler o produto do jeito que o usuário o recebe. Um card pode ter a
 indicação correta, o teste correto e a amostra correta, e ainda assim mandar o
 paciente ao lugar errado — porque a informação ao lado da decisão também é
 parte da decisão.
+
+## 36. O erro inverso da curadoria: o programa que existia e não era mostrado (v1.12)
+
+Os três incidentes anteriores de curadoria de programa foram todos do mesmo
+tipo: **programa associado onde não devia** — GSK no card de próstata (o
+programa é de ovário), Pfizer com URL de uma doença neurológica, e programa de
+tecido tumoral oferecido num teste de sangue. As correções montaram travas
+contra associação indevida: `cobertura` por tumor, `amostra` por tipo de
+material, teste percorrendo os cenários.
+
+Nenhuma dessas travas pega o erro **inverso**, que é o que aconteceu aqui: um
+programa que **existe, é gratuito, tem critério idêntico ao da regra — e não
+está no card**.
+
+### 36.1 O que aconteceu
+
+Existe teste HRD sem custo para o paciente no Brasil, metodologia myChoice CDx
+(Myriad), cujo critério de elegibilidade é **carcinoma seroso ou endometrioide
+de alto grau de ovário, tuba uterina ou peritônio** — exatamente o critério que
+esta plataforma já usa para indicar HRD.
+
+Quando a GSK foi removida do card de próstata (correto, o programa nunca foi de
+próstata), ela **não foi adicionada ao card de ovário**, que é onde pertence. O
+resultado: o médico via a indicação do exame e **nenhuma via gratuita para
+obtê-lo**, quando ela existe e o paciente dele qualifica.
+
+Numa ferramenta cujo propósito é aproximar o exame do paciente, deixar de
+mostrar um programa gratuito é tão grave quanto mostrar o errado — e mais
+difícil de perceber, porque não há nada na tela para estranhar.
+
+### 36.2 A trava que faltava
+
+Duas verificações novas, ambas sobre **ausência**:
+
+1. Todo teste indicado precisa listar ao menos uma via de acesso.
+2. No HRD de ovário — o caso concreto que falhou — a via **gratuita** precisa
+   existir, com link e com cobertura declarada para ovário.
+
+### 36.3 O que está confirmado e o que não está
+
+**Confirmado** por fontes independentes (comunicado da Myriad, BioSpace,
+página do Laboratório Lâmina): o programa existe, é sem custo, usa myChoice
+CDx, o critério é seroso/endometrioide de alto grau de ovário, tuba ou
+peritônio, e a solicitação é feita **pelo laboratório parceiro**, que inscreve
+o paciente, seleciona os blocos e encaminha.
+
+**A confirmar com o time comercial:**
+- se o patrocínio é nominal da GSK ou de um consórcio de indústrias (uma fonte
+  descreve "consórcio de laboratórios farmacêuticos");
+- qual o portal canônico de entrada para o médico (o link em uso hoje é a
+  página do laboratório parceiro, que descreve o programa e a via de
+  solicitação — não o portal do patrocinador);
+- se a elegibilidade exige **primeira linha** de tratamento (uma fonte
+  menciona essa condição, as demais não).
+
+### 36.4 Lacunas restantes de parceiro
+
+Quatro testes indicados hoje mostram "Programa a mapear", que é honesto mas é
+uma lacuna:
+
+| Tumor | Teste sem parceiro verificado |
+|---|---|
+| Colorretal | Perfil somático (RAS, BRAF V600E, HER2) |
+| Colorretal | Pesquisa de MMR / MSI |
+| Pâncreas | Perfil somático tumoral |
+| Endométrio | Classificação molecular (MMR/MSI, POLE, p53) |
+
+Estas ainda não foram pesquisadas a fundo. A regra do projeto continua
+valendo: **nenhuma entra por analogia** — só com verificação documentada.

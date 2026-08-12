@@ -797,3 +797,46 @@ test('a justificativa do documento assinado diz QUAL critério foi atendido', ()
       `${id}: justificativa genérica demais para um documento assinado`);
   }
 });
+
+test('teste indicado sempre oferece ao menos uma via de acesso — ou diz que não há', () => {
+  // A raiz do erro do HRD de ovário: existia programa gratuito com critério
+  // idêntico ao da regra, e o card não o mostrava. O médico via a indicação do
+  // exame e nenhum caminho gratuito para obtê-lo. A ausência passou anos sem
+  // ser notada porque nada verificava a ausência — só a presença errada.
+  const cenarios = [
+    ['ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' }],
+    ['ovario', { histologia: 'Endometrioide', grau: 'Alto grau', estadiamento: 'IV' }],
+    ['mama', { histologia: 'CDI', subtipo_molecular: 'Triplo-negativo', extensao_doenca: 'Metastático', idade: '45' }],
+    ['prostata', { extensao_doenca: 'Metastático resistente à castração (mCRPC)' }],
+    ['colorretal', { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático', mmr_msi: 'dMMR / MSI-alto', idade: '68' }],
+    ['pulmao', { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático' }],
+    ['pancreas', { histologia: 'Adenocarcinoma ductal', extensao_doenca: 'Metastático' }],
+    ['endometrio', { histologia: 'Endometrioide', estadiamento: 'IIIC', mmr_msi: 'dMMR / MSI-alto' }],
+  ];
+  for (const [id, valores] of cenarios) {
+    const { resultado } = triar(id, valores);
+    for (const teste of resultado.tests || []) {
+      assert.ok((teste.programs || []).length > 0,
+        `${id}/${teste.id}: teste indicado sem NENHUMA via de acesso listada`);
+    }
+  }
+});
+
+test('o teste HRD de ovário oferece a via gratuita, que existe e tem o mesmo critério', () => {
+  // Regressão direta do erro relatado: o programa patrocinado de HRD tem
+  // exatamente o critério desta regra (seroso ou endometrioide de alto grau),
+  // e sumiu do card quando a associação errada com próstata foi removida.
+  for (const histologia of ['Seroso', 'Endometrioide']) {
+    const { resultado } = triar('ovario', { histologia, grau: 'Alto grau', estadiamento: 'IIIC' });
+    const hrd = (resultado.tests || []).find((t) => t.id === 'hrd');
+    assert.ok(hrd, `ovario/${histologia}: HRD não foi indicado`);
+    const gratuitos = (hrd.programs || []).filter((p) => /sem custo|gratuito/i.test(p.note || ''));
+    assert.ok(gratuitos.length >= 1,
+      `ovario/${histologia}: HRD indicado sem nenhuma via GRATUITA, e ela existe`);
+    for (const p of gratuitos) {
+      assert.ok(p.url, `ovario/${histologia}: programa "${p.name}" sem link para o médico solicitar`);
+      assert.ok(p.cobertura && p.cobertura.includes('ovario'),
+        `ovario/${histologia}: programa "${p.name}" sem cobertura declarada para ovário`);
+    }
+  }
+});
