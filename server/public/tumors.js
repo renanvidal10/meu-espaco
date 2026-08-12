@@ -301,6 +301,11 @@
     note: 'Teste gratuito em tecido tumoral. Se o resultado vier inconclusivo, permite reteste por biópsia líquida sem custo.',
     url: 'https://programaid.com.br/',
     cobertura: ['ovario', 'prostata', 'mama', 'pulmao'],
+    // O programa processa TECIDO TUMORAL. Oferecê-lo num teste germinativo,
+    // cuja amostra é sangue periférico, manda o médico a um parceiro que não
+    // faz o exame solicitado — foi o que acontecia no card germinativo de
+    // mama. Ver §35.
+    amostra: 'tecido',
     verificadoEm: '2026-08-11',
     fonte: 'programaid.com.br/exames — mama, pulmão, ovário, próstata e LLC',
   };
@@ -309,6 +314,7 @@
     note: 'Existe apoio diagnóstico ligado à terapia com inibidor de PARP em próstata. Portal oficial a confirmar — consulte o representante antes de encaminhar.',
     url: null,
     cobertura: ['prostata'],
+    amostra: 'tecido',
     verificadoEm: '2026-08-11',
     fonte: 'Programa vinculado a talazoparibe + enzalutamida (HRR). URL anterior (/paf-1) removida: era do programa de Polineuropatia Amiloidótica Familiar.',
   };
@@ -317,10 +323,13 @@
     note: 'Laboratório de oncogenética, não é programa gratuito. Confirmar cobertura e valores.',
     url: 'https://lifegenomics.com.br/',
     cobertura: ['ovario', 'prostata', 'mama', 'pancreas', 'colorretal', 'endometrio', 'pulmao'],
+    // Laboratório completo: processa sangue e tecido.
+    amostra: 'ambos',
     verificadoEm: '2026-08-11',
     fonte: 'Laboratório comercial brasileiro de oncogenética, cobertura ampla.',
   };
   const A_MAPEAR = {
+    amostra: 'ambos',
     name: 'Programa a mapear',
     note: 'Nenhum parceiro verificado ainda para este teste neste tumor.',
     url: null,
@@ -441,7 +450,7 @@
         return {
           state: 'parcial', tests: [germinativo],
           title: 'Este caso tem indicação para teste germinativo',
-          summary: `Carcinoma ${epitelial} de ovário. O critério para o teste somático (HRD) não foi atendido.`,
+          summary: `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')}. O critério para o teste somático (HRD) não foi atendido.`,
           notes: [{ tag: 'Somático - critério não atendido', title: 'HRD Somático não indicado por esta regra',
             body: 'O teste somático de HRD é específico para histologia serosa ou endometrioide de alto grau em estágio III/IV. Reavalie se histologia, grau ou estágio forem atualizados.' }],
         };
@@ -456,7 +465,7 @@
         return {
           state: 'parcial', tests: [germinativo],
           title: 'Este caso tem indicação para teste germinativo',
-          summary: `Carcinoma ${epitelial} de ovário${filled(v.estadiamento) ? ', estágio ' + v.estadiamento : ''}. O critério para o teste somático (HRD) não foi atendido.`,
+          summary: `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')}${filled(v.estadiamento) ? ', estágio ' + v.estadiamento : ''}. O critério para o teste somático (HRD) não foi atendido.`,
           notes: [{ tag: 'Somático - critério não atendido', title: 'HRD Somático não indicado por esta regra',
             body: 'O teste somático de HRD é específico para alto grau em estágio III/IV.' }],
         };
@@ -475,8 +484,8 @@
         tests: [somatico, germinativo],
         title: confirmado ? 'Este caso tem indicação para 2 testes' : 'Este caso tem indicação provável para 2 testes',
         summary: confirmado
-          ? `Carcinoma ${epitelial} de alto grau de ovário, estágio ${v.estadiamento}. Solicite os 2 testes abaixo.`
-          : `Carcinoma ${epitelial} de ovário. Histologia compatível com o par somático + germinativo.${faltando ? ` Confirme ${faltando} no laudo antes de solicitar o teste somático.` : ''}`,
+          ? `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')}, alto grau, estágio ${v.estadiamento}. Solicite os 2 testes abaixo.`
+          : `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')}. Histologia compatível com o par somático + germinativo.${faltando ? ` Confirme ${faltando} no laudo antes de solicitar o teste somático.` : ''}`,
         notes: confirmado || !faltando ? [] : [{ warn: true, tag: 'A confirmar no laudo',
           title: `${faltando.charAt(0).toUpperCase()}${faltando.slice(1)} a confirmar`,
           body: `A indicação do teste somático assume que ${faltando} está dentro do critério (alto grau, estágio III/IV), o mais comum para esta histologia. O germinativo é indicado de qualquer forma.` }],
@@ -540,20 +549,27 @@
         name: 'Painel germinativo (BRCA1/2, ATM, CHEK2, PALB2, HOXB13, MMR)',
         sample: 'Sangue periférico', order: 'Sangue · germinativo',
         description: 'Investiga mutação hereditária, independente do resultado tumoral.',
-        justify: 'Perfil com indicação de teste germinativo ao diagnóstico, independente de histórico familiar.',
+        // Preenchida em cada ramo com o critério REAL. O texto genérico que
+        // estava aqui ia impresso na solicitação e não justificava nada: dizia
+        // "perfil com indicação" sem dizer qual perfil. Ver §35.
+        justify: '',
         programs: [LIFE_GENOMICS],
       };
 
       const somatico = {
         id: 'hrr', kind: 'somatico', name: 'Painel somático HRR', primary: true,
         sample: 'Tecido tumoral (ou biópsia líquida)', order: 'Tumoral · somático · prioridade',
-        stat: '~20-25% dos casos metastáticos têm alteração em gene HRR',
+        // PROfound rastreou 4.425 pacientes e 27,9% tinham alteração HRR
+        // qualificante. A faixa antiga ("~20-25%") subestimava o número que o
+        // médico lê na tela.
+        stat: '27,9% dos casos metastáticos têm alteração em gene HRR (PROfound)',
         description: 'Painel de 15 genes de reparo por recombinação homóloga (BRCA1/2, ATM, BARD1, BRIP1, CDK12, CHEK1/2, FANCL, PALB2, PPP2R2A, RAD51B/C/D, RAD54L). Define elegibilidade a inibidor de PARP.',
         justify: 'Elegível para avaliação de painel somático HRR para definição de elegibilidade a terapia com inibidor de PARP.',
         programs: [PROGRAMA_ID, PROGRAMA_PFIZER],
       };
 
       if (metastatico) {
+        germinativo.justify = `Câncer de próstata metastático${mCRPC ? ' resistente à castração' : ' hormônio-sensível'}: indicação de teste germinativo ao diagnóstico, independentemente de idade e de histórico familiar.`;
         return {
           state: 'completo', tests: [somatico, germinativo],
           title: 'Este caso tem indicação para 2 testes',
@@ -571,6 +587,7 @@
       ].filter(Boolean);
 
       if (motivos.length) {
+        germinativo.justify = `Doença localizada com critério de indicação germinativa: ${motivos.join('; ')}.`;
         return {
           state: 'parcial', tests: [germinativo],
           title: 'Este caso tem indicação para teste germinativo',
@@ -658,8 +675,8 @@
         sample: 'Sangue periférico', order: 'Sangue · germinativo', primary: true,
         stat: 'BRCA1/2 germinativo define elegibilidade a inibidor de PARP',
         description: 'Investiga mutação hereditária. Além de orientar rastreio familiar em cascata, define elegibilidade a inibidor de PARP em cenário adjuvante (alto risco, HER2-negativo) e metastático.',
-        justify: 'Perfil com critério de indicação de teste germinativo, com impacto em elegibilidade terapêutica e em rastreio familiar.',
-        programs: [PROGRAMA_ID, LIFE_GENOMICS],
+        justify: `Critério atendido: ${motivos.join('; ')}. Indicação de teste germinativo com impacto em elegibilidade terapêutica e em rastreio familiar em cascata.`,
+        programs: [LIFE_GENOMICS],
       };
 
       const somatico = {

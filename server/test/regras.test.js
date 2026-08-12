@@ -728,3 +728,72 @@ test('dMMR é reconhecido nas grafias que o médico digita à mão', () => {
     assert.strictEqual(TUMORS.helpers.ehDmmr(grafia), false, `"${grafia}" nao e dMMR`);
   }
 });
+
+/* ====================================================================== *
+ * O PROGRAMA TEM DE FAZER O EXAME QUE O CARD PEDE
+ *
+ * O card do teste mostra a amostra ("Sangue periférico") e, logo abaixo, os
+ * programas de acesso. Se o programa processa só tecido tumoral e o teste é
+ * germinativo, o médico encaminha o paciente para um parceiro que NÃO faz
+ * aquele exame. Aconteceu no card germinativo de mama, que oferecia um
+ * programa de tecido. Ver ARQUITETURA.md §35.
+ * ====================================================================== */
+test('nenhum programa é oferecido para um tipo de amostra que ele não processa', () => {
+  const cenarios = [
+    ['ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' }],
+    ['ovario', { histologia: 'Mucinoso', estadiamento: 'IA' }],
+    ['mama', { histologia: 'CDI', subtipo_molecular: 'Triplo-negativo', extensao_doenca: 'Metastático', idade: '45' }],
+    ['mama', { histologia: 'CDI', subtipo_molecular: 'Luminal (RH+/HER2-)', extensao_doenca: 'Metastático', idade: '68' }],
+    ['mama', { histologia: 'CDI', sexo: 'Masculino', extensao_doenca: 'Inicial (operável)', idade: '61' }],
+    ['prostata', { extensao_doenca: 'Metastático resistente à castração (mCRPC)' }],
+    ['prostata', { extensao_doenca: 'Localizado', categoria_risco_localizado: 'Alto' }],
+    ['colorretal', { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático', mmr_msi: 'dMMR / MSI-alto', idade: '68' }],
+    ['colorretal', { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'pMMR / MSS', idade: '44' }],
+    ['pulmao', { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático' }],
+    ['pulmao', { histologia: 'Adenocarcinoma', extensao_doenca: 'Inicial (ressecável)' }],
+    ['pancreas', { histologia: 'Adenocarcinoma ductal', extensao_doenca: 'Metastático' }],
+    ['endometrio', { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'pMMR / MSS' }],
+    ['endometrio', { histologia: 'Endometrioide', estadiamento: 'IIIC', mmr_msi: 'dMMR / MSI-alto' }],
+  ];
+
+  for (const [id, valores] of cenarios) {
+    const { resultado } = triar(id, valores);
+    for (const teste of resultado.tests || []) {
+      const querSangue = /sangue/i.test(teste.sample || '');
+      for (const programa of teste.programs || []) {
+        assert.ok(programa.amostra, `${id}/${teste.id}: programa "${programa.name}" não declara que amostra processa`);
+        if (querSangue) {
+          assert.notStrictEqual(
+            programa.amostra, 'tecido',
+            `${id}/${teste.id}: teste em ${teste.sample} oferecendo "${programa.name}", que só processa tecido tumoral`,
+          );
+        } else {
+          assert.notStrictEqual(
+            programa.amostra, 'sangue',
+            `${id}/${teste.id}: teste em ${teste.sample} oferecendo "${programa.name}", que só processa sangue`,
+          );
+        }
+      }
+    }
+  }
+});
+
+test('a justificativa do documento assinado diz QUAL critério foi atendido', () => {
+  // A justificativa vai impressa na solicitação, e é o que o laboratório e a
+  // operadora leem para autorizar o exame. "Perfil com critério de indicação"
+  // não justifica nada — o resumo na tela era específico e o documento, não.
+  const cenarios = [
+    ['mama', { histologia: 'CDI', sexo: 'Masculino', extensao_doenca: 'Inicial (operável)', idade: '61' }, /masculino/i],
+    ['mama', { histologia: 'CDI', subtipo_molecular: 'Triplo-negativo', extensao_doenca: 'Metastático', idade: '45' }, /triplo-negativo|45 anos/i],
+    ['colorretal', { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'pMMR / MSS', idade: '44' }, /44 anos/],
+  ];
+  for (const [id, valores, esperado] of cenarios) {
+    const { resultado } = triar(id, valores);
+    const germinativo = (resultado.tests || []).find((t) => t.kind === 'germinativo');
+    assert.ok(germinativo, `${id}: sem teste germinativo no cenário`);
+    assert.match(germinativo.justify, esperado,
+      `${id}: a justificativa impressa não diz qual critério foi atendido — veio "${germinativo.justify}"`);
+    assert.ok(!/^Perfil com critério de indicação de teste germinativo\.?$/i.test(germinativo.justify.trim()),
+      `${id}: justificativa genérica demais para um documento assinado`);
+  }
+});

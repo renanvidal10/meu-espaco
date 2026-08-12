@@ -1775,3 +1775,56 @@ sub-extrações menores é justamente o que os dados já apontavam.
 **Regra para a próxima vez:** quando uma medição apontar uma direção com
 folga, pare de medir e construa. E toda diferença abaixo de ~20 pontos
 percentuais com N=10 é ruído até prova em contrário.
+
+## 35. Revisão do que o médico de fato recebe (v1.11)
+
+Até aqui a verificação clínica olhava *decisões*: qual teste sai, em que
+estado. Nunca tinha lido, linha por linha, o **texto** que chega ao médico —
+título, resumo, justificativa impressa, número exibido, programa oferecido.
+Lido, apareceram três defeitos que nenhum teste pegava porque nenhum teste
+olhava para lá.
+
+### 35.1 Programa de tecido oferecido em teste de sangue
+
+O card germinativo de mama (amostra: **sangue periférico**) oferecia um
+programa cuja própria descrição diz *"teste gratuito em tecido tumoral"*. O
+médico encaminharia o paciente a um parceiro que **não faz o exame
+solicitado** — e descobriria isso só no balcão do laboratório.
+
+É o mesmo tipo de erro do incidente da GSK e do da Pfizer, numa terceira
+dimensão: antes o programa era associado ao **tumor** errado, agora ao **tipo
+de amostra** errado. A correção seguiu o mesmo desenho das anteriores: cada
+programa declara o que processa (`amostra: 'tecido' | 'sangue' | 'ambos'`), e
+um teste percorre os 14 cenários clínicos conferindo, para cada programa
+oferecido, se ele bate com a amostra daquele teste.
+
+### 35.2 A justificativa do documento assinado não justificava nada
+
+A justificativa é o texto impresso na solicitação — é o que o laboratório e a
+operadora leem para autorizar o exame. Em mama e próstata ela era fixa e
+genérica:
+
+> "Perfil com critério de indicação de teste germinativo, com impacto em
+> elegibilidade terapêutica e em rastreio familiar."
+
+O resumo **na tela** era específico ("Critério atendido: câncer de mama em
+paciente do sexo masculino") e o **documento**, não — exatamente ao contrário
+do que deveria ser. Agora as duas dizem o critério real, e um teste exige que
+a justificativa impressa cite o critério de cada cenário.
+
+### 35.3 Dois defeitos de texto
+
+- O resumo do ovário usava o termo interno normalizado, sem acento e sem
+  preposição: *"Carcinoma celulas claras de ovário"*. Passou a usar o mesmo
+  montador do diagnóstico, que produz "Carcinoma de células claras de ovário".
+- O número do HRR em próstata dizia "~20-25%". O PROfound rastreou 4.425
+  pacientes e **27,9%** tinham alteração HRR qualificante. A faixa antiga
+  subestimava o número que o médico lê na tela.
+
+### 35.4 A lição
+
+Os testes verificavam se a decisão clínica estava certa, e ela estava. O que
+faltava era ler o produto do jeito que o usuário o recebe. Um card pode ter a
+indicação correta, o teste correto e a amostra correta, e ainda assim mandar o
+paciente ao lugar errado — porque a informação ao lado da decisão também é
+parte da decisão.
