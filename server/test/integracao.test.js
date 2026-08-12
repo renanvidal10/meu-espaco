@@ -589,3 +589,64 @@ test('o prompt desambigua ovário de endométrio pelas três pistas que enganam'
   assert.match(ovario, /s[íi]tio/i, 'a pista do ovário não ancora no sítio de origem');
   assert.match(endometrio, /s[íi]tio/i, 'a pista do endométrio não ancora no sítio de origem');
 });
+
+test('material que nomeia o outro sítio ginecológico levanta a mão', async () => {
+  // O modo de falha que sobra depois da recuperação: campos preenchidos,
+  // subtipo errado, nada vazio para detectar. Medido contra a API real — nos
+  // casos de troca o material NOMEIA o sítio certo literalmente. Ver §33.7.
+  stub.limpar();
+  stub.responderCom({
+    tipo: 'ok',
+    extracao: {
+      tipo_tumor: 'Ginecológico - Ovário',
+      tipo_tumor_justificativa: 'Cirurgia ginecológica com carcinoma endometrioide.',
+      histologia: 'Endometrioide', grau: 'Baixo grau', estadiamento: 'IA',
+    },
+  }, 1);
+
+  const { corpo } = await extrair({
+    texto: 'Paciente de 60 anos submetida a histerectomia total com salpingo-ooforectomia bilateral por adenocarcinoma de endométrio. AP: carcinoma endometrioide grau 1, FIGO IA.',
+  });
+
+  assert.strictEqual(corpo.extracted.subtipo_em_conflito, 'Ginecológico - Endométrio',
+    'o conflito entre o sítio nomeado e o subtipo escolhido não foi apontado');
+  const aviso = (corpo.avisos || []).find((a) => /subtipo/i.test(a.arquivo || ''));
+  assert.ok(aviso, 'conflito de sítio passou sem aviso ao médico');
+  assert.match(aviso.motivo, /endométrio/i, 'o aviso não cita o sítio que o material nomeia');
+  assert.match(aviso.motivo, /adenocarcinoma de endométrio/i, 'o aviso não traz o trecho literal do material');
+  assert.match(aviso.comoResolver, /confirme o subtipo/i);
+});
+
+test('sítio coerente com o subtipo não gera alarme', async () => {
+  stub.limpar();
+  stub.responderCom({
+    tipo: 'ok',
+    extracao: {
+      tipo_tumor: 'Ginecológico - Ovário',
+      tipo_tumor_justificativa: 'O material declara "CA de ovário".',
+      histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC',
+    },
+  }, 1);
+
+  const { corpo } = await extrair({ texto: 'Pct 58a, SOB + HT por CA de ovário, carcinoma seroso de alto grau FIGO IIIC.' });
+  assert.ok(!corpo.extracted.subtipo_em_conflito, 'inventou conflito num caso coerente');
+  assert.ok(!(corpo.avisos || []).some((a) => /subtipo/i.test(a.arquivo || '')), 'alarme falso de subtipo');
+});
+
+test('material que cita os DOIS sítios não vira alarme falso', async () => {
+  // "Metástase ovariana de primário endometrial" nomeia os dois de forma
+  // legítima. Trocar o subtipo por casamento de palavra aqui seria substituir
+  // um palpite por outro.
+  stub.limpar();
+  stub.responderCom({
+    tipo: 'ok',
+    extracao: {
+      tipo_tumor: 'Ginecológico - Ovário',
+      tipo_tumor_justificativa: 'Acometimento ovariano descrito.',
+      histologia: 'Endometrioide', estadiamento: 'IIIA',
+    },
+  }, 1);
+
+  const { corpo } = await extrair({ texto: 'Metástase ovariana de primário endometrial, tumor de Krukenberg a esclarecer.' });
+  assert.ok(!corpo.extracted.subtipo_em_conflito, 'ambiguidade legítima virou conflito');
+});
