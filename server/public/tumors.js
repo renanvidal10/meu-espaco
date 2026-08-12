@@ -903,7 +903,12 @@
           id: 'germinativo-crc-precoce', kind: 'germinativo',
           name: 'Painel germinativo multigênico (APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11)',
           sample: 'Sangue periférico', order: 'Sangue · germinativo · prioridade', primary: !dmmr,
-          stat: 'Variante germinativa patogênica em cerca de 1 a cada 6 pacientes diagnosticados abaixo dos 50 anos',
+          // A estatística é de série prospectiva NÃO selecionada por idade nem
+          // por história familiar (15,5% de 361 pacientes, Uson Jr. et al.,
+          // Clin Gastroenterol Hepatol 2022) — vale para colorretal em geral,
+          // não só abaixo dos 50. Restringi-la a <50 numa rodada anterior foi
+          // erro meu, corrigido aqui. Ver §37.
+          stat: 'Variante germinativa patogênica em cerca de 1 a cada 6 pacientes com colorretal, em série não selecionada por idade ou história familiar',
           description: 'Diagnóstico abaixo dos 50 anos indica painel multigênico completo, independentemente do status de MMR e de história familiar. O painel cobre polipose (APC, MUTYH, BMPR1A, SMAD4, PTEN, STK11) além dos genes de reparo.',
           justify: `Carcinoma colorretal diagnosticado aos ${idade} anos: abaixo de 50 anos há indicação de painel germinativo multigênico independentemente do status de MMR e de histórico familiar.`,
           programs: [LIFE_GENOMICS],

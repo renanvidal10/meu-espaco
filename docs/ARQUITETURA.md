@@ -2004,3 +2004,25 @@ II–IIIA); colorretal somático + NTRK/MSI/KRAS G12C; próstata mCRPC + MSI/dMM
 mover a seção de programas para anexo claramente rotulado no documento;
 reverificar a citação ESGO/ESTRO/ESP "2025" (a busca própria retornou PDF de
 julho/2025 em guidelines.esgo.org, mas um revisor não conseguiu confirmar).
+
+### 37.6 Correção da correção: a estatística do colorretal
+
+Um dos pareceres afirmou que o "1 a cada 6" só valia abaixo dos 50 anos
+(citando Pearlman 2017) e eu aceitei sem verificar a fonte original do número
+que estava no nosso documento. Verificando depois: o número veio de **série
+prospectiva não selecionada por idade nem por história familiar** — 15,5% de
+361 pacientes com adenocarcinoma colorretal, painel de mais de 80 genes (Uson
+Jr. et al., *Clinical Gastroenterology and Hepatology*, 2022; PMID 33857637).
+Nessa série, **cerca de 60% dos portadores não seriam detectados** pelos
+critérios dirigidos vigentes.
+
+Ou seja: a estatística vale para colorretal em geral, e estreitá-la a "<50
+anos" a enfraqueceu sem necessidade. Texto restaurado com a fonte explícita.
+
+Coincidência que atrapalhou: Pearlman 2017 também encontra ~16%, mas em
+coorte de diagnóstico abaixo dos 50. Dois números quase iguais, populações
+diferentes. **Lição de processo:** parecer externo não dispensa checagem da
+fonte primária — nem quando o parecer está corrigindo a gente.
+
+Este mesmo dado é o que sustenta a pergunta B ao advisor (painel germinativo
+de colorretal em todas as idades).
