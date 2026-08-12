@@ -2101,3 +2101,137 @@ história familiar entra na justificativa. Não é uma taxonomia clínica e não
 aparece para o médico. Fica como está — renomear traria risco sem ganho —, mas
 registrado aqui para que ninguém leia `kind: 'somatico'` como afirmação
 clínica de que a IHQ é um teste somático.
+
+---
+
+## 39. Próstata revisada sob a régua do NCCN (v1.15)
+
+Primeiro bloco das pendências do §37.5, filtrado pela regra de desempate do
+§38.1. O padrão que apareceu aqui vale para os próximos tumores: **a régua
+recusa itens e revela buracos ao mesmo tempo.**
+
+### 39.1 Recusado: TP53 no painel germinativo de próstata
+
+Um parecer pediu acrescentar TP53. O NCCN Prostate lista, para os pacientes que
+atendem às indicações de teste: **BRCA1, BRCA2, ATM, CHEK2, PALB2, HOXB13,
+MLH1, MSH2, MSH6 e PMS2**. TP53 não está na lista. Nosso painel já é
+exatamente essa lista. **Nada a mudar** — e o pedido do parecer fica recusado
+com a razão registrada, não esquecido.
+
+### 39.2 Corrigido: histologia intraductal/cribriforme era indicação, e é consideração
+
+Aqui o app estava **mais agressivo que a diretriz** — o mesmo erro que o §38.3
+evitou no colorretal, e que já estava em produção sem ninguém ter notado.
+
+O NCCN separa:
+- **Recomendado**, independentemente de história familiar: risco **alto**,
+  **muito alto**, doença **regional** (N1) ou **metastática**; ascendência
+  **Ashkenazi**; história pessoal de **câncer de mama**.
+- **Considerar**: risco **intermediário** com histologia **intraductal ou
+  cribriforme**; história pessoal de outros tumores (pâncreas exócrino,
+  colorretal, gástrico, melanoma, urotelial de trato superior, glioblastoma,
+  trato biliar, intestino delgado).
+
+A regra antiga tratava intraductal/cribriforme como gatilho de indicação em
+**qualquer** risco. Em risco alto ou muito alto isso não fazia diferença — a
+categoria de risco já indicava por si. O efeito real era em risco baixo e
+intermediário, onde o NCCN diz "considerar": ali o app **indicava** o teste
+germinativo. Passou a ser **nota**.
+
+### 39.3 Buraco encontrado: história pessoal de outro câncer não era coletada
+
+História pessoal de **câncer de mama** em homem com câncer de próstata é
+indicação **recomendada** de teste germinativo no NCCN, e o app não tinha onde
+registrar isso — nem no formulário, nem na extração. Um paciente com esse
+critério caía em "sem indicação" se não tivesse mais nada.
+
+Campo novo: **História pessoal de outro câncer**. Mama dispara indicação; os
+demais tumores da lista do NCCN disparam nota de consideração.
+
+### 39.4 Buraco encontrado: MSI/dMMR não era pedido em mCRPC
+
+O NCCN recomenda **teste de MSI em mCRPC** — é o que define elegibilidade a
+pembrolizumabe na doença refratária a docetaxel e a hormonioterapia de nova
+geração (MSI-alto descrito em 2,2% a 12% da doença avançada). O app pedia
+apenas o painel somático HRR. Passa a pedir MSI/dMMR **em mCRPC**, e não em
+mHSPC — a recomendação é específica da doença resistente à castração.
+
+Quando o resultado vem MSI-alto/dMMR, o NCCN recomenda encaminhamento para
+aconselhamento genético por síndrome de Lynch. No app isso já está coberto: a
+doença metastática indica o painel germinativo de qualquer forma.
+
+---
+
+## 40. Pâncreas: painel completado, somático estendido (v1.15)
+
+### 40.1 O painel germinativo estava incompleto
+
+O app pedia "BRCA1/2, PALB2, ATM e genes de MMR". O NCCN lista **13 genes
+clinicamente acionáveis** em adenocarcinoma ductal: APC, ATM, BRCA1, BRCA2,
+CDKN2A, MLH1, MSH2, MSH6, PALB2, PMS2, RAD51C, RAD51D e STK11.
+
+Faltavam **CDKN2A** (melanoma familiar), **STK11** (Peutz-Jeghers), **APC** e
+**RAD51C/D**. Não é detalhe de nomenclatura: cada um desses genes tem conduta
+de rastreio própria para o paciente e para a família — encontrar CDKN2A muda o
+seguimento dermatológico de toda a família, e o painel antigo nunca o
+encontraria.
+
+**TP53 foi recusado**, como em próstata (§39.1): um parecer pediu, o NCCN não
+lista entre os acionáveis de pâncreas.
+
+### 40.2 O perfil somático não é privilégio da doença metastática
+
+O app pedia perfil somático só em doença **metastática**. A doença **localmente
+avançada / borderline** também é tratada com terapia sistêmica, e é exatamente
+ali que um alvo acionável muda o esquema — antes da decisão de ressecção. O
+gatilho passou a ser "doença avançada" (localmente avançada **ou** metastática).
+
+**Um limite deliberado:** a nota sobre manutenção com inibidor de PARP continua
+restrita à doença **metastática**. O estudo POLO foi feito em doença
+metastática; estendê-la à localmente avançada seria o app afirmar mais do que o
+estudo mostrou. Alargar a indicação do exame é uma coisa; alargar a promessa
+terapêutica é outra, e essa não se alarga.
+
+---
+
+## 41. Pulmão, colorretal e mama: precisão de estágio e alvos que estavam implícitos (v1.15)
+
+### 41.1 Pulmão: os três marcadores não cobrem a mesma faixa de estágio
+
+O app dizia "doença ressecável de estágio **IB a IIIB**" para EGFR, ALK e PD-L1
+em bloco. Errado nas duas pontas, e cada marcador tem sua própria faixa:
+
+| Marcador | Faixa | Base |
+| --- | --- | --- |
+| **EGFR** | IB a IIIA | ADAURA; aprovação de osimertinibe adjuvante |
+| **ALK** | IB a IIIA — o IB conta a partir de **4 cm** | ALINA (IB ≥ 4 cm, II, IIIA) |
+| **PD-L1** | **II a IIIA**, após quimioterapia com platina | IMpower010 |
+
+Um parecer sugeriu "EGFR IB–IIIB". Não confere: o estudo e a aprovação são
+IB–IIIA. Corrigido para as três faixas reais, e o IB de ALK com o limite de
+tamanho — porque um IB de 2 cm com ALK rearranjado não tem a mesma indicação
+adjuvante que um de 5 cm.
+
+### 41.2 Colorretal: KRAS G12C e NTRK estavam escondidos dentro de "RAS" e "alvos acionáveis"
+
+O painel se chamava "RAS, BRAF V600E, HER2". Tecnicamente KRAS G12C está dentro
+de "RAS", e NTRK caberia em "alvos acionáveis" — mas **alvo com terapia própria
+precisa aparecer pelo nome**, senão o médico não sabe que aquele resultado está
+sendo solicitado, e não o procura no laudo. Ambos passaram a ser nomeados.
+
+Também ficou explícito que **MSI/dMMR não se repete aqui**: já vem do rastreio
+universal que o app indica em todo colorretal. Pedir duas vezes o mesmo exame é
+erro de credibilidade tão grande quanto não pedir.
+
+### 41.3 Mama: a via PI3K/AKT tem três marcadores, não um
+
+O painel nomeava só **PIK3CA**. A elegibilidade a inibidor de AKT depende de
+**PIK3CA, AKT1 ou PTEN** (CAPItello-291) — nomear um deixava dois de fora.
+Corrigido.
+
+Entrou também uma nota de consideração na doença metastática, com três
+biomarcadores que mudam conduta e costumam passar em branco: **HER2-low**
+(que não é teste novo — é releitura da imuno-histoquímica que **já está** no
+laudo, e abre linha com anticorpo conjugado), **fusão de NTRK** e
+**MSI-alto/dMMR/TMB-alto**. Como nota, não como indicação: nenhum dos três é
+recomendação obrigatória nessa situação.

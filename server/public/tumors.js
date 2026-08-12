@@ -581,6 +581,11 @@
       { key: 'ascendencia_ashkenazi', label: 'Ascendência Ashkenazi', placeholder: 'Ex.: Não relatado',
         options: ['Sim', 'Não relatado'],
         ai: '"Sim" se ascendência judaica Ashkenazi for mencionada, "Não relatado" se negada, vazio se não mencionada.' },
+      // História pessoal de câncer de mama é indicação germinativa RECOMENDADA
+      // no NCCN, e não havia onde registrar: o paciente caía em "sem indicação"
+      // se não tivesse outro critério. Ver §39.3.
+      { key: 'historia_pessoal_cancer', label: 'História pessoal de outro câncer', placeholder: 'Ex.: Câncer de mama em 2019',
+        ai: 'Outro câncer que o próprio paciente já teve, com o ano se houver (ex.: "Câncer de mama em 2019", "Melanoma"). Vazio se não mencionado.' },
       ...COMUNS,
     ],
     hint: 'Extensão da doença e categoria de risco são os eixos que definem indicação. PSA e Gleason ajudam a inferir a categoria quando ela não vem pronta no laudo. Só a extensão é necessária para rodar a triagem.',
@@ -598,6 +603,12 @@
       const intraductal = has(v.histologia, 'intraductal', 'cribriforme');
       const ashkenazi = has(v.ascendencia_ashkenazi, 'sim');
       const familiar = temHistoricoFamiliar(v);
+      // NCCN: história pessoal de câncer de MAMA é indicação recomendada. Os
+      // outros tumores da lista entram como consideração. Ver §39.3.
+      const mamaPessoal = has(v.historia_pessoal_cancer, 'mama');
+      const outroCancerPessoal = !mamaPessoal && has(v.historia_pessoal_cancer,
+        'pancrea', 'colorretal', 'colon', 'reto', 'gastric', 'estomago', 'melanoma',
+        'urotelial', 'glioblastoma', 'biliar', 'intestino delgado');
 
       const germinativo = {
         id: 'germinativo-prostata', kind: 'germinativo',
@@ -623,12 +634,24 @@
         programs: [PROGRAMA_ID, PROGRAMA_PFIZER],
       };
 
+      // MSI/dMMR é recomendação específica de mCRPC — define elegibilidade a
+      // pembrolizumabe na doença refratária. Não vale para mHSPC. Ver §39.4.
+      const msi = {
+        id: 'msi-prostata', kind: 'somatico', name: 'Pesquisa de MSI / dMMR',
+        sample: 'Tecido tumoral', order: 'Tumoral · somático',
+        stat: 'MSI-alto descrito em 2,2% a 12% da doença avançada',
+        description: 'Instabilidade de microssatélites ou imuno-histoquímica das proteínas de reparo. Define elegibilidade a pembrolizumabe na doença refratária a docetaxel e a hormonioterapia de nova geração. Resultado MSI-alto/dMMR também indica avaliação para síndrome de Lynch.',
+        justify: 'Doença metastática resistente à castração: indicação de pesquisa de MSI/dMMR para definição de elegibilidade a imunoterapia.',
+        programs: [A_MAPEAR],
+      };
+
       if (metastatico) {
         germinativo.justify = `Câncer de próstata metastático${mCRPC ? ' resistente à castração' : ' hormônio-sensível'}: indicação de teste germinativo ao diagnóstico, independentemente de idade e de histórico familiar.`;
+        const tests = mCRPC ? [somatico, msi, germinativo] : [somatico, germinativo];
         return {
-          state: 'completo', tests: [somatico, germinativo],
-          title: 'Este caso tem indicação para 2 testes',
-          summary: `Doença metastática${mCRPC ? ' resistente à castração' : ' hormônio-sensível'}. Solicite os 2 testes abaixo.`,
+          state: 'completo', tests,
+          title: `Este caso tem indicação para ${tests.length} testes`,
+          summary: `Doença metastática${mCRPC ? ' resistente à castração' : ' hormônio-sensível'}. Solicite os ${tests.length} testes abaixo.`,
           notes: [],
         };
       }
@@ -636,10 +659,29 @@
       const motivos = [
         n1 ? 'linfonodo positivo (N1)' : null,
         altoRisco ? `risco ${risco}` : null,
-        intraductal ? 'histologia intraductal/cribriforme' : null,
         ashkenazi ? 'ascendência Ashkenazi' : null,
+        mamaPessoal ? 'história pessoal de câncer de mama' : null,
         familiar ? 'histórico familiar relatado' : null,
       ].filter(Boolean);
+
+      // Consideração, não indicação: o NCCN coloca intraductal/cribriforme em
+      // risco intermediário e história pessoal de outros tumores como
+      // "considerar". Em risco alto a categoria já indica por si. Ver §39.2.
+      const consideracoes = [];
+      if (intraductal && !altoRisco) {
+        consideracoes.push({
+          tag: 'Decisão do médico',
+          title: 'Histologia intraductal/cribriforme: teste germinativo pode ser considerado',
+          body: 'Em risco intermediário com histologia intraductal ou cribriforme, a diretriz coloca o teste germinativo como "considerar", não como recomendação. A decisão é sua.',
+        });
+      }
+      if (outroCancerPessoal) {
+        consideracoes.push({
+          tag: 'Decisão do médico',
+          title: 'História pessoal de outro câncer: teste germinativo pode ser considerado',
+          body: `História pessoal relatada: ${v.historia_pessoal_cancer}. Para tumores de pâncreas exócrino, colorretal, gástrico, melanoma, urotelial de trato superior, glioblastoma, trato biliar e intestino delgado, a diretriz coloca o teste germinativo como "considerar". Câncer de mama, por outro lado, é indicação recomendada.`,
+        });
+      }
 
       if (motivos.length) {
         germinativo.justify = `Doença localizada com critério de indicação germinativa: ${motivos.join('; ')}.`;
@@ -648,16 +690,20 @@
           title: 'Este caso tem indicação para teste germinativo',
           summary: `Doença localizada com critério de indicação germinativa (${motivos.join(', ')}).`,
           notes: [{ tag: 'Somático - critério não atendido', title: 'Painel somático HRR não indicado por esta regra',
-            body: 'O painel HRR é biomarcador de doença metastática. Reavalie se a doença progredir.' }],
+            body: 'O painel HRR é biomarcador de doença metastática. Reavalie se a doença progredir.' },
+          ...consideracoes],
         };
       }
 
       return {
         state: 'sem-indicacao',
         title: 'Sem indicação de teste genético por esta regra',
-        summary: 'Doença localizada de risco baixo ou intermediário favorável, sem outros critérios identificados.',
+        summary: consideracoes.length
+          ? 'Nenhum critério de indicação formal atendido, mas há elemento que a diretriz coloca como consideração — veja a nota abaixo.'
+          : 'Doença localizada de risco baixo ou intermediário favorável, sem outros critérios identificados.',
         notes: [{ tag: 'Sem indicação', title: 'Nenhum teste genético indicado no momento',
-          body: 'Reavalie se a categoria de risco, a histologia ou o histórico familiar forem atualizados.' }],
+          body: 'Reavalie se a categoria de risco, a histologia ou o histórico familiar forem atualizados.' },
+        ...consideracoes],
       };
     },
     diagnosis(v) {
@@ -735,9 +781,12 @@
       };
 
       const somatico = {
-        id: 'somatico-mama', kind: 'somatico', name: 'Painel somático (PIK3CA, ESR1 e alvos acionáveis)',
+        id: 'somatico-mama', kind: 'somatico', name: 'Painel somático (PIK3CA, AKT1, PTEN, ESR1 e alvos acionáveis)',
         sample: 'Tecido tumoral (ou biópsia líquida)', order: 'Tumoral · somático',
-        description: 'Em doença metastática luminal, identifica alterações acionáveis que definem linhas de terapia-alvo. ESR1 deve ser reavaliado à progressão sob terapia endócrina.',
+        // A via PI3K/AKT tem três marcadores, não um: PIK3CA, AKT1 e PTEN
+        // definem juntos a elegibilidade a inibidor de AKT (CAPItello-291).
+        // Nomear só PIK3CA deixava dois de fora. Ver §41.3.
+        description: 'Em doença metastática luminal, identifica alterações acionáveis que definem linhas de terapia-alvo. PIK3CA, AKT1 e PTEN compõem a via PI3K/AKT e juntos definem elegibilidade a inibidor de AKT. ESR1 deve ser reavaliado à progressão sob terapia endócrina, porque a alteração é adquirida sob tratamento.',
         justify: 'Doença metastática com indicação de perfil somático para identificação de alvos acionáveis.',
         programs: [PROGRAMA_ID],
       };
@@ -756,11 +805,24 @@
         };
       }
 
+      // Consideração, não indicação: em doença metastática há biomarcadores que
+      // mudam conduta e costumam passar em branco por não estarem no painel
+      // genético. HER2-low nem é teste novo — é releitura da imuno-histoquímica
+      // que já existe no laudo. Ver §41.3.
+      const notas = [];
+      if (metastatico) {
+        notas.push({
+          tag: 'Decisão do médico',
+          title: 'Três biomarcadores que costumam passar em branco',
+          body: 'HER2-low (imuno-histoquímica 1+ ou 2+ com FISH negativo) não é um teste novo — é releitura do laudo que já existe, e abre linha com anticorpo conjugado. Fusão de NTRK e MSI-alto/dMMR/TMB-alto abrem terapias agnósticas ao sítio. Nenhum dos três é recomendação obrigatória nesta situação; valem como consideração.',
+        });
+      }
+
       return {
         state: 'completo', tests,
         title: tests.length > 1 ? 'Este caso tem indicação para 2 testes' : 'Este caso tem indicação para teste germinativo',
         summary: `Critério atendido: ${motivos.join(', ')}.`,
-        notes: [],
+        notes: notas,
       };
     },
     diagnosis(v) {
@@ -809,14 +871,20 @@
       }
 
       const metastatico = has(v.extensao_doenca, 'metastatico');
+      const localmenteAvancado = has(v.extensao_doenca, 'localmente avancado', 'borderline');
+      const avancado = metastatico || localmenteAvancado;
       const platina = has(v.platina, 'em uso', 'respondendo');
 
       const germinativo = {
         id: 'germinativo-pancreas', kind: 'germinativo',
-        name: 'Painel germinativo (BRCA1/2, PALB2, ATM, MMR)',
+        // A lista é a do NCCN: 13 genes clinicamente acionáveis. O painel
+        // antigo tinha BRCA1/2, PALB2, ATM e MMR — faltavam CDKN2A, STK11,
+        // APC e RAD51C/D, todos com conduta de rastreio própria. TP53 NÃO
+        // entra: não está na lista do NCCN. Ver §40.1.
+        name: 'Painel germinativo (BRCA1/2, PALB2, ATM, CDKN2A, STK11, APC, RAD51C/D e genes de Lynch)',
         sample: 'Sangue periférico', order: 'Sangue · germinativo', primary: true,
         stat: 'Indicação universal: todo adenocarcinoma ductal, em qualquer estágio',
-        description: 'Indicado para todo paciente com adenocarcinoma ductal de pâncreas, independente de idade, estágio ou histórico familiar. Histórico familiar isolado não identifica a maioria dos portadores.',
+        description: 'Indicado para todo paciente com adenocarcinoma ductal de pâncreas, independente de idade, estágio ou histórico familiar. Histórico familiar isolado não identifica a maioria dos portadores. O painel cobre os genes clinicamente acionáveis: além de BRCA1/2, PALB2 e ATM, inclui CDKN2A (melanoma), STK11 (Peutz-Jeghers), APC e RAD51C/D, cada um com conduta de rastreio própria na família.',
         justify: 'Adenocarcinoma ductal de pâncreas tem indicação de teste germinativo ao diagnóstico, independente de estágio ou histórico familiar.',
         programs: [LIFE_GENOMICS],
       };
@@ -824,16 +892,22 @@
       const somatico = {
         id: 'somatico-pancreas', kind: 'somatico', name: 'Perfil somático tumoral',
         sample: 'Tecido tumoral', order: 'Tumoral · somático',
-        description: 'Em doença metastática, identifica alvos acionáveis e confirma alterações em genes de reparo quando o germinativo é negativo.',
-        justify: 'Doença metastática com indicação de perfil somático tumoral.',
+        description: 'Em doença localmente avançada ou metastática, identifica alvos acionáveis e confirma alterações em genes de reparo quando o germinativo é negativo.',
+        justify: `Doença ${avancado && !metastatico ? 'localmente avançada' : 'metastática'} com indicação de perfil somático tumoral.`,
         programs: [A_MAPEAR],
       };
 
-      const tests = metastatico ? [germinativo, somatico] : [germinativo];
+      // O perfil somático não é privilégio da doença metastática: a doença
+      // localmente avançada também é tratada com terapia sistêmica, e é ali que
+      // o alvo acionável muda o esquema. Ver §40.2.
+      const tests = avancado ? [germinativo, somatico] : [germinativo];
       return {
         state: 'completo', tests,
         title: tests.length > 1 ? 'Este caso tem indicação para 2 testes' : 'Este caso tem indicação para teste germinativo',
         summary: 'Adenocarcinoma ductal de pâncreas: indicação de teste germinativo ao diagnóstico, independente de estágio.',
+        // A nota de manutenção com PARP fica restrita à doença METASTÁTICA: o
+        // POLO estudou doença metastática, e estender a afirmação à doença
+        // localmente avançada seria afirmar mais do que o estudo mostrou.
         notes: platina && metastatico ? [{ tag: 'Impacto terapêutico', title: 'Paciente em platina',
           body: 'Em doença metastática com mutação germinativa BRCA1/2 e resposta mantida à platina, existe indicação de terapia de manutenção com inibidor de PARP. O resultado do teste muda a conduta nesta janela.' }] : [],
       };
@@ -960,9 +1034,12 @@
 
       if (metastatico) {
         tests.push({
-          id: 'somatico-crc', kind: 'somatico', name: 'Perfil somático (RAS, BRAF V600E, HER2)',
+          id: 'somatico-crc', kind: 'somatico', name: 'Perfil somático (RAS incluindo KRAS G12C, BRAF V600E, HER2 e fusões de NTRK)',
           sample: 'Tecido tumoral (ou biópsia líquida)', order: 'Tumoral · somático',
-          description: 'Obrigatório antes de terapia anti-EGFR. RAS mutado contraindica anti-EGFR; BRAF V600E define esquema específico; HER2 amplificado abre linha dirigida.',
+          // KRAS G12C e NTRK ficavam implícitos dentro de "RAS" e de "alvos
+          // acionáveis". Alvo com terapia própria precisa aparecer pelo nome,
+          // ou o médico não sabe que aquele resultado está sendo pedido. §41.2
+          description: 'Obrigatório antes de terapia anti-EGFR. RAS mutado contraindica anti-EGFR; a subvariante KRAS G12C tem terapia dirigida própria; BRAF V600E define esquema específico; HER2 amplificado abre linha dirigida; fusão de NTRK abre terapia agnóstica ao sítio. O status de MSI/dMMR já vem do rastreio universal e não precisa ser repetido aqui.',
           justify: 'Doença metastática com indicação de perfil somático antes da definição de terapia sistêmica dirigida.',
           programs: [A_MAPEAR],
         });
@@ -1158,8 +1235,12 @@
             name: 'Pesquisa dirigida para terapia adjuvante (EGFR, ALK, PD-L1)', primary: true,
             sample: 'Tecido tumoral (peça cirúrgica)', order: 'Tumoral · somático · prioridade',
             stat: 'Terapia adjuvante dirigida é categoria 1 em EGFR mutado e em ALK rearranjado',
-            description: 'Em doença ressecável de estágio IB a IIIB, EGFR e ALK definem elegibilidade a terapia-alvo adjuvante, e PD-L1 orienta a imunoterapia adjuvante. Um painel amplo cobre os três e evita nova solicitação de tecido.',
-            justify: 'Doença ressecável com indicação de pesquisa de EGFR, ALK e PD-L1 para definição de elegibilidade a terapia adjuvante dirigida.',
+            // Precisão de estágio: os três marcadores NÃO cobrem a mesma faixa.
+            // EGFR (ADAURA) e ALK (ALINA) são IB a IIIA — ALK com IB a partir
+            // de 4 cm. PD-L1 (IMpower010) é II a IIIA. Dizer "IB a IIIB" era
+            // impreciso nas duas pontas. Ver §41.
+            description: 'Em doença ressecável, EGFR e ALK definem elegibilidade a terapia-alvo adjuvante nos estágios IB a IIIA (em ALK, o IB conta a partir de 4 cm), e PD-L1 orienta a imunoterapia adjuvante nos estágios II a IIIA, após quimioterapia à base de platina. Um painel amplo cobre os três e evita nova solicitação de tecido.',
+            justify: 'Doença ressecável com indicação de pesquisa de EGFR, ALK e PD-L1 para definição de elegibilidade a terapia adjuvante dirigida (EGFR e ALK em estágios IB a IIIA; PD-L1 em estágios II a IIIA).',
             programs: [MAPEAMENTO_PULMAO, PROGRAMA_ID],
           }],
           title: 'Este caso tem indicação para 1 teste',

@@ -177,13 +177,15 @@ rodar('Próstata', [
     nome: 'mCRPC — par completo',
     tumor: 'prostata',
     valores: { histologia: 'Adenocarcinoma acinar', extensao_doenca: 'Metastático resistente à castração (mCRPC)', psa: '225', gleason_grade_group: 'Gleason 4+5=9' },
-    estado: 'completo', testes: ['hrr', 'germinativo-prostata'],
+    // §39.4: MSI/dMMR é recomendação específica de mCRPC.
+    estado: 'completo', testes: ['hrr', 'msi-prostata', 'germinativo-prostata'],
     diagnosticoContem: ['Gleason 4+5=9'],
   },
   {
     nome: 'mHSPC — par completo',
     tumor: 'prostata',
     valores: { extensao_doenca: 'Metastático hormônio-sensível (mHSPC)' },
+    // E NÃO MSI: a recomendação de MSI é da doença resistente à castração.
     estado: 'completo', testes: ['hrr', 'germinativo-prostata'],
   },
   {
@@ -205,10 +207,34 @@ rodar('Próstata', [
     estado: 'parcial', testes: ['germinativo-prostata'],
   },
   {
-    nome: 'intraductal em risco intermediário — germinativo pela histologia',
+    // §39.2: em risco intermediário o NCCN coloca a histologia
+    // intraductal/cribriforme como "considerar", não como recomendação. O app
+    // entrega isso como nota. Antes indicava o teste — era mais agressivo que
+    // a diretriz que ele cita.
+    nome: 'intraductal em risco intermediário — consideração, não indicação',
     tumor: 'prostata',
     valores: { histologia: 'Carcinoma intraductal', extensao_doenca: 'Localizado', categoria_risco_localizado: 'Intermediário favorável' },
+    estado: 'sem-indicacao', testes: [],
+  },
+  {
+    nome: 'intraductal em risco alto — a categoria de risco indica por si',
+    tumor: 'prostata',
+    valores: { histologia: 'Carcinoma intraductal', extensao_doenca: 'Localizado', categoria_risco_localizado: 'Alto' },
     estado: 'parcial', testes: ['germinativo-prostata'],
+  },
+  {
+    // §39.3: buraco encontrado — era indicação NCCN recomendada e não havia
+    // onde registrar o dado.
+    nome: 'historia pessoal de cancer de mama em risco baixo — germinativo indicado',
+    tumor: 'prostata',
+    valores: { extensao_doenca: 'Localizado', categoria_risco_localizado: 'Baixo', historia_pessoal_cancer: 'Câncer de mama em 2019' },
+    estado: 'parcial', testes: ['germinativo-prostata'],
+  },
+  {
+    nome: 'historia pessoal de melanoma em risco baixo — consideração, não indicação',
+    tumor: 'prostata',
+    valores: { extensao_doenca: 'Localizado', categoria_risco_localizado: 'Baixo', historia_pessoal_cancer: 'Melanoma' },
+    estado: 'sem-indicacao', testes: [],
   },
   {
     nome: 'ascendência Ashkenazi em risco baixo — germinativo',
@@ -895,4 +921,102 @@ test('RET fica fora da doença ressecável enquanto o NCCN não incorporar (§38
     assert.ok(!/\bRET\b/.test(dirigido.name + ' ' + dirigido.description),
       'RET entrou na pesquisa dirigida da doença ressecável sem o NCCN ter incorporado');
   }
+});
+
+test('próstata: o verbo da diretriz é preservado nas duas direções (§39.2 e §39.3)', () => {
+  const prostata = TUMORS.get('prostata');
+  const base = { histologia: '', gleason_grade_group: '', psa: '', extensao_doenca: 'Localizado',
+    categoria_risco_localizado: 'Intermediário favorável', ascendencia_ashkenazi: '',
+    historia_pessoal_cancer: '', idade: '', historico_familiar: '', testes_previos: '' };
+
+  // Intraductal em risco intermediário: nota, nunca teste.
+  const intra = prostata.classify({ ...base, histologia: 'Adenocarcinoma com componente cribriforme' });
+  assert.deepStrictEqual(nomesDosTestes(intra), [], 'intraductal voltou a indicar teste em risco intermediário');
+  assert.ok((intra.notes || []).some((n) => /considerad/i.test(n.title)),
+    'a nota de consideração da histologia intraductal sumiu');
+
+  // Mama pessoal: indicação de verdade, com a razão na justificativa impressa.
+  const mama = prostata.classify({ ...base, historia_pessoal_cancer: 'Carcinoma de mama tratado em 2019' });
+  assert.ok(nomesDosTestes(mama).includes('germinativo-prostata'),
+    'história pessoal de câncer de mama perdeu a indicação germinativa');
+  assert.match(mama.tests[0].justify, /mama/i);
+
+  // Outro tumor da lista: nota, não indicação.
+  const outro = prostata.classify({ ...base, historia_pessoal_cancer: 'Adenocarcinoma gástrico' });
+  assert.deepStrictEqual(nomesDosTestes(outro), []);
+  assert.ok((outro.notes || []).some((n) => /considerad/i.test(n.title)));
+
+  // TP53 não está na lista do NCCN e não pode aparecer no painel. §39.1
+  const meta = prostata.classify({ ...base, extensao_doenca: 'Metastático resistente à castração (mCRPC)' });
+  const painel = meta.tests.find((t) => t.id === 'germinativo-prostata');
+  assert.ok(!/TP53/.test(painel.name), 'TP53 entrou no painel germinativo de próstata sem estar no NCCN');
+  assert.ok(nomesDosTestes(meta).includes('msi-prostata'), 'MSI/dMMR saiu do mCRPC');
+});
+
+test('pâncreas: painel completo e somático na doença localmente avançada (§40)', () => {
+  const pancreas = TUMORS.get('pancreas');
+  const base = { histologia: 'Adenocarcinoma ductal', extensao_doenca: '', platina: '',
+    idade: '', historico_familiar: '', testes_previos: '' };
+
+  const painelDe = (ext) => {
+    const r = pancreas.classify({ ...base, extensao_doenca: ext });
+    return { r, germinativo: r.tests.find((t) => t.id === 'germinativo-pancreas') };
+  };
+
+  // Os quatro genes que faltavam, e o que não pode entrar.
+  const { germinativo } = painelDe('Ressecável');
+  for (const gene of ['CDKN2A', 'STK11', 'APC', 'RAD51C']) {
+    assert.match(germinativo.name, new RegExp(gene), `${gene} saiu do painel germinativo de pâncreas`);
+  }
+  assert.ok(!/TP53/.test(germinativo.name), 'TP53 entrou sem estar na lista do NCCN');
+
+  // Somático: entra na localmente avançada, não só na metastática.
+  assert.deepStrictEqual(nomesDosTestes(painelDe('Ressecável').r), ['germinativo-pancreas']);
+  assert.ok(nomesDosTestes(painelDe('Borderline / localmente avançado').r).includes('somatico-pancreas'),
+    'doença localmente avançada perdeu o perfil somático');
+  assert.ok(nomesDosTestes(painelDe('Metastático').r).includes('somatico-pancreas'));
+
+  // A promessa de PARP não se alarga junto: POLO foi em doença metastática.
+  const avancadoEmPlatina = pancreas.classify({ ...base,
+    extensao_doenca: 'Borderline / localmente avançado', platina: 'Em uso / respondendo a platina' });
+  assert.ok(!(avancadoEmPlatina.notes || []).some((n) => /PARP/i.test(n.body || '')),
+    'a nota de manutenção com PARP escapou para a doença localmente avançada');
+  const metaEmPlatina = pancreas.classify({ ...base,
+    extensao_doenca: 'Metastático', platina: 'Em uso / respondendo a platina' });
+  assert.ok((metaEmPlatina.notes || []).some((n) => /PARP/i.test(n.body || '')));
+});
+
+test('pulmão, colorretal e mama: os alvos aparecem pelo nome (§41)', () => {
+  // Pulmão: cada marcador com sua faixa real, e "IIIB" não pode voltar.
+  const pulmao = TUMORS.get('pulmao').classify({
+    histologia: 'Adenocarcinoma', extensao_doenca: 'Inicial (ressecável)',
+    painel_previo: 'Não realizado', idade: '61', historico_familiar: '', testes_previos: '',
+  });
+  const adjuvante = pulmao.tests.find((t) => t.id === 'alvo-adjuvante-nsclc');
+  assert.match(adjuvante.description, /IB a IIIA/, 'a faixa de EGFR/ALK saiu do texto');
+  assert.match(adjuvante.description, /II a IIIA/, 'a faixa própria de PD-L1 saiu do texto');
+  assert.match(adjuvante.description, /4 cm/, 'o limite de tamanho do IB em ALK saiu do texto');
+  assert.ok(!/IIIB/.test(adjuvante.description), 'a faixa imprecisa "IIIB" voltou ao texto adjuvante');
+
+  // Colorretal metastático: KRAS G12C e NTRK nomeados; MSI não repetido.
+  const crc = TUMORS.get('colorretal').classify({
+    histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático',
+    mmr_msi: 'pMMR / MSS', idade: '61', historico_familiar: '', testes_previos: '',
+  });
+  const somaticoCrc = crc.tests.find((t) => t.id === 'somatico-crc');
+  assert.match(somaticoCrc.name, /KRAS G12C/);
+  assert.match(somaticoCrc.name, /NTRK/);
+
+  // Mama metastática luminal: a via PI3K/AKT completa.
+  const mama = TUMORS.get('mama').classify({
+    sexo: 'Feminino', subtipo_molecular: 'Luminal (RH+/HER2-)', extensao_doenca: 'Metastático',
+    histologia: 'Carcinoma ductal invasivo', idade: '61', historico_familiar: '', testes_previos: '',
+  });
+  const somaticoMama = mama.tests.find((t) => t.id === 'somatico-mama');
+  assert.ok(somaticoMama, 'a mama metastática luminal perdeu o painel somático');
+  for (const alvo of ['PIK3CA', 'AKT1', 'PTEN', 'ESR1']) {
+    assert.match(somaticoMama.name, new RegExp(alvo), `${alvo} saiu do painel somático de mama`);
+  }
+  assert.ok((mama.notes || []).some((n) => /HER2-low/.test(n.body || '')),
+    'a nota dos biomarcadores que passam em branco sumiu');
 });
