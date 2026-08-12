@@ -2235,3 +2235,52 @@ biomarcadores que mudam conduta e costumam passar em branco: **HER2-low**
 laudo, e abre linha com anticorpo conjugado), **fusão de NTRK** e
 **MSI-alto/dMMR/TMB-alto**. Como nota, não como indicação: nenhum dos três é
 recomendação obrigatória nessa situação.
+
+---
+
+## 42. Revalidação contra a API real depois das mudanças clínicas (v1.15)
+
+O schema unificado cresceu para **24 propriedades** com o campo novo de próstata
+(§39.3), e o tamanho do schema é justamente o que causou a falha silenciosa
+ginecológica original (§32). Rodar de novo não era zelo: era a única forma de
+saber se o número medido antes ainda vale.
+
+### 42.1 Resultado
+
+| Caso | Corretos | Subtipo errado | Campos faltando | **Erros silenciosos** |
+|---|---|---|---|---|
+| Ovário | **10/10 (100%)** | 0 | 0 | **0** |
+| Endométrio | **10/10 (100%)** | 0 | 0 | **0** |
+| **Total** | **20/20 (100%)** | **0** | **0** | **0** |
+
+Custo: **US$ 1,355 em 32 chamadas**, dentro do teto de US$ 2,50 (a validação
+anterior custou US$ 2,04 — as segundas leituras são 5x mais baratas que a
+primeira, então o custo caiu mesmo com mais delas).
+
+### 42.2 O sinal que o número redondo esconde
+
+32 chamadas para 20 casos significa **12 segundas leituras**. E elas não estão
+distribuídas por acaso:
+
+- **Ovário**: 2 de 10 precisaram da segunda leitura; 3 dispararam correção de
+  conflito de sítio.
+- **Endométrio**: **10 de 10** precisaram da segunda leitura. A primeira
+  chamada, com o schema unificado, abandona a extração de endométrio
+  **sempre**.
+
+O resultado final é 100% porque a rede de proteção funciona exatamente como foi
+desenhada — detecta o abandono e relê com schema dirigido. Mas em endométrio a
+rede passou a ser **estrutural, não excepcional**: não sobra margem. Se um dia
+a segunda leitura falhar junto, não há terceira camada.
+
+**Não afirmo que isso piorou com o campo novo** — a medição anterior não
+registrou a taxa de segunda leitura por caso, então não tenho a linha de base
+para comparar. O que registro é o estado atual, medido, para que a próxima
+medição tenha base de comparação.
+
+**Consequência prática:** o custo de uma extração de endométrio é sempre o de
+duas chamadas. Está barato hoje (US$ 0,068 por caso completo), mas é o item a
+observar se o schema unificado continuar crescendo com novos tumores. A saída
+natural, quando incomodar, é deixar a primeira chamada só identificar o sítio e
+promover o schema dirigido a caminho principal — hipótese já testada e recusada
+por dados em §33.6, que teria de ser remedida neste novo contexto.
