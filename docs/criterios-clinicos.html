@@ -43,9 +43,11 @@
     border-top: 1pt solid var(--regua);
     padding-top: 5mm;
     margin-bottom: 7mm;
-    break-inside: avoid;
-    page-break-inside: avoid;
   }
+  /* A seção pode quebrar entre páginas — o que não pode quebrar é um bloco
+     no meio: um critério partido ao meio muda o que o médico lê. */
+  .bloco, .excecao, .diretriz, .teste-linha { break-inside: avoid; page-break-inside: avoid; }
+  .tumor h2 { break-after: avoid; page-break-after: avoid; }
   .tumor:first-of-type { border-top: none; padding-top: 0; }
 
   .tumor h2 {
@@ -113,8 +115,19 @@
   <div class="eyebrow">OncoGenYX · Documento de validação clínica</div>
   <h1>Critérios de testagem genética em oncologia</h1>
   <p>Quem testar, o que testar e em que momento da doença, por sítio tumoral — com a diretriz que sustenta cada critério.</p>
-  <div class="data">Versão de 12 de agosto de 2026 · 7 sítios tumorais</div>
+  <div class="data">Versão 2 · 12 de agosto de 2026 · 7 sítios tumorais · revisada após parecer clínico externo</div>
 </header>
+
+<section class="tumor" style="border-top:none;padding-top:0">
+  <h2>Regras que valem para todos os sítios</h2>
+  <div class="bloco">
+    <ul>
+      <li><strong>VUS não muda conduta.</strong> Variante de significado incerto não indica terapia-alvo, não altera cirurgia e não define rastreio familiar. Requer reavaliação periódica da classificação.</li>
+      <li><strong>Achado tumoral em gene de predisposição não confirma origem germinativa.</strong> Exige confirmação em sangue periférico antes de qualquer conduta familiar.</li>
+      <li><strong>Biópsia líquida negativa não exclui alteração.</strong> Quando há tecido disponível e adequado, o tecido é o material de referência.</li>
+    </ul>
+  </div>
+</section>
 
 <!-- ============================ OVÁRIO ============================ -->
 <section class="tumor">
@@ -130,11 +143,11 @@
 
   <div class="bloco">
     <div class="rotulo">O que testar</div>
-    <div class="teste-linha"><span class="teste-nome">Painel germinativo BRCA1/2</span> <span class="teste-quem">— sangue periférico.</span></div>
-    <div class="teste-linha"><span class="teste-nome">HRD somático</span> <span class="teste-quem">— tecido tumoral. Inclui BRCA1/2 tumoral no mesmo teste. Define elegibilidade a manutenção com inibidor de PARP.</span></div>
+    <div class="teste-linha"><span class="teste-nome">Painel germinativo multigênico</span> <span class="teste-quem">— sangue periférico. BRCA1/2, RAD51C, RAD51D, BRIP1, PALB2 e genes de Lynch. Cerca de 20% das variantes patogênicas em ovário estão fora de BRCA1/2 — restringir o painel a BRCA deixa essas portadoras sem diagnóstico e sem rastreio em cascata na família.</span></div>
+    <div class="teste-linha"><span class="teste-nome">HRD somático</span> <span class="teste-quem">— tecido tumoral. Inclui BRCA1/2 tumoral no mesmo teste. Apoia a decisão de manutenção com inibidor de PARP — a indicação final depende do medicamento, do status de BRCA, da linha de tratamento, da resposta à platina e da aprovação regulatória vigente.</span></div>
   </div>
 
-  <div class="excecao"><strong>Fora do critério:</strong> tumor borderline (baixo potencial de malignidade) não é carcinoma invasivo e está fora do espectro BRCA-associado. Histologias não epiteliais seguem outra diretriz.</div>
+  <div class="excecao"><strong>Fora do critério:</strong> tumor borderline (baixo potencial de malignidade) não é carcinoma invasivo e está fora do espectro BRCA-associado. <strong>Histologias não epiteliais:</strong> estão fora desta regra, mas têm indicação genética própria — carcinoma de pequenas células hipercalcêmico associa-se a <strong>SMARCA4</strong>, e tumores dos cordões sexuais a <strong>STK11</strong> (Peutz-Jeghers) e <strong>DICER1</strong>. Encaminhar à oncogenética.</div>
 
   <div class="diretriz">
     <div class="rotulo">Diretriz</div>
@@ -228,10 +241,12 @@
   <div class="bloco">
     <div class="rotulo">O que testar</div>
     <div class="teste-linha"><span class="teste-nome">Pesquisa de MMR / MSI</span> <span class="teste-quem">— tecido tumoral, por imuno-histoquímica das proteínas de reparo ou análise de instabilidade de microssatélites. Informa prognóstico, elegibilidade a imunoterapia e risco familiar.</span></div>
-    <div class="teste-linha"><span class="teste-nome">Painel germinativo multigênico</span> <span class="teste-quem">— sangue periférico. APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11. Variante germinativa patogênica em cerca de 1 a cada 6 pacientes com colorretal.</span></div>
-    <div class="teste-linha"><span class="teste-nome">Painel germinativo de Lynch</span> <span class="teste-quem">— sangue periférico. MLH1, MSH2, MSH6, PMS2, EPCAM. Perda isolada de MLH1 exige antes afastar causa esporádica (metilação do promotor ou BRAF V600E).</span></div>
+    <div class="teste-linha"><span class="teste-nome">Painel germinativo multigênico</span> <span class="teste-quem">— sangue periférico. APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11. Variante germinativa patogênica em cerca de 1 a cada 6 pacientes diagnosticados abaixo dos 50 anos.</span></div>
+    <div class="teste-linha"><span class="teste-nome">Painel germinativo de Lynch</span> <span class="teste-quem">— sangue periférico. MLH1, MSH2, MSH6, PMS2, EPCAM.</span></div>
     <div class="teste-linha"><span class="teste-nome">Perfil somático RAS, BRAF V600E e HER2</span> <span class="teste-quem">— tecido tumoral ou biópsia líquida. Obrigatório antes de terapia anti-EGFR.</span></div>
   </div>
+
+  <div class="excecao"><strong>A ordem importa — nem todo dMMR é Lynch.</strong> A maioria da perda de MLH1 é esporádica, por metilação do promotor. Perda de <strong>MLH1/PMS2</strong>: solicitar metilação do promotor de MLH1 (BRAF V600E pode complementar) <em>antes</em> de encaminhar ao germinativo — metilado sugere causa esporádica, não metilado indica investigação de Lynch. Perda de <strong>MSH2/MSH6</strong>, MSH6 isolada ou PMS2 isolada segue direto ao germinativo.</div>
 
   <div class="diretriz">
     <div class="rotulo">Diretriz</div>
@@ -309,7 +324,7 @@
     <div class="teste-linha"><span class="teste-nome">Painel germinativo de Lynch</span> <span class="teste-quem">— sangue periférico. MLH1, MSH2, MSH6, PMS2, EPCAM.</span></div>
   </div>
 
-  <div class="excecao"><strong>MMR sozinho não fecha a classificação.</strong> O algoritmo é hierárquico — POLE prevalece sobre MMRd, que prevalece sobre p53 anormal — então um tumor pMMR ainda pode ser POLEmut ou p53 anormal, grupos com prognóstico oposto entre si e conduta adjuvante distinta.</div>
+  <div class="excecao"><strong>MMR sozinho não fecha a classificação.</strong> O algoritmo é hierárquico — POLE prevalece sobre MMRd, que prevalece sobre p53 anormal — então um tumor pMMR ainda pode ser POLEmut ou p53 anormal, grupos com prognóstico oposto entre si e conduta adjuvante distinta. <strong>Só variante patogênica ou provavelmente patogênica no domínio exonuclease classifica como POLEmut</strong> — uma VUS em POLE não classifica. <strong>A ordem importa:</strong> perda de MLH1/PMS2 exige metilação do promotor de MLH1 antes do encaminhamento germinativo.</div>
 
   <div class="diretriz">
     <div class="rotulo">Diretriz</div>
@@ -319,8 +334,8 @@
 
 <!-- ============================ ACESSO ============================ -->
 <section class="acesso">
-  <h2>Vias de acesso sem custo</h2>
-  <p>Programas patrocinados pela indústria, verificados em agosto de 2026. A elegibilidade do programa pode ser mais estreita que a indicação clínica.</p>
+  <h2>Anexo — vias de acesso sem custo (não é critério clínico)</h2>
+  <p>Esta seção <strong>não faz parte dos critérios de indicação</strong> e não deve ser lida como diretriz. São programas patrocinados pela indústria, verificados em agosto de 2026, que podem viabilizar um teste já indicado clinicamente. A elegibilidade do programa costuma ser <strong>mais estreita</strong> que a indicação clínica — a ausência de programa nunca contraindica o teste.</p>
 
   <table>
     <thead>
