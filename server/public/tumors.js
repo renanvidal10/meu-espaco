@@ -469,14 +469,26 @@
 
       const epitelial = HISTOLOGIAS_EPITELIAIS.find((h) => has(v.histologia, h));
       if (!epitelial) {
-        return { state: 'nao-reconhecida', message: `"${v.histologia}" não corresponde a nenhuma histologia epitelial de ovário mapeada nesta versão.` };
+        // "Fora desta regra" não é "sem indicação de teste". Carcinoma de
+        // pequenas células hipercalcêmico (SMARCA4) e tumores dos cordões
+        // sexuais (STK11, DICER1) TÊM indicação genética própria — dizer
+        // apenas "não reconhecida" fazia o médico ler como "não testar".
+        return {
+          state: 'nao-reconhecida',
+          message: `"${v.histologia}" não é uma histologia epitelial de ovário e não é coberta por esta regra. Isso não significa ausência de indicação genética: histologias não epiteliais têm indicação própria — carcinoma de pequenas células hipercalcêmico associa-se a SMARCA4, e tumores dos cordões sexuais a STK11 (Peutz-Jeghers) e DICER1. Encaminhe ao serviço de oncogenética.`,
+        };
       }
 
       const germinativo = {
-        id: 'germinativo-brca', kind: 'germinativo', name: 'Painel germinativo BRCA1/2',
+        id: 'germinativo-brca', kind: 'germinativo',
+        // Restringir a BRCA1/2 deixava passar cerca de 20% das portadoras: as
+        // variantes em RAD51C, RAD51D, BRIP1, PALB2 e genes de Lynch mudam
+        // rastreio familiar e, em parte, elegibilidade a PARP. Os quatro
+        // pareceres externos apontaram este mesmo ponto. Ver §37.
+        name: 'Painel germinativo multigênico (BRCA1/2, RAD51C, RAD51D, BRIP1, PALB2 e genes de Lynch)',
         sample: 'Sangue periférico', order: 'Sangue · germinativo',
-        description: 'Investiga mutação hereditária, independente do resultado tumoral. Toda histologia epitelial não-borderline tem indicação ao diagnóstico.',
-        justify: 'Todo carcinoma epitelial de ovário tem indicação de teste germinativo BRCA1/2 ao diagnóstico, independente de histórico familiar.',
+        description: 'Investiga predisposição hereditária, independente do resultado tumoral. Cerca de 20% das variantes patogênicas em ovário estão fora de BRCA1/2 — restringir o painel a BRCA deixa essas portadoras sem diagnóstico e sem rastreio em cascata na família.',
+        justify: 'Todo carcinoma epitelial invasivo de ovário, tuba uterina ou peritônio tem indicação de painel germinativo de predisposição hereditária ao diagnóstico, independentemente de idade e de histórico familiar.',
         programs: [LIFE_GENOMICS],
       };
 
@@ -484,8 +496,8 @@
         id: 'hrd', kind: 'somatico', name: 'HRD Somático', primary: true,
         sample: 'Tecido tumoral', order: 'Tumoral · somático · prioridade',
         stat: '~50% dos carcinomas de alto grau são HRD positivo',
-        description: 'Avalia deficiência de recombinação homóloga no tecido tumoral (já inclui a análise de BRCA1/2 tumoral no mesmo teste). Define elegibilidade a terapia de manutenção com inibidor de PARP.',
-        justify: 'Elegível para avaliação de status HRD tumoral para definição de elegibilidade a terapia de manutenção com inibidor de PARP.',
+        description: 'Avalia deficiência de recombinação homóloga no tecido tumoral (já inclui a análise de BRCA1/2 tumoral no mesmo teste). Apoia a decisão de manutenção com inibidor de PARP — a indicação final depende do medicamento, do status de BRCA, da linha de tratamento, da resposta à platina e da aprovação regulatória vigente.',
+        justify: 'Carcinoma seroso ou endometrioide de alto grau em estágio avançado: indicação de avaliação de status HRD tumoral em tempo útil para apoiar a decisão de manutenção após quimioterapia à base de platina.',
         programs: [HRD_PATROCINADO, PROGRAMA_ID],
       };
 
@@ -870,6 +882,7 @@
       const precoce = idade !== null && idade < 50;
 
       const tests = [];
+      const notasExtras = [];
 
       if (!mmrFeito) {
         tests.push({
@@ -890,7 +903,7 @@
           id: 'germinativo-crc-precoce', kind: 'germinativo',
           name: 'Painel germinativo multigênico (APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11)',
           sample: 'Sangue periférico', order: 'Sangue · germinativo · prioridade', primary: !dmmr,
-          stat: 'Variante germinativa patogênica em cerca de 1 a cada 6 pacientes com colorretal',
+          stat: 'Variante germinativa patogênica em cerca de 1 a cada 6 pacientes diagnosticados abaixo dos 50 anos',
           description: 'Diagnóstico abaixo dos 50 anos indica painel multigênico completo, independentemente do status de MMR e de história familiar. O painel cobre polipose (APC, MUTYH, BMPR1A, SMAD4, PTEN, STK11) além dos genes de reparo.',
           justify: `Carcinoma colorretal diagnosticado aos ${idade} anos: abaixo de 50 anos há indicação de painel germinativo multigênico independentemente do status de MMR e de histórico familiar.`,
           programs: [LIFE_GENOMICS],
@@ -898,11 +911,20 @@
       }
 
       if (dmmr) {
+        notasExtras.push({
+          tag: 'Ordem importa',
+          title: 'Perda de MLH1/PMS2 pede metilação antes do germinativo',
+          body: 'A maioria da perda de MLH1 é esporádica, por metilação do promotor. Solicite a metilação de MLH1 (BRAF V600E pode complementar) antes de encaminhar ao germinativo: metilado sugere causa esporádica; não metilado indica investigação de Lynch. Perda de MSH2/MSH6, MSH6 isolada ou PMS2 isolada segue direto ao germinativo.',
+        });
         tests.push({
           id: 'germinativo-lynch', kind: 'germinativo', name: 'Painel germinativo de Lynch (MLH1, MSH2, MSH6, PMS2, EPCAM)',
           sample: 'Sangue periférico', order: 'Sangue · germinativo',
-          description: 'Confirmação germinativa após tumor com deficiência de reparo. Perda isolada de MLH1 exige antes afastar causa esporádica (metilação do promotor ou BRAF V600E).',
-          justify: 'Tumor com deficiência de reparo (dMMR/MSI-alto): indicação de confirmação germinativa para síndrome de Lynch.',
+          // Nem todo dMMR é Lynch — a maioria da perda de MLH1 é esporádica,
+          // por metilação do promotor. Mandar todo dMMR direto ao germinativo
+          // é encaminhamento indevido em volume: gera custo, fila em
+          // oncogenética e ansiedade familiar sem indicação.
+          description: 'Confirmação germinativa após tumor com deficiência de reparo. ATENÇÃO À ORDEM: perda de MLH1/PMS2 exige primeiro metilação do promotor de MLH1 (BRAF V600E pode complementar). Metilado sugere causa esporádica; não metilado indica investigação germinativa. Perda de MSH2/MSH6, MSH6 isolada ou PMS2 isolada vai direto ao germinativo.',
+          justify: 'Tumor com deficiência de reparo (dMMR/MSI-alto): indicação de investigação germinativa para síndrome de Lynch, após afastar causa esporádica quando houver perda de MLH1/PMS2.',
           programs: [LIFE_GENOMICS],
         });
       }
@@ -931,11 +953,11 @@
         state: 'completo', tests,
         title: tests.length > 1 ? `Este caso tem indicação para ${tests.length} testes` : 'Este caso tem indicação para 1 teste',
         summary: [
-          dmmr ? 'Tumor com deficiência de reparo: exige confirmação germinativa para síndrome de Lynch.' : null,
+          dmmr ? 'Tumor com deficiência de reparo: indicação de investigação germinativa para síndrome de Lynch.' : null,
           precoce ? `Diagnóstico aos ${idade} anos: abaixo de 50 há indicação de painel germinativo multigênico.` : null,
           !dmmr && !precoce ? 'Carcinoma colorretal: pesquisa de MMR/MSI indicada em qualquer idade ou estágio.' : null,
         ].filter(Boolean).join(' '),
-        notes: [],
+        notes: notasExtras,
       };
     },
     diagnosis(v) {
@@ -974,6 +996,7 @@
       const dmmr = ehDmmr(v.mmr_msi);
       const mmrFeito = filled(v.mmr_msi) && !has(v.mmr_msi, 'nao realizado');
       const tests = [];
+      const notasEndo = [];
 
       if (!mmrFeito) {
         tests.push({
@@ -987,11 +1010,16 @@
       }
 
       if (dmmr) {
+        notasEndo.push({
+          tag: 'Ordem importa',
+          title: 'Perda de MLH1/PMS2 pede metilação antes do germinativo',
+          body: 'A maioria da perda de MLH1 é esporádica, por metilação do promotor. Solicite a metilação de MLH1 antes de encaminhar ao germinativo: metilado sugere causa esporádica; não metilado indica investigação de Lynch. Perda de MSH2/MSH6, MSH6 isolada ou PMS2 isolada segue direto ao germinativo.',
+        });
         tests.push({
           id: 'germinativo-lynch-endo', kind: 'germinativo', name: 'Painel germinativo de Lynch (MLH1, MSH2, MSH6, PMS2, EPCAM)',
           sample: 'Sangue periférico', order: 'Sangue · germinativo',
-          description: 'Confirmação germinativa após tumor com deficiência de reparo. Perda isolada de MLH1 exige antes afastar causa esporádica por metilação do promotor.',
-          justify: 'Tumor com deficiência de reparo (dMMR): indicação de confirmação germinativa para síndrome de Lynch.',
+          description: 'Investigação germinativa após tumor com deficiência de reparo. ATENÇÃO À ORDEM: perda de MLH1/PMS2 exige primeiro metilação do promotor de MLH1. Metilado sugere causa esporádica; não metilado indica investigação germinativa. Perda de MSH2/MSH6, MSH6 isolada ou PMS2 isolada vai direto ao germinativo.',
+          justify: 'Carcinoma de endométrio com deficiência de reparo (dMMR): indicação de investigação germinativa para síndrome de Lynch, após afastar causa esporádica quando houver perda de MLH1/PMS2.',
           programs: [LIFE_GENOMICS],
         });
       }
@@ -1007,7 +1035,7 @@
           name: 'Complementar classificação molecular (POLE e p53)', primary: true,
           sample: 'Tecido tumoral', order: 'Tumoral · somático · prioridade',
           stat: 'Quatro grupos moleculares; MMR sozinho define apenas um deles',
-          description: 'Sequenciamento do domínio exonuclease de POLE e imuno-histoquímica de p53. O algoritmo é hierárquico (POLE prevalece sobre MMRd, que prevalece sobre p53 anormal), então um tumor pMMR ainda pode ser POLEmut ou p53 anormal — grupos com prognóstico oposto entre si.',
+          description: 'Sequenciamento do domínio exonuclease de POLE e imuno-histoquímica de p53. O algoritmo é hierárquico (POLE prevalece sobre MMRd, que prevalece sobre p53 anormal), então um tumor pMMR ainda pode ser POLEmut ou p53 anormal — grupos com prognóstico oposto entre si. Só variante classificada como patogênica ou provavelmente patogênica no domínio exonuclease classifica o tumor como POLEmut: uma VUS em POLE não classifica.',
           justify: 'Carcinoma de endométrio com MMR proficiente: a classificação molecular permanece incompleta sem POLE e p53, que definem os grupos POLEmut e p53 anormal e alteram a decisão de terapia adjuvante.',
           programs: [A_MAPEAR],
         });
@@ -1023,12 +1051,12 @@
       return {
         state: 'completo', tests,
         title: tests.length > 1 ? `Este caso tem indicação para ${tests.length} testes` : 'Este caso tem indicação para 1 teste',
+        notes: notasEndo,
         summary: dmmr
-          ? 'Tumor com deficiência de reparo: exige confirmação germinativa para síndrome de Lynch.'
+          ? 'Tumor com deficiência de reparo: indicação de investigação germinativa para síndrome de Lynch.'
           : (mmrFeito
             ? 'MMR proficiente: falta POLE e p53 para fechar a classificação molecular, que orienta a terapia adjuvante.'
             : 'Carcinoma de endométrio: classificação molecular indicada em qualquer idade ou estágio.'),
-        notes: [],
       };
     },
     diagnosis(v) {

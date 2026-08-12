@@ -1897,3 +1897,110 @@ uma lacuna:
 
 Estas ainda não foram pesquisadas a fundo. A regra do projeto continua
 valendo: **nenhuma entra por analogia** — só com verificação documentada.
+
+---
+
+## 37. Os pareceres externos: o que entrou no cérebro e o que não entrou (v1.13)
+
+O Renan levou o documento clínico (`docs/Criterios-Testagem-Genetica-OncoGenYX.pdf`)
+a revisões externas e trouxe de volta cinco pareceres. Esta seção registra a
+avaliação item a item — o que foi incorporado, o que foi incorporado com
+modificação, o que foi recusado e o que depende de decisão do advisor.
+
+A regra do projeto vale aqui integralmente: **diretriz primeiro, código depois**.
+Nenhum item abaixo entrou em código sem estar nesta seção com o critério exato
+de disparo e a fonte.
+
+### 37.1 Incorporado sem ressalva (consenso entre os pareceres)
+
+**1. Painel germinativo de ovário deixa de ser BRCA1/2 e passa a multigênico.**
+Os quatro pareceres apontaram o mesmo ponto, e é o mais grave dos cinco
+documentos: restringir o painel a BRCA1/2 deixa de fora aproximadamente 20% das
+portadoras de variante patogênica — RAD51C, RAD51D, BRIP1, PALB2 e os genes de
+Lynch. O impacto não é só de tratamento: é de rastreio em cascata na família,
+que simplesmente não acontece se o gene não estiver no painel. O teste passou a
+se chamar *Painel germinativo multigênico (BRCA1/2, RAD51C, RAD51D, BRIP1,
+PALB2 e genes de Lynch)*.
+Critério de disparo: inalterado — todo carcinoma epitelial invasivo de ovário,
+tuba ou peritônio, ao diagnóstico, em qualquer idade, com ou sem história
+familiar.
+
+**2. HRD deixa de "definir elegibilidade" e passa a "apoiar a decisão".**
+O texto anterior dizia que o HRD *define* elegibilidade a PARP. Não define: a
+indicação final depende do medicamento, do status de BRCA, da linha de
+tratamento, da resposta à platina e da aprovação regulatória vigente. Um médico
+lendo "define" poderia negar PARP a uma paciente BRCA-mutada com HRD negativo.
+Texto corrigido em `description` e em `justify`.
+
+**3. Histologia não epitelial de ovário deixa de ser um beco sem saída.**
+Antes o app respondia `"X" não corresponde a nenhuma histologia epitelial
+mapeada` — e ponto. Um médico lê isso como "não testar". Agora a resposta diz
+explicitamente que a ausência desta regra **não** é ausência de indicação
+genética, e nomeia as vias: SMARCA4 no carcinoma de pequenas células
+hipercalcêmico, STK11 (Peutz-Jeghers) e DICER1 nos tumores dos cordões sexuais,
+com encaminhamento à oncogenética.
+
+**4. Metilação de MLH1 entra como passo reflexo explícito, antes do germinativo
+— em colorretal E em endométrio.** A maioria da perda de MLH1 é esporádica, por
+metilação do promotor. Mandar todo dMMR direto ao germinativo é encaminhamento
+indevido em volume: custo, fila em oncogenética e ansiedade familiar sem
+indicação. Entrou como nota `Ordem importa` no card de resultado, além do texto
+do próprio teste. Regra: perda de MLH1/PMS2 → metilação do promotor de MLH1
+(BRAF V600E complementa) antes do germinativo; metilado sugere esporádico, não
+metilado indica investigação de Lynch. Perda de MSH2/MSH6, MSH6 isolada ou PMS2
+isolada vai direto ao germinativo.
+
+**5. VUS em POLE não classifica como POLEmut.** Só variante patogênica ou
+provavelmente patogênica no domínio exonuclease. Uma VUS classificada como
+POLEmut levaria a desescalonar terapia adjuvante em cima de um achado sem
+significado — erro de direção perigosa.
+
+**6. A estatística do colorretal estava superdimensionada.** "1 em cada 6
+pacientes com colorretal" virou "1 em cada 6 pacientes diagnosticados **abaixo
+dos 50 anos**" (Pearlman 2017, ~16% em <50 anos — não em toda a população de
+colorretal).
+
+**7. Três regras transversais de segurança passaram a aparecer em toda tela de
+resultado** (bloco `.regras-gerais`): (a) VUS não muda conduta; (b) achado
+tumoral em gene de predisposição não confirma origem germinativa — exige
+confirmação em sangue; (c) biópsia líquida negativa não exclui alteração —
+não substitui tecido quando há tecido disponível.
+
+### 37.2 Incorporado com modificação
+
+Nenhum parecer foi aceito na íntegra sem leitura crítica. Onde um parecer
+propunha tornar obrigatório algo que a diretriz coloca como "considerar", o
+texto entrou como **consideração**, não como indicação — o app não pode
+inflacionar a força de uma recomendação, porque é exatamente isso que destrói a
+confiança do oncologista no produto.
+
+### 37.3 Recusado
+
+**Substituir a arquitetura de regras determinísticas por julgamento do modelo.**
+Um parecer sugeria deixar o modelo decidir mais casos de borda. Recusado: o
+valor do produto é a regra ser auditável e reproduzível. O modelo extrai; a
+regra decide. Isso não muda.
+
+### 37.4 Depende de decisão do advisor (levado ao Renan)
+
+Três pontos não têm resposta única na literatura ou dependem da versão da
+diretriz licenciada pela instituição. Estão listados como pergunta ao advisor
+oncologista, não implementados unilateralmente:
+
+| Ponto | Situação |
+| --- | --- |
+| Mama: corte de idade 50 → 65 anos | Os quatro pareceres recomendam adotar ASCO-SSO 2024 (≤65). Fecha o "ponto em aberto" já sinalizado no PDF. |
+| Colorretal: painel multigênico para todas as idades | Um parecer cita atualização do NCCN recomendando MGPT para todo paciente com colorretal; outro propõe o meio-termo (≥50 com história familiar, múltiplos primários ou polipose). Divergem materialmente. |
+| Pulmão: RET em doença ressecável | Um parecer manda incluir (NCCN NSCLC v6.2026 / LIBRETTO-432); outro manda confirmar na versão licenciada da instituição antes de tornar obrigatório. |
+
+### 37.5 Pendências técnicas abertas desta rodada
+
+Itens dos pareceres ainda **não** implementados, mantidos aqui para não se
+perderem: painel de próstata + TP53; painel germinativo de pâncreas
+(CDKN2A/STK11/TP53); somático de pâncreas estendido a doença localmente
+avançada e recorrente; mama somático (AKT1/PTEN/HER2-low/MSI) como
+"considerar"; precisão de estágio em pulmão (EGFR IB–IIIB, ALK IB–IIIA, PD-L1
+II–IIIA); colorretal somático + NTRK/MSI/KRAS G12C; próstata mCRPC + MSI/dMMR;
+mover a seção de programas para anexo claramente rotulado no documento;
+reverificar a citação ESGO/ESTRO/ESP "2025" (a busca própria retornou PDF de
+julho/2025 em guidelines.esgo.org, mas um revisor não conseguiu confirmar).

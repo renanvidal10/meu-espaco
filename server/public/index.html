@@ -1504,6 +1504,25 @@
     }
   }
 
+  /* Regras de leitura que valem para qualquer resultado. Ficam acima do
+     disclaimer porque são operacionais, não jurídicas: dizem o que NÃO fazer
+     com um resultado, e é aí que a conduta erra. */
+  .regras-gerais {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--warn);
+    background: var(--surface);
+    padding: 14px 16px;
+    margin: 22px 0 18px;
+    border-radius: 9px;
+  }
+  .regras-gerais h3 {
+    font-size: 12.5px; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--warn); margin: 0 0 8px; font-weight: 700;
+  }
+  .regras-gerais ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+  .regras-gerais li { font-size: 12.5px; line-height: 1.5; color: var(--ink-muted); }
+  .regras-gerais strong { color: var(--ink); }
+
   /* Subtipo que a leitura não soube justificar. Mesma linguagem visual dos
      campos decisivos em falta (--warn tracejado), porque o pedido ao médico é
      o mesmo: olhe para isto antes de seguir. */
@@ -1955,6 +1974,19 @@
 
     <div class="test-steps" id="test-steps"></div>
     <div id="verdict-notes"></div>
+
+    <!-- Regras que valem para QUALQUER resultado, em qualquer tumor. Vieram
+         dos pareceres externos e são de segurança, não de conveniência: as
+         três descrevem situações em que um resultado é lido como mais
+         conclusivo do que é, e a leitura errada muda conduta. Ver §37. -->
+    <div class="regras-gerais">
+      <h3>Como ler qualquer resultado</h3>
+      <ul>
+        <li><strong>Variante de significado incerto (VUS) não muda conduta.</strong> Não indica tratamento, cirurgia redutora de risco, mudança de rastreamento nem teste em cascata na família.</li>
+        <li><strong>Alteração encontrada no tumor não confirma origem hereditária.</strong> Gene de predisposição alterado em tecido tumoral precisa de confirmação em sangue ou outra amostra não tumoral antes de valer como germinativo.</li>
+        <li><strong>Biópsia líquida negativa não exclui alteração.</strong> Havendo tecido adequado, um resultado negativo em plasma deve ser complementado por análise tumoral.</li>
+      </ul>
+    </div>
 
     <div class="disclaimer">
       Esta triagem indica <strong>qual exame solicitar e por quê</strong>, com base em diretrizes clínicas nacionais e internacionais vigentes. Não constitui recomendação terapêutica nem substitui aconselhamento genético - casos com critério para síndrome hereditária devem ser encaminhados ao especialista.
