@@ -2284,3 +2284,95 @@ observar se o schema unificado continuar crescendo com novos tumores. A saída
 natural, quando incomodar, é deixar a primeira chamada só identificar o sítio e
 promover o schema dirigido a caminho principal — hipótese já testada e recusada
 por dados em §33.6, que teria de ser remedida neste novo contexto.
+
+---
+
+## 43. A escala visual que não existia (v1.16)
+
+O Renan pediu uma revisão estética — tamanho de botão, arredondamento,
+referências de produto moderno. A consulta à base de design devolveu, como
+referência para produto clínico, **Minimalism & Swiss Style** ("melhor para:
+apps enterprise, dashboards, ferramentas profissionais"). Ou seja: a direção
+já estava certa. O problema não era o estilo, era a execução dele.
+
+### 43.1 O método: medir antes de opinar
+
+As capturas de tela de página inteira mostravam o botão flutuante da Gena
+cobrindo o campo de texto no celular. Ia entrar no relatório como defeito.
+Antes disso, medi a colisão com `getBoundingClientRect` em todos os elementos
+interativos, com a página rolada até o fim: **zero colisões**. Elemento
+`position: fixed` aparece uma vez só na captura de página inteira, na posição
+do viewport — era artefato da captura, não da interface.
+
+Mesma disciplina derrubou um segundo achado: eu havia registrado "h1 (21px)
+menor que h2 (22px), hierarquia invertida". Medindo os seletores: os 21px eram
+do `h1` da **tela de acesso** e os 22px do `h2` do **painel lateral** da mesma
+tela — dois blocos distintos, e o segundo é maior de propósito. O `h1` real das
+telas do app tem 26px, maior que tudo. **Não havia inversão.**
+
+Dois relatos falsos em cinco achados. Screenshot serve para ver; número serve
+para afirmar.
+
+### 43.2 O que a medição achou de verdade
+
+**Vinte tamanhos de fonte** no arquivo: 9,5 · 10 · 10,5 · 11 · 11,5 · 12 ·
+12,5 · 13 · 13,5 · 14 · 14,5 · 15 · 15,5 · 16 · 18 · 21 · 22 · 24 · 26 px —
+um deles `13.3333px`, que é resultado de conta, não de decisão. E **treze
+raios de arredondamento**: 2 · 3 · 4 · 7 · 8 · 9 · 10 · 11 · 12 · 13 · 18 ·
+20 · 100 px. Nenhuma escala: valores que foram aparecendo, um por tela.
+
+Diferenças de 1px entre elementos vizinhos são o pior caso — o olho registra o
+desalinho sem conseguir nomear a causa.
+
+**Texto clínico pequeno demais.** A descrição do teste e o resumo do veredito
+— o que o médico lê para decidir qual exame pedir — estavam em **12px**. Num
+app usado no celular, no consultório, por profissional frequentemente acima
+dos 50 anos.
+
+**Alvos de toque abaixo do piso de 44px:** botão de sair 32×32 (pequeno, na
+borda da tela, e encerra a sessão), abas de passo com 43px, link de pular para
+o conteúdo com 36px.
+
+**Botões vizinhos desalinhados:** primário com 52px de altura e secundário com
+54px, lado a lado — e o rótulo "Limpar tudo" quebrando em duas linhas por falta
+de largura.
+
+### 43.3 O que entrou
+
+| Escala | Degraus |
+| --- | --- |
+| Tipografia | `--fs-2xs` 12 · `--fs-xs` 14 · `--fs-sm` 16 · `--fs-md` 18 · `--fs-lg` 22 · `--fs-xl` 26 |
+| Arredondamento | `--r-xs` 4 · `--r-sm` 8 · `--r-md` 12 · `--r-lg` 16 · `--r-full` 999 |
+| Alvo de toque | `--toque` 44px |
+
+Vinte tamanhos viraram seis; treze raios viraram cinco. O texto clínico subiu
+para 16px, os alvos de toque para 44px, e primário e secundário passaram a
+compartilhar a mesma regra de altura.
+
+### 43.4 A regressão que a própria mudança criou
+
+Subir o texto junto com a barra de passos empurrou "Programas" para fora da
+tela no iPhone 13. A barra de passos é **navegação, não leitura**: voltou ao
+degrau de 12px no celular, e os quatro passos couberam. Medido depois:
+**zero rolagem horizontal** em 320px, 390px e 1440px.
+
+Em 320px (iPhone SE) a barra ainda corta 64px — mas ela é `overflow-x: auto` e
+rola por dentro, sem arrastar a página. Já era assim antes, com fonte maior.
+
+### 43.5 A trava
+
+`test/estetica.test.js` falha se **qualquer** valor cru de `font-size` ou
+`border-radius` voltar ao arquivo, se um degrau da escala for renomeado, ou se
+a descrição do teste e o resumo do veredito descerem abaixo do corpo. A bateria
+de acessibilidade ganhou a checagem de 44×44 em todo controle.
+
+Sem isso, a escala dura até a próxima tela nova. Foi exatamente assim que os
+vinte tamanhos apareceram.
+
+### 43.6 Recusado
+
+A base sugeriu a dupla tipográfica **Figtree / Noto Sans** (perfil "medical,
+clean, accessible, healthcare, trustworthy"). **Não adotada:** carregar fonte
+do Google significa uma requisição a servidor do Google a cada carregamento do
+app, e a interface promete ao médico que o material não circula. Se a fonte for
+adotada um dia, o caminho é hospedar o arquivo junto com a aplicação.

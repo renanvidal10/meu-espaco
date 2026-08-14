@@ -219,6 +219,24 @@ async function rodar() {
   });
   ok(idsRepetidos.length === 0, `nenhum id duplicado (repetidos: ${JSON.stringify(idsRepetidos)})`);
 
+  // Alvo de toque: 44x44 é o piso das diretrizes para dedo em tela. O botão
+  // de sair vivia a 32x32 — pequeno, na borda, e encerrando a sessão. Ver §43.
+  console.log('\n=== ALVO DE TOQUE (44x44) ===');
+  const pequenos = await p.evaluate(() => {
+    const fora = [];
+    document.querySelectorAll('button, a[href], [role="button"]').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      // Link dentro de parágrafo é alvo de leitura, não de toque isolado.
+      if (el.tagName === 'A' && el.closest('p, li')) return;
+      if (r.width < 44 || r.height < 44) {
+        fora.push(`${el.id || el.className || el.tagName}: ${Math.round(r.width)}x${Math.round(r.height)}`);
+      }
+    });
+    return fora;
+  });
+  ok(pequenos.length === 0, `todo controle tem 44x44 (abaixo: ${JSON.stringify(pequenos)})`);
+
   await navegador.close();
   servidor.kill('SIGTERM');
   if (stub.fechar) await stub.fechar();
