@@ -1020,3 +1020,43 @@ test('pulmão, colorretal e mama: os alvos aparecem pelo nome (§41)', () => {
   assert.ok((mama.notes || []).some((n) => /HER2-low/.test(n.body || '')),
     'a nota dos biomarcadores que passam em branco sumiu');
 });
+
+test('todo teste germinativo sai com o laboratório de oncogenética ligado (§44)', () => {
+  // O médico que recebe a indicação precisa saber ONDE solicitar. Um card
+  // germinativo sem encaminhamento é um beco sem saída — e o esquecimento é
+  // silencioso, porque o card aparece normalmente. A garantia é estrutural
+  // (envelopa classify no registro), e este teste varre o cenário inteiro.
+  const CENARIOS = [
+    ['ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61' }],
+    ['ovario', { histologia: 'Mucinoso', estadiamento: 'IA', idade: '44' }],
+    ['mama', { sexo: 'Masculino', subtipo_molecular: 'Luminal (RH+/HER2-)', extensao_doenca: 'Inicial (operável)', idade: '60' }],
+    ['mama', { sexo: 'Feminino', subtipo_molecular: 'Triplo-negativo', extensao_doenca: 'Metastático', idade: '38' }],
+    ['prostata', { extensao_doenca: 'Metastático resistente à castração (mCRPC)' }],
+    ['prostata', { extensao_doenca: 'Localizado', categoria_risco_localizado: 'Alto' }],
+    ['prostata', { extensao_doenca: 'Localizado', categoria_risco_localizado: 'Baixo', historia_pessoal_cancer: 'Câncer de mama' }],
+    ['pancreas', { histologia: 'Adenocarcinoma ductal', extensao_doenca: 'Metastático' }],
+    ['colorretal', { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'pMMR / MSS', idade: '44' }],
+    ['colorretal', { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático', mmr_msi: 'dMMR / MSI-alto', idade: '70' }],
+    ['colorretal', { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'pMMR / MSS', idade: '62', historico_familiar: 'Pai com câncer de cólon' }],
+    ['endometrio', { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'dMMR / MSI-alto', idade: '58' }],
+  ];
+
+  let germinativosVistos = 0;
+  for (const [tumorId, valores] of CENARIOS) {
+    const { resultado } = triar(tumorId, valores);
+    (resultado.tests || []).filter((t) => t.kind === 'germinativo').forEach((teste) => {
+      germinativosVistos++;
+      const programas = teste.programs || [];
+      const life = programas.find((p) => p && /life genomics/i.test(p.name || ''));
+      assert.ok(life, `${tumorId}/${teste.id}: teste germinativo sem encaminhamento à Life Genomics`);
+      assert.match(String(life.url || ''), /^https:\/\//,
+        `${tumorId}/${teste.id}: o encaminhamento germinativo não tem endereço utilizável`);
+      // A amostra do encaminhamento precisa bater com a do exame: germinativo
+      // é sangue, e mandar para um parceiro que só processa tecido é o mesmo
+      // erro de antes, com outra roupa.
+      assert.ok(['sangue', 'ambos'].includes(life.amostra),
+        `${tumorId}/${teste.id}: encaminhamento germinativo para parceiro de ${life.amostra}`);
+    });
+  }
+  assert.ok(germinativosVistos >= 12, `a varredura precisa cobrir os germinativos (viu ${germinativosVistos})`);
+});

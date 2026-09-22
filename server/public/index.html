@@ -722,6 +722,19 @@
   button.ghost:hover { color: var(--ink); border-color: var(--ink-faint); }
   .btn-row .note { font-size: var(--fs-xs); color: var(--ink-faint); margin-left: auto; }
 
+  .selo {
+    display: inline-block; vertical-align: middle; margin-left: 6px;
+    padding: 2px 8px; border-radius: var(--r-full);
+    font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.01em;
+  }
+  .selo.ok { background: var(--ok-soft); color: var(--ok); }
+  .selo.neutro { background: var(--neutral-soft); color: var(--ink-muted); }
+  .selo.warn { background: var(--warn-soft); color: var(--warn); }
+  .link-ausente {
+    font-size: var(--fs-2xs); color: var(--ink-faint);
+    white-space: nowrap; align-self: center;
+  }
+
   /* ---- case id banner ---- */
   .case-banner {
     display: flex;
@@ -3333,17 +3346,32 @@
         (test.kind === 'germinativo' && historico ? ` Histórico familiar relatado: ${historico}, reforça encaminhamento para aconselhamento genético.` : '');
       const icon = test.kind === 'germinativo' ? ICONE_DNA : ICONE_LAB;
 
-      const programas = (test.programs || []).map((p) => `
+      // O selo diz, antes de qualquer leitura, o que aquela linha é: via sem
+      // custo da indústria, laboratório parceiro, ou nenhuma via verificada.
+      // E quando não há endereço, a linha precisa dizer POR ONDE se solicita —
+      // uma linha sem botão e sem explicação parece produto quebrado. Ver §44.
+      const SELO = {
+        patrocinado: { txt: 'Sem custo', cls: 'ok' },
+        laboratorio: { txt: 'Laboratório parceiro', cls: 'neutro' },
+        'sem-via': { txt: 'Sem via verificada', cls: 'warn' },
+      };
+      const programas = (test.programs || []).map((p) => {
+        const selo = SELO[p.tipo] || null;
+        const acao = p.url
+          ? `<a class="link" href="${esc(p.url)}" target="_blank" rel="noopener">Abrir portal ↗</a>`
+          : (p.tipo === 'sem-via' ? '' : '<span class="link-ausente">Solicite pelo representante</span>');
+        return `
         <div class="program-row">
           <div class="who">
             <span class="logo">${icon}</span>
             <div>
-              <div class="name">${esc(p.name)}</div>
+              <div class="name">${esc(p.name)}${selo ? ` <span class="selo ${selo.cls}">${selo.txt}</span>` : ''}</div>
               <div class="test">${esc(p.note)}</div>
             </div>
           </div>
-          ${p.url ? `<a class="link" href="${esc(p.url)}" target="_blank" rel="noopener">Ver portal oficial ↗</a>` : ''}
-        </div>`).join('');
+          ${acao}
+        </div>`;
+      }).join('');
 
       return `
       <div class="card program-card">

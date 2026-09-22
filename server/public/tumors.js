@@ -297,6 +297,7 @@
    * mais que card errado.
    * ------------------------------------------------------------------ */
   const PROGRAMA_ID = {
+    tipo: 'patrocinado',
     name: 'ProgramAID (AstraZeneca)',
     note: 'Teste gratuito em tecido tumoral. Se o resultado vier inconclusivo, permite reteste por biópsia líquida sem custo.',
     url: 'https://programaid.com.br/',
@@ -310,6 +311,7 @@
     fonte: 'programaid.com.br/exames — mama, pulmão, ovário, próstata e LLC',
   };
   const PROGRAMA_PFIZER = {
+    tipo: 'patrocinado',
     name: 'Programa de apoio diagnóstico (Pfizer)',
     note: 'Existe apoio diagnóstico ligado à terapia com inibidor de PARP em próstata. Portal oficial a confirmar — consulte o representante antes de encaminhar.',
     url: null,
@@ -333,6 +335,7 @@
   // GSK ou de um consórcio de indústrias, qual o portal canônico de entrada, e
   // se a elegibilidade exige primeira linha de tratamento.
   const HRD_PATROCINADO = {
+    tipo: 'patrocinado',
     name: 'Teste HRD sem custo (GSK · myChoice CDx)',
     note: 'Patrocinado pela GSK, sem custo para o paciente. Elegível: carcinoma seroso ou endometrioide de ALTO GRAU de ovário, tuba uterina ou peritônio, EM PRIMEIRA LINHA de tratamento. A solicitação não é feita por portal — o médico pede ao laboratório parceiro (Lâmina), que inscreve o paciente, seleciona os blocos e encaminha para o teste.',
     url: 'https://laminalab.com.br/teste-deficiencia-de-recombinacao-homologa-hrd-em-cancer-de-ovario/',
@@ -352,6 +355,7 @@
   // iniciativa começou em 2017 e já passou de 20 mil exames gratuitos. É a via
   // de acesso mais relevante deste tumor e não estava no card.
   const MAPEAMENTO_PULMAO = {
+    tipo: 'patrocinado',
     name: 'Mapeamento Pulmão (consórcio de cinco farmacêuticas)',
     note: 'Perfil genômico completo sem custo em câncer de pulmão não pequenas células, por painel abrangente (FoundationOne CDx). Iniciativa conjunta de AstraZeneca, Bayer, BMS, Pfizer e Roche. A inclusão do paciente é feita pelo serviço de patologia ou pelo representante da indústria.',
     url: 'https://www.roche.com.br/imprensa/cinco-farmaceuticas-se-unem-para-ampliar-acesso-ao-diagnostico-molecular-de-cancer-de-pulmao-no-brasil',
@@ -362,8 +366,9 @@
   };
 
   const LIFE_GENOMICS = {
-    name: 'Life Genomics',
-    note: 'Laboratório de oncogenética, não é programa gratuito. Confirmar cobertura e valores.',
+    name: 'Life Genomics — laboratório parceiro de oncogenética',
+    tipo: 'laboratorio',
+    note: 'Parceiro para painéis germinativos: processa sangue periférico e emite o laudo de predisposição hereditária. Não é programa patrocinado — confirme cobertura e valores no portal.',
     url: 'https://lifegenomics.com.br/',
     cobertura: ['ovario', 'prostata', 'mama', 'pancreas', 'colorretal', 'endometrio', 'pulmao'],
     // Laboratório completo: processa sangue e tecido.
@@ -373,8 +378,12 @@
   };
   const A_MAPEAR = {
     amostra: 'ambos',
-    name: 'Programa a mapear',
-    note: 'Nenhum parceiro verificado ainda para este teste neste tumor.',
+    tipo: 'sem-via',
+    // "Programa a mapear" lido por quem não conhece o projeto parece produto
+    // inacabado. O conteúdo é o mesmo — busca feita, nada encontrado — mas
+    // dito de forma que serve ao médico: ele precisa saber por onde seguir.
+    name: 'Sem via patrocinada verificada para este teste',
+    note: 'A busca por programa da indústria para este exame neste tumor não retornou parceiro confirmado. Encaminhe pelo laboratório de anatomia patológica do serviço ou pelo convênio. Registrado como busca sem resultado — não como inexistência.',
     url: null,
     cobertura: null, // null = vale para qualquer tumor
     verificadoEm: null,
@@ -1284,7 +1293,43 @@
   };
 
   /* ------------------------------------------------------------------ */
-  const REGISTRY = { ovario, prostata, mama, pancreas, colorretal, endometrio, pulmao };
+  /* ------------------------------------------------------------------ *
+   * GARANTIA DE ENCAMINHAMENTO GERMINATIVO
+   *
+   * Todo teste germinativo precisa sair da tela com o laboratório de
+   * oncogenética ligado. Deixar isso a cargo de cada regra funciona até
+   * alguém escrever uma regra nova e esquecer — e o esquecimento é
+   * silencioso: o card aparece sem lugar nenhum para o médico solicitar.
+   * Foi assim que o teste da GSK sumiu do ovário (§36). A garantia mora aqui,
+   * num lugar só, e vale para toda regra presente e futura.
+   * ------------------------------------------------------------------ */
+  function garantirEncaminhamento(resultado) {
+    if (!resultado || !Array.isArray(resultado.tests)) return resultado;
+    resultado.tests.forEach((teste) => {
+      if (teste.kind !== 'germinativo') return;
+      const programas = Array.isArray(teste.programs) ? teste.programs : [];
+      if (!programas.some((p) => p && p.name === LIFE_GENOMICS.name)) {
+        teste.programs = [LIFE_GENOMICS, ...programas];
+      }
+    });
+    return resultado;
+  }
+
+  function comEncaminhamento(tumor) {
+    const original = tumor.classify;
+    tumor.classify = function (v) { return garantirEncaminhamento(original.call(this, v)); };
+    return tumor;
+  }
+
+  const REGISTRY = {
+    ovario: comEncaminhamento(ovario),
+    prostata: comEncaminhamento(prostata),
+    mama: comEncaminhamento(mama),
+    pancreas: comEncaminhamento(pancreas),
+    colorretal: comEncaminhamento(colorretal),
+    endometrio: comEncaminhamento(endometrio),
+    pulmao: comEncaminhamento(pulmao),
+  };
   const ORDER = ['ovario', 'mama', 'prostata', 'colorretal', 'pulmao', 'pancreas', 'endometrio'];
 
   function get(id) { return REGISTRY[id] || null; }
