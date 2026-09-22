@@ -2362,11 +2362,18 @@
     if (token) headers.Authorization = `Bearer ${token}`;
     if (body && !isForm) headers['Content-Type'] = 'application/json';
 
-    const response = await fetch(path, {
-      method,
-      headers,
-      body: isForm ? body : (body ? JSON.stringify(body) : undefined),
-    });
+    let response;
+    try {
+      response = await fetch(path, {
+        method,
+        headers,
+        body: isForm ? body : (body ? JSON.stringify(body) : undefined),
+      });
+    } catch {
+      // "Failed to fetch" é o que o navegador diz. Não é o que o médico
+      // precisa ler num auditório com wi-fi ruim. Ver §46.2
+      throw new Error('Sem conexão com o servidor. Verifique a internet e tente de novo.');
+    }
 
     if (response.status === 401 && !path.startsWith('/api/auth/')) {
       clearToken();
@@ -2374,8 +2381,18 @@
       throw new Error('Sua sessão expirou. Entre novamente.');
     }
 
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || 'Não foi possível completar a operação.');
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+    if (!response.ok) throw new Error((payload && payload.error) || 'Não foi possível completar a operação.');
+    // Portal cativo de hotel responde HTML com status 200: sem esta guarda o
+    // médico via "Cannot read properties of undefined" na caixa de erro.
+    if (payload === null) {
+      throw new Error('A resposta do servidor veio em formato inesperado. Isso costuma ser rede com portal de acesso — abra uma página qualquer no navegador, aceite a conexão e tente de novo.');
+    }
     return payload;
   }
 
@@ -2776,7 +2793,16 @@
 
     if (manual) {
       document.getElementById('tipo-tumor-justificativa').style.display = 'none';
-      renderFields({});
+      // Idade, histórico familiar e testes prévios são os mesmos nos sete
+      // tumores: apagá-los ao corrigir o subtipo fazia a triagem seguinte cair
+      // em "dados insuficientes" logo depois do médico ter CORRIGIDO o app.
+      // O que não sobrevive é o que pertence ao tumor antigo. Ver §46.3
+      const preservados = {};
+      TUMORS.CHAVES_COMUNS.forEach((chave) => {
+        const campo = document.getElementById('f-' + chave);
+        if (campo && String(campo.value || '').trim()) preservados[chave] = campo.value;
+      });
+      renderFields(preservados);
     }
   }
 
@@ -3279,6 +3305,13 @@
     document.getElementById('tile-voice').classList.remove('selected');
     document.getElementById('voice-panel').classList.remove('open');
 
+    // O nome do paciente é a única informação identificável que o app toca.
+    // Ele sobrevivia ao "Iniciar novo caso" e reaparecia no documento da
+    // paciente seguinte — com o diagnóstico correto dela. Ver §46.1
+    const campoNome = document.getElementById('patient-name');
+    if (campoNome) campoNome.value = '';
+    extractedPatientName = '';
+
     genaReset();
     refreshFileTiles();
     // O caso anterior deixou de existir: os passos seguintes voltam a ficar
@@ -3552,13 +3585,24 @@
     // baixaria um PDF em branco.
     alvo.open = true;
     alvo.classList.add('print-target');
-    document.body.classList.add('printing');
+    entrarNoModoImpressao();
     window.print();
   }
-  window.addEventListener('afterprint', () => {
+  function sairDoModoImpressao() {
     document.body.classList.remove('printing');
     document.querySelectorAll('.doc-preview-wrap').forEach((el) => el.classList.remove('print-target'));
-  });
+  }
+  window.addEventListener('afterprint', sairDoModoImpressao);
+  // O afterprint não é confiável: em Chromium headless ele nunca dispara, e no
+  // Safari do iPhone é irregular. Sem uma segunda saída, a tela fica presa no
+  // modo impressão — sem topbar, sem passos, sem botões — e só volta com F5.
+  // Duas redes: um tempo de segurança e a própria navegação entre passos.
+  let saidaDeImpressao = null;
+  function entrarNoModoImpressao() {
+    document.body.classList.add('printing');
+    clearTimeout(saidaDeImpressao);
+    saidaDeImpressao = setTimeout(sairDoModoImpressao, 1500);
+  }
 
   function toggleEditDoc(wrapId, btn) {
     const wrap = document.getElementById(wrapId);

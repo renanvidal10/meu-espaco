@@ -2576,3 +2576,71 @@ gradiente, vidro fosco e animação de entrada (em software clínico lê como
 amador, que é exatamente o oposto do pedido); e reorganizar a tela de programas
 em abas — é a estrutura certa a médio prazo, mas véspera de apresentação não é
 hora de estrear arquitetura de navegação.
+
+---
+
+## 46. O que a bateria de QA pré-demonstração achou (v1.18)
+
+Auditoria independente da jornada, na véspera da apresentação. As quatro
+baterias existentes passavam 100% — o que a auditoria achou estava justamente
+nos caminhos que nenhuma delas percorria.
+
+### 46.1 GRAVE: o nome do paciente atravessava para o caso seguinte
+
+**Reprodução:** caso de ovário → passo 4 → digitar o nome da paciente →
+"Iniciar novo caso" → caso de mama → passo 4.
+**Resultado:** o documento da **segunda** paciente saía com o nome da
+**primeira**, junto do diagnóstico correto da segunda.
+
+`clearIntake()` zerava texto, arquivos, voz, Gena e passos — tudo menos
+`#patient-name` e `extractedPatientName`. E `renderPrograms()` só preenche o
+campo quando ele está vazio, então o nome velho ganhava do novo.
+
+É a única informação identificável que o app toca, e ela vazava para um
+documento que o médico assina. Corrigido no `clearIntake()`, e a bateria de
+navegador passou a percorrer exatamente esse caminho de dois casos seguidos.
+
+### 46.2 A tela podia ficar presa no modo impressão
+
+`downloadDoc()` marcava `body.printing` e **só** o `afterprint` desfazia. Em
+Chromium headless o `afterprint` **nunca dispara**; no Safari do iPhone é
+irregular. Nesse estado o CSS de impressão esconde topbar, barra de passos e
+botões: o app parece quebrado e só volta com F5 — na última tela da
+apresentação.
+
+Agora há duas saídas: o `afterprint` e um tempo de segurança de 1,5s. Testado
+com `window.print` neutralizado, que é exatamente o cenário em que o evento
+não vem.
+
+### 46.3 Corrigir o subtipo apagava o que não muda
+
+Trocar o subtipo à mão no passo 2 remontava os campos vazios — inclusive
+**idade, histórico familiar e testes prévios**, que são os mesmos nos sete
+tumores. A triagem seguinte caía em "dados insuficientes" **logo depois de o
+médico ter corrigido o app**. E esse é justamente o gesto que se demonstra ao
+explicar "e se a identificação automática errar?".
+
+`TUMORS.CHAVES_COMUNS` já existia para isso. Os campos comuns preenchidos são
+preservados; o que pertence ao tumor antigo, não.
+
+### 46.4 Erro de rede falava inglês de programador
+
+Sem internet, a tela mostrava **"Failed to fetch"**. Com portal cativo de hotel
+(HTML com status 200), mostrava **"Cannot read properties of undefined"**. Os
+dois cenários mais prováveis num auditório. Agora: *"Sem conexão com o
+servidor"* e uma mensagem que nomeia o portal de acesso e diz o que fazer.
+
+### 46.5 O que a auditoria testou e passou
+
+Jornada completa nos sete tumores, com zero erro de console em desktop e
+celular; mensagens de falha da IA (429, 500, 401, resposta solta, extração
+vazia) todas em português e acionáveis; os PDFs dos quatro tumores conferidos
+item a item, uma página cada, sem sobreposição e sem vazar interface; abas de
+passo travadas na ordem certa; duplo clique protegido contra chamada dupla;
+texto de 140 mil caracteres barrado com mensagem; nome do paciente escapado
+contra injeção; e nenhuma rolagem horizontal em 320px nem em 390px.
+
+**Achado deixado em aberto de propósito:** recarregar a página no meio do caso
+apaga tudo, sem aviso. É coerente com a promessa de não guardar dado do
+paciente, e mudar isso na véspera seria estrear persistência sem tempo de
+testar. Fica como limitação conhecida.

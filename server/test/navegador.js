@@ -471,6 +471,79 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- o nome do paciente não pode sobreviver ao caso ---------- *
+   * Era a única informação identificável que o app toca, e ela atravessava o
+   * "Iniciar novo caso": o documento da paciente SEGUINTE saía com o nome da
+   * anterior e o diagnóstico correto dela. Ver ARQUITETURA §46.1.
+   * -------------------------------------------------------------------- */
+  {
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('vazamento: ' + e.message));
+    await mockExtracao(p, { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61' });
+    await entrar(p);
+    await p.fill('#case-text', 'caso');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('#screen-1 button:has-text("Rodar")');
+    await p.waitForSelector('#screen-2.active');
+    await p.click('#verdict-next-btn');
+    await p.waitForSelector('#screen-3.active');
+    await p.fill('#patient-name', 'ANA PAULA MOREIRA');
+    await p.click('button:has-text("Atualizar documentos")');
+    await p.waitForTimeout(200);
+
+    await p.click('button:has-text("Iniciar novo caso")');
+    await p.waitForTimeout(300);
+    const campoLimpo = (await p.inputValue('#patient-name')) === '';
+    linha(ok(campoLimpo, 'o nome do paciente sobreviveu ao "Iniciar novo caso"'),
+      'novo caso zera o nome do paciente');
+
+    await mockExtracao(p, { tipo_tumor: 'Mama', subtipo_molecular: 'Triplo-negativo', extensao_doenca: 'Metastático', sexo: 'Feminino', idade: '44' });
+    await p.fill('#case-text', 'outro caso');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('#screen-1 button:has-text("Rodar")');
+    await p.waitForSelector('#screen-2.active');
+    await p.click('#verdict-next-btn');
+    await p.waitForSelector('#screen-3.active');
+    await p.locator('#programs-dynamic details.doc-preview-wrap').first().click();
+    const noDocumento = await p.locator('#programs-dynamic .doc-name').first().innerText();
+    linha(ok(!/ANA PAULA/i.test(noDocumento), `documento do caso seguinte trouxe: "${noDocumento}"`),
+      'o nome não atravessa para o documento do caso seguinte');
+
+    // E a tela não pode ficar presa no modo impressão: em vários navegadores o
+    // afterprint não dispara, e sem topbar nem botões o app parece quebrado.
+    await p.evaluate(() => { window.print = () => {}; });
+    await p.evaluate(() => {
+      const d = document.querySelector('#programs-dynamic details.doc-preview-wrap');
+      downloadDoc(d.id);
+    });
+    const entrou = await p.evaluate(() => document.body.classList.contains('printing'));
+    await p.waitForTimeout(1900);
+    const saiu = !(await p.evaluate(() => document.body.classList.contains('printing')));
+    linha(ok(entrou && saiu, `entrou=${entrou} saiu=${saiu}`), 'a tela sai do modo impressão sem depender do afterprint');
+    await p.close();
+  }
+
+  /* ---------- corrigir o subtipo não pode apagar o que é comum ---------- */
+  {
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('subtipo: ' + e.message));
+    await mockExtracao(p, { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61' });
+    await entrar(p);
+    await p.fill('#case-text', 'caso');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.fill('#f-historico_familiar', 'mãe com câncer de mama aos 58');
+    await p.selectOption('#field-subtipo', 'pulmao');
+    await p.waitForTimeout(250);
+    const idade = await p.inputValue('#f-idade');
+    const hist = await p.inputValue('#f-historico_familiar');
+    linha(ok(idade === '61' && /mãe/.test(hist), `idade="${idade}" histórico="${hist}"`),
+      'corrigir o subtipo preserva idade e histórico familiar');
+    await p.close();
+  }
+
   if (erros.length) falhas.push(nome + ' — erros de página: ' + erros.join(' | '));
   console.log('  erros de console/página: ' + (erros.length ? erros.join(' | ') : 'nenhum'));
   await browser.close();
