@@ -310,16 +310,14 @@
     verificadoEm: '2026-08-11',
     fonte: 'programaid.com.br/exames — mama, pulmão, ovário, próstata e LLC',
   };
-  const PROGRAMA_PFIZER = {
-    tipo: 'patrocinado',
-    name: 'Programa de apoio diagnóstico (Pfizer)',
-    note: 'Existe apoio diagnóstico ligado à terapia com inibidor de PARP em próstata. Portal oficial a confirmar — consulte o representante antes de encaminhar.',
-    url: null,
-    cobertura: ['prostata'],
-    amostra: 'tecido',
-    verificadoEm: '2026-08-11',
-    fonte: 'Programa vinculado a talazoparibe + enzalutamida (HRR). URL anterior (/paf-1) removida: era do programa de Polineuropatia Amiloidótica Familiar.',
-  };
+  /* PFIZER EM PRÓSTATA — RETIRADO DO CARD (não apagado daqui, para não se
+     perder o histórico da decisão).
+     Busca dedicada em 22/09/2026 não encontrou nenhuma página, regulamento ou
+     URL de programa da Pfizer que pague teste de BRCA/HRR em próstata no
+     Brasil: só material clínico e o portal HRR dos ESTADOS UNIDOS
+     (talzennaxtandi.pfizerpro.com). A regra do projeto é explícita — nenhum
+     programa entra por analogia, nem por plausibilidade de que "onde há
+     droga-alvo há patrocínio". Volta ao card assim que houver fonte. §44.2 */
   // Teste HRD patrocinado, sem custo para o paciente, com metodologia myChoice
   // CDx (Myriad). O critério de elegibilidade é EXATAMENTE o mesmo que esta
   // regra já usa para indicar HRD — seroso ou endometrioide de alto grau de
@@ -354,15 +352,35 @@
   // que custeia perfil genômico completo em pulmão não pequenas células. A
   // iniciativa começou em 2017 e já passou de 20 mil exames gratuitos. É a via
   // de acesso mais relevante deste tumor e não estava no card.
-  const MAPEAMENTO_PULMAO = {
+  /* MAPEAMENTO PULMÃO — RETIRADO DO CARD.
+     O consórcio das cinco farmacêuticas foi montado a partir de material de
+     imprensa de 2021, e uma das cinco portas de entrada listadas ali — o
+     onTRacK, da Bayer — foi DESCONTINUADA em setembro de 2022, conforme
+     comunicado da própria Bayer. Nenhuma confirmação pós-2022 de que o
+     consórcio siga ativo foi encontrada, e o link em uso era de um
+     comunicado de imprensa, não de um portal de inscrição. Um caminho morto
+     custa ao médico a consulta inteira. §44.1 */
+
+  const PD_POINT = {
     tipo: 'patrocinado',
-    name: 'Mapeamento Pulmão (consórcio de cinco farmacêuticas)',
-    note: 'Perfil genômico completo sem custo em câncer de pulmão não pequenas células, por painel abrangente (FoundationOne CDx). Iniciativa conjunta de AstraZeneca, Bayer, BMS, Pfizer e Roche. A inclusão do paciente é feita pelo serviço de patologia ou pelo representante da indústria.',
-    url: 'https://www.roche.com.br/imprensa/cinco-farmaceuticas-se-unem-para-ampliar-acesso-ao-diagnostico-molecular-de-cancer-de-pulmao-no-brasil',
+    name: 'PD-Point (MSD)',
+    note: 'Testes de PD-L1, EGFR e ALK sem custo em câncer de pulmão não pequenas células, escamoso e não escamoso. Solicitação pelo oncologista ou pelo próprio patologista, em portal único.',
+    url: 'https://www.pdpoint.com.br',
     cobertura: ['pulmao'],
     amostra: 'tecido',
-    verificadoEm: '2026-08-12',
-    fonte: 'Comunicado da Roche Brasil sobre a união das cinco farmacêuticas para ampliar o diagnóstico molecular de câncer de pulmão. Link em uso é o do comunicado — portal próprio de inscrição não localizado.',
+    verificadoEm: '2026-09-22',
+    fonte: 'Portal do programa PD-Point (MSD Brasil): PD-L1, EGFR e ALK gratuitos em CPNPC, solicitação por médico oncologista ou patologista em site único. Conteúdo verificado por busca; abertura da URL não testada neste ambiente.',
+  };
+
+  const RASTREAR = {
+    tipo: 'patrocinado',
+    name: 'RAStrear (Amgen)',
+    note: 'Perfil de RAS (KRAS e NRAS, incluindo KRAS G12C) e BRAF sem custo em colorretal metastático. O painel é fechado — não dá para pedir um gene isolado. Exige cadastro do médico com CRM e voucher liberado por consultor da Amgen.',
+    url: 'https://www.programarastrear.com.br/',
+    cobertura: ['colorretal'],
+    amostra: 'tecido',
+    verificadoEm: '2026-09-22',
+    fonte: 'Programa RAStrear (Amgen Biotecnologia do Brasil, operado pela Interplayers): colorretal metastático estágio IIIb e IV, KRAS/NRAS/BRAF em painel fechado, voucher por consultor. Conteúdo verificado por busca; abertura da URL não testada neste ambiente.',
   };
 
   const LIFE_GENOMICS = {
@@ -383,10 +401,10 @@
     // inacabado. O conteúdo é o mesmo — busca feita, nada encontrado — mas
     // dito de forma que serve ao médico: ele precisa saber por onde seguir.
     name: 'Sem via patrocinada verificada para este teste',
+    verificadoEm: '2026-09-22',
     note: 'A busca por programa da indústria para este exame neste tumor não retornou parceiro confirmado. Encaminhe pelo laboratório de anatomia patológica do serviço ou pelo convênio. Registrado como busca sem resultado — não como inexistência.',
     url: null,
     cobertura: null, // null = vale para qualquer tumor
-    verificadoEm: null,
   };
 
   /* ------------------------------------------------------------------ *
@@ -640,7 +658,7 @@
         stat: '27,9% dos casos metastáticos têm alteração em gene HRR (PROfound)',
         description: 'Painel de 15 genes de reparo por recombinação homóloga (BRCA1/2, ATM, BARD1, BRIP1, CDK12, CHEK1/2, FANCL, PALB2, PPP2R2A, RAD51B/C/D, RAD54L). Define elegibilidade a inibidor de PARP.',
         justify: 'Elegível para avaliação de painel somático HRR para definição de elegibilidade a terapia com inibidor de PARP.',
-        programs: [PROGRAMA_ID, PROGRAMA_PFIZER],
+        programs: [PROGRAMA_ID],
       };
 
       // MSI/dMMR é recomendação específica de mCRPC — define elegibilidade a
@@ -1050,7 +1068,7 @@
           // ou o médico não sabe que aquele resultado está sendo pedido. §41.2
           description: 'Obrigatório antes de terapia anti-EGFR. RAS mutado contraindica anti-EGFR; a subvariante KRAS G12C tem terapia dirigida própria; BRAF V600E define esquema específico; HER2 amplificado abre linha dirigida; fusão de NTRK abre terapia agnóstica ao sítio. O status de MSI/dMMR já vem do rastreio universal e não precisa ser repetido aqui.',
           justify: 'Doença metastática com indicação de perfil somático antes da definição de terapia sistêmica dirigida.',
-          programs: [A_MAPEAR],
+          programs: [RASTREAR],
         });
       }
 
@@ -1250,7 +1268,7 @@
             // impreciso nas duas pontas. Ver §41.
             description: 'Em doença ressecável, EGFR e ALK definem elegibilidade a terapia-alvo adjuvante nos estágios IB a IIIA (em ALK, o IB conta a partir de 4 cm), e PD-L1 orienta a imunoterapia adjuvante nos estágios II a IIIA, após quimioterapia à base de platina. Um painel amplo cobre os três e evita nova solicitação de tecido.',
             justify: 'Doença ressecável com indicação de pesquisa de EGFR, ALK e PD-L1 para definição de elegibilidade a terapia adjuvante dirigida (EGFR e ALK em estágios IB a IIIA; PD-L1 em estágios II a IIIA).',
-            programs: [MAPEAMENTO_PULMAO, PROGRAMA_ID],
+            programs: [PD_POINT, PROGRAMA_ID],
           }],
           title: 'Este caso tem indicação para 1 teste',
           summary: 'Doença ressecável: EGFR, ALK e PD-L1 definem a elegibilidade a terapia adjuvante — a janela é agora, não à progressão.',
@@ -1277,7 +1295,7 @@
           stat: 'Cobre EGFR, ALK, ROS1, BRAF, KRAS G12C, MET, RET, NTRK e HER2',
           description: 'Painel amplo indicado antes de definir a primeira linha em doença avançada. Testar gene a gene consome tecido e atrasa a decisão terapêutica. Quando o tecido é insuficiente, a biópsia líquida é alternativa aceita.',
           justify: 'Doença avançada com indicação de painel molecular amplo antes da definição de terapia sistêmica de primeira linha.',
-          programs: [MAPEAMENTO_PULMAO, PROGRAMA_ID],
+          programs: [PD_POINT, PROGRAMA_ID],
         }],
         title: 'Este caso tem indicação para 1 teste',
         summary: 'Doença avançada: painel molecular amplo indicado antes da primeira linha de tratamento.',

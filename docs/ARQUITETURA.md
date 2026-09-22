@@ -2376,3 +2376,120 @@ clean, accessible, healthcare, trustworthy"). **Não adotada:** carregar fonte
 do Google significa uma requisição a servidor do Google a cada carregamento do
 app, e a interface promete ao médico que o material não circula. Se a fonte for
 adotada um dia, o caminho é hospedar o arquivo junto com a aplicação.
+
+---
+
+## 44. A aba de programas: o que estava ligado errado (v1.17)
+
+O Renan apontou que a etapa de programas e solicitação era a parte mais fraca
+do produto, e pediu duas frentes de busca: quem executa os testes, e **quem da
+indústria paga cada teste**. O princípio que ele deu para a busca é o certo e
+passa a valer para o projeto: *sempre que existe droga-alvo, quase sempre
+existe indústria patrocinando o teste que seleciona o paciente para ela — e às
+vezes mais de uma.*
+
+### 44.0 A limitação de ambiente, dita na frente
+
+**Nenhuma URL pôde ser aberta.** O proxy desta sessão nega toda conexão externa
+(403 no CONNECT), inclusive domínios genéricos de controle. A busca funciona —
+é outro canal —, então dá para confirmar que uma página **existe e tem aquele
+conteúdo indexado**, mas **não** que ela carrega hoje.
+
+Toda URL registrada nesta rodada está marcada em `fonte` com "abertura da URL
+não testada neste ambiente". Nenhuma pode ser apresentada como testada até
+alguém abrir de uma rede sem bloqueio.
+
+### 44.1 O caminho morto que estava no app há quatro anos
+
+O "Mapeamento Pulmão" foi montado a partir de material de imprensa de **2021**,
+que listava cinco portas de entrada, uma por farmacêutica do consórcio. Uma
+delas — o **onTRacK, da Bayer** — foi **descontinuada em setembro de 2022**,
+por comunicado da própria Bayer. Nenhuma confirmação pós-2022 de que o
+consórcio siga ativo. E o endereço em uso não era portal de inscrição: era o
+**comunicado de imprensa**.
+
+Foi retirado do card. No lugar entraram duas vias com evidência direta e
+endereço próprio:
+
+| Programa | Indústria | Cobre | Alvos | Amostra |
+| --- | --- | --- | --- | --- |
+| **PD-Point** | MSD | Pulmão não pequenas células | PD-L1, EGFR, ALK | Tecido |
+| **RAStrear** | Amgen | Colorretal metastático | RAS (KRAS/NRAS, inclui G12C) e BRAF | Tecido |
+
+O RAStrear tem duas particularidades que o card informa: o painel é **fechado**
+(não dá para pedir um gene isolado) e a solicitação **depende de voucher
+liberado por consultor da Amgen** — não é autosserviço.
+
+**Lição de processo:** a data de verificação não é enfeite. Um programa sem
+`fonte` e sem `verificadoEm` não tem como ser revalidado, e foi exatamente por
+isso que a porta morta sobreviveu quatro anos. Passou a ser exigência testada.
+
+### 44.2 Pfizer em próstata: retirado, e por quê
+
+O Renan afirmou que em próstata **AstraZeneca e Pfizer** oferecem o teste.
+A AstraZeneca está confirmada (Programa ID). A Pfizer **não**: a busca dedicada
+encontrou apenas material clínico e o portal HRR dos **Estados Unidos**
+(talzennaxtandi.pfizerpro.com) — nenhuma página, regulamento ou URL de programa
+brasileiro.
+
+A regra do projeto não abre exceção nem para a hipótese mais plausível do
+mundo: **nenhum programa entra por analogia.** "Onde há droga-alvo há
+patrocínio" é justamente a heurística que essa regra existe para conter.
+O card ficou só com a AstraZeneca, e o bloco de código foi mantido comentado
+com o registro da decisão, para voltar em minutos se houver fonte.
+
+### 44.3 O Programa ID é maior do que estava mapeado
+
+O painel do Programa ID (AstraZeneca) cobre **AKT1, ALK, ATM, BRAF, BRCA1,
+BRCA2, EGFR, ERBB2, ESR1, FGFR3, HRAS, IDH1, IDH2, KIT, KRAS, MET, NRAS, PALB2,
+PDGFRA, PIK3CA, POLE, PTEN, RET e TP53**, em pulmão, ovário, próstata, mama e
+LLC. Um ponto a vigiar: o componente **germinativo (sangue)** apareceu como
+oferta **sazonal**, não permanente — por isso o encaminhamento germinativo do
+app continua sendo o laboratório parceiro, e não o programa.
+
+### 44.4 Encaminhamento germinativo garantido na estrutura
+
+Todo teste germinativo sai com a **Life Genomics** ligada, por garantia no
+registro de tumores — não mais por cada regra lembrar de incluir. O
+esquecimento aqui é silencioso: o card aparece normal, sem lugar nenhum para
+solicitar. Um teste varre doze cenários e exige, em cada germinativo, o
+parceiro presente, com endereço utilizável e **amostra compatível** (sangue).
+
+### 44.5 Vias confirmadas que o app ainda NÃO usa
+
+Duas têm evidência direta, mas o exame que elas pagam ainda não é indicado por
+nenhuma regra nossa — e regra vem antes de código:
+
+- **Precision+ (AbbVie)** — **FRα** por imuno-histoquímica em carcinoma
+  epitelial de ovário, tuba ou peritônio. É uma quarta via de elegibilidade em
+  ovário, ao lado de BRCA germinativo, BRCA tumoral e HRD.
+- **Claudinova (Astellas)** — **CLDN18.2 e HER2** em adenocarcinoma gástrico e
+  de junção gastroesofágica. Tumor fora do escopo atual do app.
+
+Registradas aqui para não se perderem.
+
+### 44.6 O que a busca NÃO achou
+
+Para não repetirmos trabalho: Pfizer em próstata · Janssen em próstata
+(Akeega) · GSK em endométrio (dostarlimabe) · MSD em MSI/dMMR pan-tumor (o
+PD-Point é exclusivo de pulmão; o "BiomarKIT" é material educacional, não
+pagamento de teste) · Bayer em NTRK (encerrado) · Lilly em RET · Daiichi Sankyo
+em HER2-low · Takeda/J&J em EGFR exon 20 · Merck KGaA e Pierre Fabre em BRAF
+colorretal (no Brasil o BRAF aparece coberto pelo RAStrear) · Novartis (o
+"Programa Bem Estar" fala em apoio diagnóstico sem especificar gene, tumor ou
+amostra — genérico demais para virar card) · e pâncreas, que **não** está entre
+os tumores do Programa ID.
+
+Também registrado: os programas de suporte da **Oncoclínicas** existem e são
+muitos, mas o texto institucional restringe a elegibilidade a pacientes **em
+tratamento nas unidades do grupo** — exibi-los sem essa ressalva mandaria o
+médico de fora da rede a um lugar onde o paciente dele não é elegível.
+
+### 44.7 O que a tela passou a dizer
+
+Cada linha de programa agora carrega um selo que diz o que ela é antes de
+qualquer leitura: **Sem custo** (via patrocinada), **Laboratório parceiro**
+(oncogenética, no germinativo) e **Sem via verificada** (busca feita, nada
+encontrado). Linha sem endereço deixou de aparecer muda — diz por onde
+solicitar. E o antigo "Programa a mapear" virou texto que serve ao médico em
+vez de parecer produto inacabado.

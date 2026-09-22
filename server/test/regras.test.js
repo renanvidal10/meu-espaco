@@ -1060,3 +1060,56 @@ test('todo teste germinativo sai com o laboratório de oncogenética ligado (§4
   }
   assert.ok(germinativosVistos >= 12, `a varredura precisa cobrir os germinativos (viu ${germinativosVistos})`);
 });
+
+test('toda via patrocinada tem endereço, fonte e data de verificação (§44)', () => {
+  // Um programa sem endereço utilizável manda o médico a lugar nenhum; um
+  // programa sem fonte e sem data não tem como ser revalidado, e foi assim que
+  // o consórcio de pulmão ficou quatro anos no app com uma porta morta dentro.
+  const CENARIOS = [
+    ['ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61' }],
+    ['mama', { sexo: 'Feminino', subtipo_molecular: 'Luminal (RH+/HER2-)', extensao_doenca: 'Metastático', idade: '61' }],
+    ['prostata', { extensao_doenca: 'Metastático resistente à castração (mCRPC)' }],
+    ['pulmao', { histologia: 'Adenocarcinoma', extensao_doenca: 'Inicial (ressecável)', painel_previo: 'Não realizado', idade: '64' }],
+    ['pulmao', { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático', painel_previo: 'Não realizado', idade: '64' }],
+    ['pancreas', { histologia: 'Adenocarcinoma ductal', extensao_doenca: 'Metastático' }],
+    ['colorretal', { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático', mmr_msi: 'pMMR / MSS', idade: '61' }],
+    ['endometrio', { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'pMMR / MSS', idade: '58' }],
+  ];
+
+  let patrocinadosVistos = 0;
+  for (const [tumorId, valores] of CENARIOS) {
+    const { resultado } = triar(tumorId, valores);
+    (resultado.tests || []).forEach((teste) => {
+      (teste.programs || []).forEach((p) => {
+        assert.ok(p.tipo, `${tumorId}/${teste.id}: programa "${p.name}" não declara o tipo`);
+        assert.ok(p.verificadoEm && /^\d{4}-\d{2}-\d{2}$/.test(p.verificadoEm),
+          `${tumorId}/${teste.id}: "${p.name}" sem data de verificação`);
+        if (p.tipo === 'patrocinado') {
+          patrocinadosVistos++;
+          assert.match(String(p.url || ''), /^https:\/\//,
+            `${tumorId}/${teste.id}: via patrocinada "${p.name}" sem endereço utilizável`);
+          assert.ok(String(p.fonte || '').length > 30,
+            `${tumorId}/${teste.id}: "${p.name}" sem fonte que permita revalidar`);
+          assert.ok((p.cobertura || []).includes(tumorId),
+            `${tumorId}/${teste.id}: "${p.name}" oferecido a um tumor que ele não cobre`);
+        }
+      });
+    });
+  }
+  assert.ok(patrocinadosVistos >= 5, `a varredura precisa ver as vias patrocinadas (viu ${patrocinadosVistos})`);
+});
+
+test('o consórcio de pulmão com porta morta não volta pelo card (§44.1)', () => {
+  for (const ext of ['Inicial (ressecável)', 'Metastático']) {
+    const { resultado } = triar('pulmao', {
+      histologia: 'Adenocarcinoma', extensao_doenca: ext,
+      painel_previo: 'Não realizado', idade: '64',
+    });
+    (resultado.tests || []).forEach((teste) => {
+      (teste.programs || []).forEach((p) => {
+        assert.ok(!/mapeamento pulm|onTRacK/i.test(p.name),
+          `o consórcio voltou ao card sem revalidação: "${p.name}"`);
+      });
+    });
+  }
+});
