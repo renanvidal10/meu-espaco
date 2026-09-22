@@ -429,8 +429,25 @@ async function rodar(nome, dispositivo) {
     await p.click('#verdict-next-btn');
     await p.waitForSelector('#screen-3.active');
     const docs = await p.locator('#programs-dynamic .doc-preview').count();
+    // O documento agora nasce recolhido: innerText de elemento oculto volta
+    // vazio. O caminho do médico é abrir e conferir antes de assinar, então o
+    // teste faz o mesmo — e assim também vigia que o painel ABRE.
+    await p.locator('#programs-dynamic details.doc-preview-wrap').first().click();
     const nome = await p.locator('#programs-dynamic .doc-name').first().innerText();
     linha(ok(docs === 2 && /Maria/.test(nome), `docs=${docs} nome=${nome}`), 'documentos gerados com o nome do paciente');
+
+    // E o PDF não pode sair em branco por causa do painel recolhido: a função
+    // de baixar precisa abrir o documento antes de mandar imprimir.
+    const fechado = await p.locator('#programs-dynamic details.doc-preview-wrap').nth(1);
+    const abertoAntes = await fechado.evaluate((el) => el.open);
+    await p.evaluate(() => {
+      window.print = () => {};
+      const alvo = document.querySelectorAll('#programs-dynamic details.doc-preview-wrap')[1];
+      downloadDoc(alvo.id);
+    });
+    const abertoDepois = await fechado.evaluate((el) => el.open);
+    linha(ok(!abertoAntes && abertoDepois, `antes=${abertoAntes} depois=${abertoDepois}`),
+      'baixar PDF abre o documento recolhido antes de imprimir');
     // Edição inline do documento
     await p.locator('#programs-dynamic .doc-actions button.ghost').first().click();
     const editavel = await p.locator('#programs-dynamic .doc-preview.editing').count();

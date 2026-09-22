@@ -35,15 +35,27 @@ test('a escala tem os degraus que a interface usa, e nada além', () => {
 });
 
 test('o texto clínico não pode encolher abaixo do corpo', () => {
-  // Descrição do teste e resumo do veredito são o que o médico lê para decidir
-  // qual exame pedir. Estavam em 12px. Se alguém os reduzir de novo, isto quebra.
-  for (const seletor of ['.test-step p', '.verdict p']) {
-    const regra = new RegExp(`\\${seletor}\\s*\\{[^}]*\\}`);
-    const achado = HTML.match(regra);
-    assert.ok(achado, `regra de ${seletor} sumiu`);
-    assert.match(achado[0], /font-size:\s*var\(--fs-sm\)/,
-      `${seletor} precisa ficar no corpo (--fs-sm), veio: ${achado[0]}`);
-  }
+  // A descrição do teste é o que o médico lê para decidir qual exame pedir.
+  // Estava em 12px. Se alguém a reduzir de novo, isto quebra.
+  const desc = HTML.match(/\.test-step p\s*\{[^}]*\}/);
+  assert.ok(desc, 'regra de .test-step p sumiu');
+  assert.match(desc[0], /font-size:\s*var\(--fs-sm\)/,
+    `.test-step p precisa ficar no corpo (--fs-sm), veio: ${desc[0]}`);
+
+  // O resumo do veredito mudou de papel: deixou de ser bloco isolado de 16px e
+  // passou a ser a linha de apoio de um título de 22px. Quem carrega o peso
+  // agora é o título — então é ELE que esta trava vigia. O resumo não pode
+  // cair abaixo de --fs-xs, e o título não pode encolher de novo para o
+  // tamanho do rodapé, que era o defeito original. Ver §45.
+  const resumo = HTML.match(/\.verdict p\s*\{[^}]*\}/);
+  assert.ok(resumo, 'regra de .verdict p sumiu');
+  assert.match(resumo[0], /font-size:\s*var\(--fs-(xs|sm|md)\)/,
+    `o resumo do veredito encolheu demais: ${resumo[0]}`);
+
+  const titulo = HTML.match(/\.verdict h2\s*\{[^}]*\}/);
+  assert.ok(titulo, 'regra de .verdict h2 sumiu');
+  assert.match(titulo[0], /font-size:\s*var\(--fs-(lg|xl)\)/,
+    `o veredito precisa dominar a tela, veio: ${titulo[0]}`);
 });
 
 test('o alvo mínimo de toque está declarado em 44px', () => {

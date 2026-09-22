@@ -2493,3 +2493,86 @@ qualquer leitura: **Sem custo** (via patrocinada), **Laboratório parceiro**
 encontrado). Linha sem endereço deixou de aparecer muda — diz por onde
 solicitar. E o antigo "Programa a mapear" virou texto que serve ao médico em
 vez de parecer produto inacabado.
+
+---
+
+## 45. Repaginação de densidade (v1.18)
+
+O Renan viu o app na véspera da apresentação a investidor e foi direto:
+*"muito amador, muito cheio de texto, tudo confuso, poluído."* O diagnóstico
+estava certo, e parte do problema era meu: na rodada anterior (§43) eu **subi
+o tamanho do texto** por legibilidade e não mexi no **volume**. São problemas
+diferentes e eu tratei um só — texto maior, na mesma quantidade, é
+literalmente mais poluição.
+
+### 45.1 O que a medição mostrou
+
+Na tela de programas, contando o que ficava visível **ao mesmo tempo**: lede de
+32 palavras + alerta de 30 + campo de nome + nota de privacidade de 48 +
+condição de programa de até 334 caracteres + um título repetido + o
+**formulário de solicitação inteiro renderizado aberto** + rodapé legal de 35.
+**~314 palavras de prosa corrida**, e mais de 3.100px de altura quando havia
+três testes.
+
+O pecado central: **o documento de solicitação é um artefato de saída, e estava
+renderizado por extenso como se fosse conteúdo de navegação.** Sozinho ocupava
+cerca de 60% da tela, repetido uma vez por teste.
+
+Na tela de resultado, o defeito de hierarquia mais caro do app: `.verdict h2`,
+que é **a resposta clínica**, estava em 16px — o mesmo tamanho do texto legal
+do rodapé — enquanto o rótulo genérico "Resultado da triagem" ocupava 26px.
+**O app gritava o rótulo e sussurrava a resposta.**
+
+### 45.2 O princípio aplicado
+
+Divulgação progressiva, com uma regra que vale para app clínico e que veio das
+referências consultadas: **o enunciado que muda conduta fica sempre visível; só
+a elaboração recolhe.** Nada foi apagado. A advertência de Nielsen foi
+respeitada — recolher o que o usuário precisa com frequência não reduz
+complexidade, apenas a realoca.
+
+| O que | De | Para |
+| --- | --- | --- |
+| Documento de solicitação | aberto, ~60% da tela | recolhido; **"Baixar PDF" fica fora, sempre visível** |
+| Veredito clínico | 16px | **22px**, com respiro maior |
+| Título da tela em resultado/programas | 26px | 22px — cede o posto ao veredito |
+| Três regras de segurança | 85 palavras abertas | enunciado visível, elaboração em `<details>` |
+| Nota de privacidade | 48 palavras | garantia visível, mecanismo sob demanda |
+| Condição de programa longa | até 334 caracteres | trecho + "mais" |
+| Descrição do teste | até 315 caracteres | primeira frase + "Por que este teste" |
+| Medida de leitura | 78ch | 58ch |
+
+**Resultado medido:** a tela de programas caiu de **2.401px para 1.445px** no
+desktop (−40%) e para 1.890px no celular.
+
+### 45.3 A armadilha que quase passou
+
+`<details>` fechado **não entra na impressão**. Recolher o documento sem mais
+nada faria o médico baixar um **PDF em branco** — e ele só descobriria depois
+de mandar para o laboratório. Três ajustes fecharam isso: `downloadDoc` abre o
+painel antes de imprimir, `toggleEditDoc` idem, e a regra de impressão que
+escondia `.doc-actions` foi reapontada, porque os botões saíram de dentro do
+painel.
+
+A bateria de navegador passou a vigiar exatamente isso: clica para baixar com o
+documento fechado e verifica que ele abriu antes da impressão.
+
+### 45.4 A trava de §43 disparou — e foi ajustada, não silenciada
+
+O teste que eu havia escrito ontem (`estetica.test.js`) exigia `.verdict p` em
+`--fs-sm` e quebrou quando o resumo do veredito virou linha de apoio de um
+título de 22px. O papel do elemento mudou: quem carrega o peso agora é o
+título. O teste passou a vigiar **o título** (`--fs-lg` ou maior) e a impedir
+que o resumo caia abaixo de `--fs-xs`. O defeito original — veredito do tamanho
+do rodapé — continua impossível de reintroduzir.
+
+### 45.5 O que foi recusado
+
+Fonte do Google (o app promete ao médico que o material não circula, e cada
+carregamento vazaria IP e referrer do consultório); troca de paleta (o problema
+não era cor, e AA está validado); reduzir tamanhos para caber mais (é a solução
+intuitiva e errada — densidade se resolve tirando texto, não encolhendo texto);
+gradiente, vidro fosco e animação de entrada (em software clínico lê como
+amador, que é exatamente o oposto do pedido); e reorganizar a tela de programas
+em abas — é a estrutura certa a médio prazo, mas véspera de apresentação não é
+hora de estrear arquitetura de navegação.
