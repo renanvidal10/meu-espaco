@@ -438,10 +438,15 @@ rodar('Endométrio', [
     diagnosticoContem: ['estágio IA'],
   },
   {
-    nome: 'dMMR — confirmação germinativa de Lynch',
+    // dMMR também precisa de POLE e p53: o algoritmo é hierárquico e POLE
+    // PREVALECE sobre MMRd — um tumor dMMR que seja POLEmut é classificado
+    // como POLEmut, com conduta adjuvante oposta. A §30.4 já dizia que o
+    // algoritmo vale para TODO carcinoma de endométrio; era o código que
+    // restringia ao pMMR, contradizendo o texto do próprio card. §47.5
+    nome: 'dMMR — Lynch E a classificação molecular, que POLE pode reverter',
     tumor: 'endometrio',
     valores: { histologia: 'Endometrioide', estadiamento: 'II', mmr_msi: 'dMMR / MSI-alto' },
-    estado: 'completo', testes: ['germinativo-lynch-endo'],
+    estado: 'completo', testes: ['germinativo-lynch-endo', 'classificacao-molecular-endo'],
   },
   {
     nome: 'seroso uterino sem MMR — classificação molecular',
@@ -459,10 +464,10 @@ rodar('Endométrio', [
     estado: 'completo', testes: ['classificacao-molecular-endo'],
   },
   {
-    nome: 'dMMR — Lynch, sem repetir a classificacao molecular',
+    nome: 'dMMR em estágio IA — o MMR não se repete, mas POLE e p53 entram',
     tumor: 'endometrio',
     valores: { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'dMMR / MSI-alto' },
-    estado: 'completo', testes: ['germinativo-lynch-endo'],
+    estado: 'completo', testes: ['germinativo-lynch-endo', 'classificacao-molecular-endo'],
   },
   {
     nome: 'nada informado — dados insuficientes',

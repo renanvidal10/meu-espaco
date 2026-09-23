@@ -3501,7 +3501,13 @@
 
     container.innerHTML = tests.map((test) => {
       const provisional = provisorio && test.primary;
-      const justificativa = `Caso com diagnóstico acima descrito, ${testesPrevios ? testesPrevios.toLowerCase() : 'sem teste molecular prévio relatado'}. ${test.justify}` +
+      // O toLowerCase() servia para emendar a frase, e destruía nome de gene e
+      // de laboratório no documento ASSINADO: "Painel BRCA1/2 (Invitae)" saía
+      // "painel brca1/2 (invitae)". Só a primeira letra desce. §47.6
+      const previosNaFrase = testesPrevios
+        ? testesPrevios.charAt(0).toLowerCase() + testesPrevios.slice(1)
+        : 'sem teste molecular prévio relatado';
+      const justificativa = `Caso com diagnóstico acima descrito, ${previosNaFrase}. ${test.justify}` +
         (test.kind === 'germinativo' && historico ? ` Histórico familiar relatado: ${historico}, reforça encaminhamento para aconselhamento genético.` : '');
       const icon = test.kind === 'germinativo' ? ICONE_DNA : ICONE_LAB;
 

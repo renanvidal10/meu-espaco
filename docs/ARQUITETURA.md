@@ -2644,3 +2644,95 @@ contra injeção; e nenhuma rolagem horizontal em 320px nem em 390px.
 apaga tudo, sem aviso. É coerente com a promessa de não guardar dado do
 paciente, e mudar isso na véspera seria estrear persistência sem tempo de
 testar. Fica como limitação conhecida.
+
+---
+
+## 47. A auditoria de dados da véspera (v1.19)
+
+Terceira frente da noite anterior à apresentação: varredura do motor com
+`classify()` e `diagnosis()` em dezenas de milhares de combinações dos campos,
+nos sete tumores. **27 achados, 8 graves.** Todos os oito viviam em caminhos
+que as quatro baterias existentes não percorriam: campo decisivo em branco,
+grafia livre num campo editável, e — a categoria mais perigosa — **divergência
+entre o que a tela diz e o que o documento assinado afirma.**
+
+### 47.1 A trava de idade matava a história familiar inteira
+
+Colorretal localizado, pMMR, **sem idade extraída**, com "irmão com câncer de
+cólon aos 55" no histórico → *"Nenhum teste adicional indicado"*. A condição
+`idade !== null` do §38.3 bloqueava o ramo familiar junto com o ramo etário.
+A história familiar é critério **independente** da idade. Corrigido, e a
+justificativa impressa passou a omitir a idade quando ela não existe, em vez de
+imprimir "aos null anos".
+
+### 47.2 "Risco alto" digitado à mão não era risco alto
+
+O campo de categoria de risco é editável, e a comparação era exata
+(`risco === 'alto'`). Quem escrevesse "Risco alto" ou "alto risco" caía em
+*"sem indicação"* — num paciente que tem indicação. E, quando funcionava, o
+documento saía com **"risco risco alto"**. Passou a reconhecer a grafia livre,
+e o rótulo impresso é normalizado.
+
+### 47.3 A tela pedia para confirmar; o documento afirmava
+
+Ovário com histologia "Seroso" e nada mais: a tela dizia *"Confirme grau e
+estágio no laudo"* e a justificativa impressa afirmava *"de alto grau em
+estágio avançado"* — num papel que o médico assina. Agora, enquanto falta
+confirmar, o documento diz que o critério está por confirmar.
+
+**Esta é a classe de erro mais grave do projeto**, acima de "indicação
+faltando": o médico assina uma afirmação clínica que o app sabe não estar
+estabelecida.
+
+### 47.4 Pulmão assumia doença ressecável do nada
+
+Sem extensão declarada, o app declarava *"Doença ressecável"* e imprimia isso.
+Extensão é campo decisivo em pulmão — decide entre pesquisa dirigida da janela
+adjuvante e painel amplo da doença avançada. Passou a devolver "insuficiente"
+explicando por que aquele campo importa ali.
+
+### 47.5 dMMR nunca recebia POLE e p53 — contra o próprio texto do card
+
+O card dizia, corretamente, que *"POLE prevalece sobre MMRd"*, e o §30.4 já
+registrava que o algoritmo vale para **todo** carcinoma de endométrio. O código
+restringia o teste ao pMMR. Um tumor dMMR que também seja POLEmut é
+classificado como **POLEmut**, com conduta adjuvante **oposta** — desescalonar
+em vez de intensificar. Dois casos da bateria codificavam o comportamento
+antigo e foram atualizados com a razão.
+
+### 47.6 O `toLowerCase()` que destruía nome de gene no papel assinado
+
+Para emendar a frase da justificativa, o texto de testes prévios ia inteiro
+para minúsculas: *"Painel BRCA1/2 negativo em 2021 (Invitae)"* virava
+*"painel brca1/2 negativo em 2021 (invitae)"* no documento. Agora só a primeira
+letra desce.
+
+### 47.7 O único número sem fonte
+
+`~50% dos carcinomas de alto grau são HRD positivo` era o único dos dez `stat`
+do app sem fonte registrada — e nem dizia de que tumor falava. Passou a ser
+*"Cerca de metade dos carcinomas serosos de alto grau de ovário é HRD positiva
+(PAOLA-1, 806 pacientes)"*: no PAOLA-1, 50% das 806 pacientes testadas
+prospectivamente com myChoice CDx foram HRD positivas.
+
+### 47.8 O documento de validação tinha ficado para trás do app
+
+`docs/criterios-clinicos.html` — o documento **com linha de assinatura do
+médico validador** — parou na v1.15 e não acompanhou o §44. Ainda listava o
+"Mapeamento Pulmão" (porta morta desde 2022) e a Pfizer em próstata (retirada
+por falta de fonte), e dizia que colorretal não tinha programa quando o
+RAStrear já estava ligado. Regenerado, agora com uma linha explícita sobre os
+dois programas retirados e por quê.
+
+**Lição de processo:** documento gerado à mão sai de sincronia com o código
+silenciosamente. O certo é gerá-lo a partir do registro, como se faz com a
+tela. Fica anotado para depois da apresentação.
+
+### 47.9 Duas categorias varridas e limpas
+
+A auditoria varreu e **não achou** nada em duas frentes, o que também é
+resultado: **programas** (nenhum fora da cobertura declarada, nenhuma
+incompatibilidade tecido/sangue, nenhum teste sem programa, todos com fonte e
+data — a garantia do §44.4 se sustenta em todos os cenários) e **texto
+quebrado** (zero `undefined`, zero espaço duplo, vírgula solta ou minúscula
+inicial, zero exceção em dezenas de milhares de cenários).

@@ -522,7 +522,11 @@
       const somatico = {
         id: 'hrd', kind: 'somatico', name: 'HRD Somático', primary: true,
         sample: 'Tecido tumoral', order: 'Tumoral · somático · prioridade',
-        stat: '~50% dos carcinomas de alto grau são HRD positivo',
+        // Era o único dos dez números do app sem fonte registrada, e nem
+        // nomeava o tumor. No PAOLA-1, 50% das 806 pacientes com carcinoma
+        // seroso de alto grau de ovário testadas prospectivamente com
+        // myChoice CDx foram HRD positivas (corte GIS ≥ 42). §47.7
+        stat: 'Cerca de metade dos carcinomas serosos de alto grau de ovário é HRD positiva (PAOLA-1, 806 pacientes)',
         description: 'Avalia deficiência de recombinação homóloga no tecido tumoral (já inclui a análise de BRCA1/2 tumoral no mesmo teste). Apoia a decisão de manutenção com inibidor de PARP — a indicação final depende do medicamento, do status de BRCA, da linha de tratamento, da resposta à platina e da aprovação regulatória vigente.',
         justify: 'Carcinoma seroso ou endometrioide de alto grau em estágio avançado: indicação de avaliação de status HRD tumoral em tempo útil para apoiar a decisão de manutenção após quimioterapia à base de platina.',
         programs: [HRD_PATROCINADO, PROGRAMA_ID],
@@ -560,6 +564,13 @@
       const grauPendente = !altoGrau && !baixoGrau;
       const estagioPendente = !avancado && !inicial;
       const faltando = [grauPendente ? 'grau' : null, estagioPendente ? 'estágio' : null].filter(Boolean).join(' e ');
+
+      // O documento é assinado pelo médico: ele não pode AFIRMAR o que a tela
+      // ainda está pedindo para confirmar. Quando falta grau ou estágio, a
+      // justificativa impressa diz que o critério está por confirmar.
+      if (!confirmado && faltando) {
+        somatico.justify = `Carcinoma ${descapitalizar(montaDx(v.histologia, 'ovário', 'carcinoma epitelial de ovário')).replace(/^carcinoma\s+/i, '')} com ${faltando} a confirmar no laudo: havendo alto grau e estágio III ou IV, há indicação de avaliação de status HRD tumoral para apoiar a decisão de manutenção após quimioterapia à base de platina.`;
+      }
 
       return {
         state: confirmado ? 'completo' : 'provisorio',
@@ -626,7 +637,11 @@
       const metastatico = has(ext, 'metastatico');
       const mCRPC = has(ext, 'resistente a castracao', 'mcrpc');
       const n1 = has(ext, 'n1', 'linfonodo positivo');
-      const altoRisco = risco === 'alto' || risco === 'muito alto';
+      // O campo é editável: o médico escreve "Risco alto", "alto risco",
+      // "muito alto risco". A comparação exata perdia todos esses.
+      const altoRisco = has(risco, 'muito alto', 'alto');
+      // E o rótulo impresso não pode virar "risco risco alto".
+      const rotuloRisco = has(risco, 'muito alto') ? 'muito alto' : 'alto';
       const intraductal = has(v.histologia, 'intraductal', 'cribriforme');
       const ashkenazi = has(v.ascendencia_ashkenazi, 'sim');
       const familiar = temHistoricoFamiliar(v);
@@ -685,7 +700,7 @@
 
       const motivos = [
         n1 ? 'linfonodo positivo (N1)' : null,
-        altoRisco ? `risco ${risco}` : null,
+        altoRisco ? `risco ${rotuloRisco}` : null,
         ashkenazi ? 'ascendência Ashkenazi' : null,
         mamaPessoal ? 'história pessoal de câncer de mama' : null,
         familiar ? 'histórico familiar relatado' : null,
@@ -1021,17 +1036,17 @@
       // relevante o paciente atende aos critérios de avaliação de risco
       // (recomendação), SEM história familiar o painel "pode ser considerado"
       // (nota, não indicação). Ver §38.3.
-      if (!precoce && !dmmr && idade !== null) {
+      if (!precoce && !dmmr) {
         if (temHistoricoFamiliar(v)) {
           tests.push({
             id: 'germinativo-crc-familiar', kind: 'germinativo',
             name: 'Painel germinativo multigênico (APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11)',
             sample: 'Sangue periférico', order: 'Sangue · germinativo',
             description: 'História familiar oncológica relevante atende aos critérios de avaliação de risco genético, independentemente da idade e do status de MMR.',
-            justify: `Carcinoma colorretal aos ${idade} anos com história familiar oncológica relatada (${v.historico_familiar}): atende aos critérios de avaliação de risco genético, com indicação de painel germinativo multigênico independentemente do status de MMR.`,
+            justify: `Carcinoma colorretal${idade !== null ? ` aos ${idade} anos` : ''} com história familiar oncológica relatada (${v.historico_familiar}): atende aos critérios de avaliação de risco genético, com indicação de painel germinativo multigênico independentemente do status de MMR.`,
             programs: [LIFE_GENOMICS],
           });
-        } else {
+        } else if (idade !== null) {
           notasExtras.push({
             tag: 'Decisão do médico',
             title: 'Painel germinativo pode ser considerado mesmo sem critério formal',
@@ -1163,14 +1178,19 @@
       // classificação — um tumor pMMR ainda pode ser POLEmut ou p53abn, e a
       // diferença muda a conduta adjuvante nos dois extremos (desescalonar em
       // POLEmut, intensificar em p53abn). Ver ARQUITETURA.md §30.4.
-      if (mmrFeito && !dmmr) {
+      // E dMMR também precisa: o algoritmo é hierárquico e POLE PREVALECE
+      // sobre MMRd — um tumor dMMR que também seja POLEmut é classificado
+      // como POLEmut, com conduta adjuvante oposta. Restringir este teste ao
+      // pMMR contradizia o texto do próprio card e o documento de validação
+      // clínica, que dizem exatamente isso. §47.5
+      if (mmrFeito) {
         tests.push({
           id: 'classificacao-molecular-endo', kind: 'somatico',
           name: 'Complementar classificação molecular (POLE e p53)', primary: true,
           sample: 'Tecido tumoral', order: 'Tumoral · somático · prioridade',
           stat: 'Quatro grupos moleculares; MMR sozinho define apenas um deles',
           description: 'Sequenciamento do domínio exonuclease de POLE e imuno-histoquímica de p53. O algoritmo é hierárquico (POLE prevalece sobre MMRd, que prevalece sobre p53 anormal), então um tumor pMMR ainda pode ser POLEmut ou p53 anormal — grupos com prognóstico oposto entre si. Só variante classificada como patogênica ou provavelmente patogênica no domínio exonuclease classifica o tumor como POLEmut: uma VUS em POLE não classifica.',
-          justify: 'Carcinoma de endométrio com MMR proficiente: a classificação molecular permanece incompleta sem POLE e p53, que definem os grupos POLEmut e p53 anormal e alteram a decisão de terapia adjuvante.',
+          justify: `Carcinoma de endométrio com ${dmmr ? 'deficiência de reparo' : 'MMR proficiente'}: a classificação molecular permanece incompleta sem POLE e p53. O algoritmo é hierárquico e POLE prevalece sobre MMRd, de modo que o grupo molecular — e a decisão de terapia adjuvante — só se define com os três marcadores.`,
           programs: [A_MAPEAR],
         });
       }
@@ -1240,6 +1260,16 @@
 
       const avancado = has(v.extensao_doenca, 'metastatico', 'localmente avancado');
       const jaFeito = has(v.painel_previo, 'ja realizado');
+
+      // Sem extensão declarada, o app assumia doença ressecável e imprimia
+      // isso na justificativa assinada. Extensão é campo decisivo em pulmão:
+      // ela decide entre pesquisa dirigida e painel amplo.
+      if (!filled(v.extensao_doenca)) {
+        return {
+          state: 'insuficiente',
+          message: 'Extensão da doença não identificada. Em pulmão ela decide entre a pesquisa dirigida da janela adjuvante e o painel amplo da doença avançada — volte à revisão e complete o campo.',
+        };
+      }
 
       // A regra antiga mandava esperar a doença progredir para pedir teste. Isso
       // custa a janela adjuvante inteira: osimertinibe em EGFR mutado e
