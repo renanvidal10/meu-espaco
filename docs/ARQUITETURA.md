@@ -2800,3 +2800,38 @@ manifesto declara `standalone` e tem ícone maskable, que o service worker fica
 ativo, que a página não gera erro — e que o cache não guarda dado clínico.
 
 **Cinco baterias, uma linha:** `npm run test:tudo`.
+
+---
+
+## 49. Os endereços foram abertos (v1.20)
+
+Em 16/10/2026 o Renan abriu, de uma rede sem bloqueio, os cinco endereços que
+o app mostra ao médico. **Os cinco carregam.**
+
+A distinção importa e passou a estar registrada em cada programa. Até aqui eles
+constavam como *"conteúdo verificado por busca"*: isso prova que a página
+existe e tem aquele conteúdo indexado, **não** que ela carrega hoje. Esta
+sessão não consegue abrir site nenhum — o proxy nega toda conexão externa,
+inclusive domínios genéricos de controle —, então a confirmação só podia vir
+de fora.
+
+Não é formalidade. Foi exatamente essa lacuna que deixou o consórcio de pulmão
+quatro anos no app com uma porta morta dentro (§44.1).
+
+| Endereço | Programa | Aparece em |
+| --- | --- | --- |
+| programaid.com.br | ProgramAID (AstraZeneca) | ovário, mama, próstata, pulmão |
+| lifegenomics.com.br | Life Genomics (germinativo) | seis dos sete tumores |
+| laminalab.com.br/…hrd-em-cancer-de-ovario/ | HRD sem custo (GSK) | ovário |
+| pdpoint.com.br | PD-Point (MSD) | pulmão |
+| programarastrear.com.br | RAStrear (Amgen) | colorretal |
+
+**Cobertura confirmada na mesma passagem**, por quem conhece o mercado: o
+ProgramAID cobre vários tumores; o teste HRD da GSK é **exclusivo de ovário**.
+Em ovário os dois aparecem juntos — que é o comportamento que o app já tinha.
+Nenhuma mudança de regra foi necessária.
+
+**Combinado de manutenção:** `verificadoEm` agora significa "endereço aberto e
+conferido nesta data". Quando passar de um ano, alguém abre os cinco de novo.
+É barato e é a única coisa que impede uma porta morta de envelhecer dentro do
+produto.

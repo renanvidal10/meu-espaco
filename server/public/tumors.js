@@ -307,7 +307,7 @@
     // faz o exame solicitado — foi o que acontecia no card germinativo de
     // mama. Ver §35.
     amostra: 'tecido',
-    verificadoEm: '2026-08-11',
+    verificadoEm: '2026-10-16',
     fonte: 'programaid.com.br/exames — mama, pulmão, ovário, próstata e LLC',
   };
   /* PFIZER EM PRÓSTATA — RETIRADO DO CARD (não apagado daqui, para não se
@@ -344,7 +344,7 @@
     // a via gratuita só cobre a primeira. Sem isso escrito, o médico de um
     // caso em segunda linha encaminharia o paciente e levaria uma recusa.
     linhaDeTratamento: 'primeira',
-    verificadoEm: '2026-08-12',
+    verificadoEm: '2026-10-16',
     fonte: 'Patrocínio GSK confirmado (comunicado Myriad Genetics e BioSpace sobre a colaboração para ampliar acesso a HRD em 9 países, Brasil incluído) e página do Laboratório Lâmina com critério e via de solicitação. Portal do médico na GSK (gsk-on.com.br) não pôde ser verificado daqui — bloqueado pela política de rede do ambiente.',
   };
 
@@ -368,8 +368,8 @@
     url: 'https://www.pdpoint.com.br',
     cobertura: ['pulmao'],
     amostra: 'tecido',
-    verificadoEm: '2026-09-22',
-    fonte: 'Portal do programa PD-Point (MSD Brasil): PD-L1, EGFR e ALK gratuitos em CPNPC, solicitação por médico oncologista ou patologista em site único. Conteúdo verificado por busca; abertura da URL não testada neste ambiente.',
+    verificadoEm: '2026-10-16',
+    fonte: 'Portal do programa PD-Point (MSD Brasil): PD-L1, EGFR e ALK gratuitos em CPNPC, solicitação por médico oncologista ou patologista em site único. Endereço aberto e conferido em 16/10/2026.',
   };
 
   const RASTREAR = {
@@ -379,8 +379,8 @@
     url: 'https://www.programarastrear.com.br/',
     cobertura: ['colorretal'],
     amostra: 'tecido',
-    verificadoEm: '2026-09-22',
-    fonte: 'Programa RAStrear (Amgen Biotecnologia do Brasil, operado pela Interplayers): colorretal metastático estágio IIIb e IV, KRAS/NRAS/BRAF em painel fechado, voucher por consultor. Conteúdo verificado por busca; abertura da URL não testada neste ambiente.',
+    verificadoEm: '2026-10-16',
+    fonte: 'Programa RAStrear (Amgen Biotecnologia do Brasil, operado pela Interplayers): colorretal metastático estágio IIIb e IV, KRAS/NRAS/BRAF em painel fechado, voucher por consultor. Endereço aberto e conferido em 16/10/2026.',
   };
 
   const LIFE_GENOMICS = {
@@ -391,9 +391,20 @@
     cobertura: ['ovario', 'prostata', 'mama', 'pancreas', 'colorretal', 'endometrio', 'pulmao'],
     // Laboratório completo: processa sangue e tecido.
     amostra: 'ambos',
-    verificadoEm: '2026-08-11',
+    verificadoEm: '2026-10-16',
     fonte: 'Laboratório comercial brasileiro de oncogenética, cobertura ampla.',
   };
+  /* Os cinco endereços mostrados ao médico foram ABERTOS e conferidos em
+     16/10/2026. A distinção importa: até então eles constavam como
+     "verificados por busca", o que prova que a página existe e tem aquele
+     conteúdo, mas não que ela carrega hoje. Esta sessão não consegue abrir
+     site nenhum — o proxy nega toda conexão externa —, então a confirmação
+     veio de fora. Foi assim que o consórcio de pulmão sobreviveu quatro anos
+     com uma porta morta dentro (§44.1). Ver §49.
+
+     Cobertura confirmada na mesma passagem: o ProgramAID cobre vários
+     tumores; o teste HRD da GSK é exclusivo de ovário. Em ovário os dois
+     aparecem juntos, que é o comportamento atual. */
   const A_MAPEAR = {
     amostra: 'ambos',
     tipo: 'sem-via',
