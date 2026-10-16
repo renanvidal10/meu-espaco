@@ -526,7 +526,7 @@
         // nomeava o tumor. No PAOLA-1, 50% das 806 pacientes com carcinoma
         // seroso de alto grau de ovário testadas prospectivamente com
         // myChoice CDx foram HRD positivas (corte GIS ≥ 42). §47.7
-        stat: 'Cerca de metade dos carcinomas serosos de alto grau de ovário é HRD positiva (PAOLA-1, 806 pacientes)',
+        stat: 'Metade dos serosos de alto grau de ovário é HRD positiva (PAOLA-1)',
         description: 'Avalia deficiência de recombinação homóloga no tecido tumoral (já inclui a análise de BRCA1/2 tumoral no mesmo teste). Apoia a decisão de manutenção com inibidor de PARP — a indicação final depende do medicamento, do status de BRCA, da linha de tratamento, da resposta à platina e da aprovação regulatória vigente.',
         justify: 'Carcinoma seroso ou endometrioide de alto grau em estágio avançado: indicação de avaliação de status HRD tumoral em tempo útil para apoiar a decisão de manutenção após quimioterapia à base de platina.',
         programs: [HRD_PATROCINADO, PROGRAMA_ID],

@@ -21,6 +21,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="OncoGenYX" />
 <link rel="apple-touch-icon" href="/icone-180.png" />
+<!-- O SVG é a versão nítida em qualquer tamanho; o PNG fica de reserva para
+     navegador que não aceita ícone vetorial. -->
+<link rel="icon" type="image/svg+xml" href="/icone.svg" />
 <link rel="icon" href="/icone-192.png" />
 <style>
   :root {
@@ -210,6 +213,7 @@
     height: 26px;
     border-radius: var(--r-sm);
     background: var(--accent);
+    --fundo-marca: var(--accent);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -282,6 +286,7 @@
   .gate-aside-brand .mark {
     width: 30px; height: 30px; border-radius: var(--r-sm);
     background: var(--accent-veil);
+    --fundo-marca: #19776a;
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: var(--fs-sm);
   }
@@ -297,6 +302,7 @@
   .gate-brand-mobile .mark {
     width: 30px; height: 30px; border-radius: var(--r-sm);
     background: var(--accent); color: var(--accent-ink);
+    --fundo-marca: var(--accent);
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: var(--fs-sm);
   }
@@ -753,6 +759,29 @@
   details.card-recolhivel[open] > summary::after { content: 'Ocultar'; }
   details.card-recolhivel[open] > summary { margin-bottom: 14px; }
   details.card-recolhivel > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: var(--r-xs); }
+
+  /* A marca: dupla hélice desenhada, não a letra "O". O mesmo símbolo do
+     ícone do aplicativo, simplificado para sobreviver a 18px. */
+  .mark .helice { width: 80%; height: 80%; display: block; }
+  .mark .helice path {
+    fill: none; stroke: currentColor; stroke-width: 2.2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .mark .helice path.atras {
+    stroke: var(--fundo-marca, var(--accent));
+    stroke-width: 3.8;
+  }
+
+  details.gate-mais > summary {
+    list-style: none; cursor: pointer; color: var(--ink-muted);
+    font-weight: 600; padding: 6px 0; min-height: var(--toque);
+    display: flex; align-items: center;
+  }
+  details.gate-mais > summary::-webkit-details-marker { display: none; }
+  details.gate-mais > summary::marker { content: ''; }
+  details.gate-mais > summary::after { content: '+'; margin-left: 6px; color: var(--ink-faint); }
+  details.gate-mais[open] > summary::after { content: '–'; margin-left: 6px; }
+  details.gate-mais > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-xs); }
 
   .selo {
     display: inline-block; vertical-align: middle; margin-left: 6px;
@@ -1781,7 +1810,7 @@
 
     <aside class="gate-aside">
       <div class="gate-aside-brand">
-        <span class="mark">O</span>
+        <span class="mark"><svg class="helice" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M17.4 4.5L17.0 5.3L15.8 6.0L14.1 6.8L12.0 7.5L9.9 8.3L8.2 9.0L7.0 9.8L6.6 10.5L7.0 11.3L8.2 12.0L9.9 12.8L12.0 13.5L14.1 14.3L15.8 15.0L17.0 15.8L17.4 16.5L17.0 17.3L15.8 18.0L14.1 18.8L12.0 19.5"/><path class="atras" d="M6.6 4.5L7.0 5.3L8.2 6.0L9.9 6.8L12.0 7.5L14.1 8.3L15.8 9.0L17.0 9.8L17.4 10.5L17.0 11.3L15.8 12.0L14.1 12.8L12.0 13.5L9.9 14.3L8.2 15.0L7.0 15.8L6.6 16.5L7.0 17.3L8.2 18.0L9.9 18.8L12.0 19.5"/><path d="M6.6 4.5L7.0 5.3L8.2 6.0L9.9 6.8L12.0 7.5L14.1 8.3L15.8 9.0L17.0 9.8L17.4 10.5L17.0 11.3L15.8 12.0L14.1 12.8L12.0 13.5L9.9 14.3L8.2 15.0L7.0 15.8L6.6 16.5L7.0 17.3L8.2 18.0L9.9 18.8L12.0 19.5"/></svg></span>
         <strong>OncoGenYX</strong>
       </div>
       <h2>A triagem genômica que cabe na sua consulta.</h2>
@@ -1805,7 +1834,7 @@
 
     <main class="gate-main">
       <div class="gate-brand-mobile">
-        <span class="mark">O</span><strong>OncoGenYX</strong>
+        <span class="mark"><svg class="helice" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M17.4 4.5L17.0 5.3L15.8 6.0L14.1 6.8L12.0 7.5L9.9 8.3L8.2 9.0L7.0 9.8L6.6 10.5L7.0 11.3L8.2 12.0L9.9 12.8L12.0 13.5L14.1 14.3L15.8 15.0L17.0 15.8L17.4 16.5L17.0 17.3L15.8 18.0L14.1 18.8L12.0 19.5"/><path class="atras" d="M6.6 4.5L7.0 5.3L8.2 6.0L9.9 6.8L12.0 7.5L14.1 8.3L15.8 9.0L17.0 9.8L17.4 10.5L17.0 11.3L15.8 12.0L14.1 12.8L12.0 13.5L9.9 14.3L8.2 15.0L7.0 15.8L6.6 16.5L7.0 17.3L8.2 18.0L9.9 18.8L12.0 19.5"/><path d="M6.6 4.5L7.0 5.3L8.2 6.0L9.9 6.8L12.0 7.5L14.1 8.3L15.8 9.0L17.0 9.8L17.4 10.5L17.0 11.3L15.8 12.0L14.1 12.8L12.0 13.5L9.9 14.3L8.2 15.0L7.0 15.8L6.6 16.5L7.0 17.3L8.2 18.0L9.9 18.8L12.0 19.5"/></svg></span><strong>OncoGenYX</strong>
       </div>
 
       <div class="gate-alert" id="gate-alert" style="display:none;" role="status"></div>
@@ -1828,7 +1857,7 @@
         <button class="primary gate-submit" type="submit" id="acesso-submit">Entrar</button>
 
         <p class="gate-legal" style="margin-top:14px;">
-          Nenhum dado de paciente é vinculado à sua identificação. O nome e o CRM aparecem apenas nos documentos de solicitação que você mesmo gera.
+          Nenhum dado de paciente é vinculado à sua identificação.
         </p>
       </form>
 
@@ -1934,12 +1963,13 @@
         </div>
       </form>
 
-      <p class="gate-legal" id="gate-beta-note" style="display:none;">
-        <strong>Fase beta:</strong> a sessão é temporária e pode ser reiniciada entre versões. Se o acesso deixar de funcionar, basta entrar de novo com nome e CRM.
-      </p>
       <p class="gate-legal">
         Ferramenta de apoio à decisão clínica. Não substitui julgamento médico, laudo laboratorial ou aconselhamento genético.
       </p>
+      <details class="gate-legal gate-mais" id="gate-beta-note" style="display:none;">
+        <summary>Sobre esta versão</summary>
+        <span>A sessão é temporária e pode ser reiniciada entre versões. Se o acesso deixar de funcionar, basta entrar de novo com nome e CRM.</span>
+      </details>
     </main>
 
   </div>
@@ -1947,7 +1977,7 @@
 
 <div class="topbar">
   <div class="brand">
-    <span class="mark">O</span>
+    <span class="mark"><svg class="helice" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M17.4 4.5L17.0 5.3L15.8 6.0L14.1 6.8L12.0 7.5L9.9 8.3L8.2 9.0L7.0 9.8L6.6 10.5L7.0 11.3L8.2 12.0L9.9 12.8L12.0 13.5L14.1 14.3L15.8 15.0L17.0 15.8L17.4 16.5L17.0 17.3L15.8 18.0L14.1 18.8L12.0 19.5"/><path class="atras" d="M6.6 4.5L7.0 5.3L8.2 6.0L9.9 6.8L12.0 7.5L14.1 8.3L15.8 9.0L17.0 9.8L17.4 10.5L17.0 11.3L15.8 12.0L14.1 12.8L12.0 13.5L9.9 14.3L8.2 15.0L7.0 15.8L6.6 16.5L7.0 17.3L8.2 18.0L9.9 18.8L12.0 19.5"/><path d="M6.6 4.5L7.0 5.3L8.2 6.0L9.9 6.8L12.0 7.5L14.1 8.3L15.8 9.0L17.0 9.8L17.4 10.5L17.0 11.3L15.8 12.0L14.1 12.8L12.0 13.5L9.9 14.3L8.2 15.0L7.0 15.8L6.6 16.5L7.0 17.3L8.2 18.0L9.9 18.8L12.0 19.5"/></svg></span>
     <strong>OncoGenYX</strong>
     <span>· Triagem genômica em oncologia</span>
   </div>
@@ -3963,5 +3993,15 @@
   }
 </script>
 
+<script>
+  // Registrar o service worker é o que faz o Android oferecer "instalar
+  // aplicativo" em vez de "adicionar atalho". Falhar aqui não pode derrubar
+  // nada: o app funciona igual sem ele.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    });
+  }
+</script>
 </body>
 </html>

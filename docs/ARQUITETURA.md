@@ -2736,3 +2736,67 @@ incompatibilidade tecido/sangue, nenhum teste sem programa, todos com fonte e
 data — a garantia do §44.4 se sustenta em todos os cenários) e **texto
 quebrado** (zero `undefined`, zero espaço duplo, vírgula solta ou minúscula
 inicial, zero exceção em dezenas de milhares de cenários).
+
+---
+
+## 48. Envelopamento: marca, instalação como aplicativo e acabamento (v1.20)
+
+Última rodada antes da apresentação ao cliente: fazer o produto **parecer** o
+que ele já é por dentro.
+
+### 48.1 A marca deixou de ser uma letra
+
+O ícone do aplicativo era um quadrado verde com a letra **"O"** — não dizia
+nada sobre o produto. Agora é uma **dupla hélice**, desenhada por curva (seno),
+não por fonte, e gerada em SVG a partir de um único arquivo de geometria.
+
+Três decisões que fazem o símbolo funcionar a 48px, que é o tamanho real numa
+tela inicial de celular:
+
+1. **Traço fino com amplitude larga.** A primeira versão tinha traço grosso e o
+   miolo fechava: lia como uma pilha de losangos, não como hélice.
+2. **Poucos degraus, só na parte aberta da onda.** Degrau perto do cruzamento
+   vira borrão.
+3. **A fita da frente é desenhada sobre um halo da cor do fundo**, o que cria o
+   cruzamento por trás. Sem isso as duas fitas viram um losango fechado.
+
+E a marca dentro do app usa uma **geometria diferente da do ícone**: a 26–30px
+o olho não resolve três cruzamentos, então ali a hélice tem **uma volta e um
+quarto**, com um cruzamento só, bem legível. Mesmo símbolo, duas construções —
+porque o tamanho muda o que o olho consegue ler.
+
+Arquivos: `icone.svg` (vetor, favicon), `icone-180.png` (iPhone),
+`icone-192.png` e `icone-512.png` (Android e catálogo), `icone-512-mascara.png`
+(maskable, com 30% de margem porque o Android recorta até 20% de cada borda).
+
+### 48.2 Instalação como aplicativo
+
+O manifesto já existia; faltava o **service worker**, que é o que faz o Android
+oferecer *"instalar aplicativo"* em vez de *"adicionar atalho"* — a diferença
+entre abrir em tela cheia e abrir com barra de endereço.
+
+Duas regras deliberadas no `sw.js`:
+
+- **Nada de `/api/` entra em cache.** Caso clínico, resultado de triagem e nome
+  de paciente nunca são guardados. O app promete ao médico que o material não
+  fica armazenado, e um cache de resposta de API quebraria essa promessa em
+  silêncio. A bateria `test:aplicativo` abre o cache do navegador e falha se
+  encontrar qualquer URL de `/api/` lá dentro.
+- **Rede primeiro, cache como reserva.** Um app clínico servido de uma versão
+  velha é pior que um app lento: a regra desatualizada não se anuncia.
+
+### 48.3 Acabamento da primeira tela
+
+A tela de acesso é a primeira coisa que o investidor vê, e trazia **três
+parágrafos de letra miúda** embaixo do botão. A frase que protege o médico
+continua visível; o aviso de versão virou uma linha que abre. Mesmo princípio
+do §45: o enunciado fica, a elaboração recolhe.
+
+### 48.4 A bateria que faltava
+
+`test:aplicativo` entrou no `test:tudo`. Ela verifica que manifesto, service
+worker e os cinco arquivos de ícone respondem 200 com o tipo certo, que o
+manifesto declara `standalone` e tem ícone maskable, que o service worker fica
+ativo, que a página não gera erro — e que o cache não guarda dado clínico.
+
+**Cinco baterias, uma linha:** `npm run test:tudo`.
