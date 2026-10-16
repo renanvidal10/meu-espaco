@@ -1,0 +1,41 @@
+# Blueprint do Render.
+#
+# Criando o serviço como Blueprint, o Render lê este arquivo e já preenche
+# branch, diretório, comandos e a lista de variáveis — em vez de depender de
+# alguém lembrar o que configurou no painel meses atrás.
+#
+# As variáveis marcadas com `sync: false` NÃO ficam no repositório: o Render
+# pergunta o valor de cada uma na criação do serviço. Chave de API nunca entra
+# em arquivo versionado.
+
+services:
+  - type: web
+    name: oncogenyx
+    runtime: node
+    plan: free
+    branch: main
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AUTH_MODE
+        value: simples
+
+      # Leitura automática do laudo. Sem ela o app sobe, mas a extração falha.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+      # Assinatura das sessões.
+      - key: SESSION_SECRET
+        generateValue: true
+
+      # O disco do plano gratuito é efêmero: zera a cada publicação e a cada
+      # hibernação (15 min sem uso). Sem banco, a sessão de todos os médicos
+      # some sozinha — por isso o app se recusa a subir em produção sem esta
+      # variável. Ver docs/ARQUITETURA.md.
+      - key: DATABASE_URL
+        sync: false
