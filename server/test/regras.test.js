@@ -1292,3 +1292,96 @@ test('nenhum destaque marca nome de gene', () => {
     }
   }
 });
+
+/* ===================================================================
+ * §70. AUDITORIA DE INVARIANTES, DENTRO DA SUÍTE
+ *
+ * `auditoria-clinica.js` percorre TODAS as combinações de campos de todos os
+ * tumores — 67 mil — e confere afirmações que precisam valer em qualquer
+ * caminho da regra. Custa 2,3 s.
+ *
+ * A diferença para os testes acima: eles afirmam "neste caso, este
+ * resultado". A auditoria afirma "em NENHUM caso pode acontecer isto". Uma
+ * regra nova entra na auditoria sem ninguém escrever um teste para ela — e é
+ * aí que está o valor: o defeito que ninguém previu.
+ * =================================================================== */
+const { auditar } = require('./auditoria-clinica.js');
+
+test('nenhuma combinação de campos viola um invariante clínico', () => {
+  const { achados, resumo } = auditar();
+
+  const total = resumo.reduce((n, r) => n + r.combinacoes, 0);
+  assert.ok(total > 50000, `só ${total} combinações percorridas — a auditoria encolheu e deixaria de medir`);
+  assert.ok(resumo.every((r) => !r.truncado), `auditoria truncada em: ${resumo.filter((r) => r.truncado).map((r) => r.tumor).join(', ')}`);
+
+  // Agrupa por assinatura: o mesmo defeito aparece em centenas de
+  // combinações, e a mensagem precisa dizer quantos defeitos DISTINTOS há.
+  const distintos = new Map();
+  for (const a of achados) {
+    const chave = `[${a.tumor}] ${a.tipo}: ${a.detalhe}`;
+    distintos.set(chave, (distintos.get(chave) || 0) + 1);
+  }
+  const lista = [...distintos.entries()].map(([k, n]) => `${k} (${n}x)`);
+  assert.deepStrictEqual(lista, [], `violações de invariante:\n  ${lista.join('\n  ')}`);
+});
+
+/* §70.1 REGRESSÃO: dois testes prioritários no mesmo resultado.
+ *
+ * Achado da auditoria, em 468 combinações de colorretal. O painel germinativo
+ * de início precoce usava `primary: !dmmr` — prioritário sempre que o status
+ * de MMR fosse desconhecido, que é exatamente quando o teste de MMR também
+ * entra, e ele já nascia prioritário.
+ *
+ * Na tela não é detalhe: o passo prioritário é o que recebe o nó pintado na
+ * sequência (§63), e dois nós pintados dizem que há dois "primeiros". Numa
+ * triagem provisória, são também duas pílulas "confirmar critério".
+ *
+ * A auditoria cobre isto em todos os tumores. Este teste fixa o caso exato,
+ * com a leitura clínica por extenso, para quem mexer na regra de colorretal
+ * ver o porquê sem precisar reconstruir o raciocínio. */
+test('§70.1 colorretal precoce: o MMR lidera, e só um teste é prioritário', () => {
+  const caso = { extensao_doenca: 'Localizado / ressecado', idade: '38' };
+  const { resultado } = triar('colorretal', caso);
+
+  const ids = resultado.tests.map((t) => t.id);
+  assert.deepStrictEqual(ids, ['mmr', 'germinativo-crc-precoce'],
+    `os testes ou a ordem mudaram: ${ids.join(', ')}`);
+
+  const prioritarios = resultado.tests.filter((t) => t.primary).map((t) => t.id);
+  assert.deepStrictEqual(prioritarios, ['mmr'],
+    `prioritário tem de ser só o MMR, que é o rastreio universal que orienta o germinativo. Veio: ${prioritarios.join(', ') || 'nenhum'}`);
+});
+
+test('§70.1 com o MMR já feito, o painel germinativo passa a liderar', () => {
+  // O outro lado da mesma regra: sem o MMR na lista, quem lidera é o painel.
+  // Sem esta metade, "primary: false" fixo passaria no teste acima e deixaria
+  // o resultado sem nenhum teste prioritário.
+  const { resultado } = triar('colorretal', {
+    extensao_doenca: 'Localizado / ressecado', idade: '38', mmr_msi: 'pMMR / MSS',
+  });
+  const ids = resultado.tests.map((t) => t.id);
+  assert.ok(!ids.includes('mmr'), 'o MMR foi pedido de novo mesmo já tendo sido feito');
+
+  const prioritarios = resultado.tests.filter((t) => t.primary).map((t) => t.id);
+  assert.deepStrictEqual(prioritarios, ['germinativo-crc-precoce'],
+    `sem o MMR, o painel precoce tem de liderar. Veio: ${prioritarios.join(', ') || 'nenhum'}`);
+});
+
+test('§70.1 nenhum tumor devolve mais de um teste prioritário', () => {
+  // A regra em si, acima do caso que a quebrou. Casos reais, não vazios.
+  const CASOS = [
+    ['ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' }],
+    ['mama', { subtipo_molecular: 'Triplo-negativo', extensao_doenca: 'Metastático', idade: '44' }],
+    ['prostata', { extensao_doenca: 'Metastático resistente à castração (mCRPC)' }],
+    ['colorretal', { extensao_doenca: 'Metastático', idade: '38', historico_familiar: 'Sim' }],
+    ['pulmao', { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático' }],
+    ['pancreas', { histologia: 'Adenocarcinoma ductal' }],
+    ['endometrio', { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'dMMR / MSI-alto' }],
+  ];
+  for (const [id, valores] of CASOS) {
+    const { resultado } = triar(id, valores);
+    const prioritarios = (resultado.tests || []).filter((t) => t.primary).map((t) => t.id);
+    assert.ok(prioritarios.length <= 1,
+      `${id}: ${prioritarios.length} prioritários (${prioritarios.join(', ')}) — a sequência passa a ter dois "primeiros"`);
+  }
+});

@@ -3910,3 +3910,80 @@ celular: o campo divide a largura com o microfone e o botão de enviar. Virou
 **"Conte o caso..."** — curto o bastante para caber inteiro é melhor que
 completo e truncado. O campo também passou a pedir a tecla "enviar" no teclado
 do celular (`enterkeyhint`).
+
+## 70. Auditoria de invariantes do motor clínico (v1.32)
+
+Pedido do dono: auditar **todas** as variáveis de teste genético, somático e
+germinativo, e transformar cada defeito encontrado em teste de regressão.
+
+### 70.1 O que a auditoria faz, e por que não é mais um teste
+
+`test/auditoria-clinica.js` percorre **todas as combinações de campos de todos
+os tumores — 67.284** — executa `classify` e confere invariantes.
+
+A diferença para a suíte: os testes afirmam *"neste caso, este resultado"*. A
+auditoria afirma *"em NENHUM caso pode acontecer isto"*. Uma regra nova entra
+na auditoria **sem ninguém escrever um teste para ela** — e é aí que está o
+valor: o defeito que ninguém previu.
+
+Custa **2,3 segundos**, então roda dentro de `npm test`, não como ritual
+separado que alguém esquece.
+
+Invariantes conferidos: estado válido e coerente com a lista de testes; todo
+estado com texto para o médico; todo teste com id, nome, amostra, descrição,
+natureza e **justificativa** (que vai impressa acima da assinatura); nenhum
+teste repetido; amostra coerente com a natureza (germinativo é sangue);
+germinativo sempre com encaminhamento; programa dentro da cobertura
+verificada; a contagem do título igual à lista; nota completa; nenhum texto
+com `null`, `undefined`, `NaN` ou template não resolvido; "sem via
+verificada" não convivendo com via real; rótulo do pedido coerente com a
+natureza; **no máximo um teste prioritário**; e determinismo.
+
+Mais duas varreduras: **monotonia** — preencher um campo vazio não pode deixar
+o caso sem investigação de uma natureza inteira — e **normalização**:
+"seroso", "Seroso" e " Seroso " têm de dar o mesmo resultado.
+
+### 70.2 O defeito encontrado: dois testes prioritários
+
+Em **468 combinações** de colorretal, dois testes vinham marcados como
+prioritários.
+
+O painel germinativo de início precoce usava `primary: !dmmr` — prioritário
+sempre que o status de MMR fosse desconhecido. Mas é exatamente aí que o teste
+de MMR também entra, e ele já nascia `primary: true`.
+
+Na tela não é detalhe. O passo prioritário é o que recebe o **nó pintado** na
+sequência (§63), e dois nós pintados dizem que há dois "primeiros" — numa tela
+cuja razão de existir é dizer a ordem. Em triagem provisória, são também duas
+pílulas "confirmar critério".
+
+Corrigido para `primary: mmrFeito`: com o MMR na lista, ele lidera — é o
+rastreio universal que orienta o germinativo; sem ele (status já conhecido),
+o painel lidera.
+
+**Três testes de regressão**, e os três reprovam quando o defeito é
+reintroduzido: o caso exato com a leitura clínica por extenso; o outro lado da
+regra (com MMR já feito, o painel lidera — sem essa metade, um `primary: false`
+fixo passaria); e a regra geral em sete tumores.
+
+### 70.3 Três achados que eram defeito da auditoria, não do app
+
+Vale registrar, porque falso positivo treina a ignorar a ferramenta:
+
+- **Estado `provisorio` acusado como desconhecido**, 288 vezes. A lista de
+  estados foi montada por `grep "state: '...'"` e não vê estados **calculados**
+  (`state: confirmado ? 'completo' : 'provisorio'`) — que são justamente os
+  interessantes.
+- **"Monotonia violada" em colorretal**: informar idade 38 troca o painel
+  familiar pelo de início precoce; informar dMMR troca o amplo pelo de Lynch.
+  São **refinamentos**, não perdas. A comparação passou a ser por natureza do
+  teste, não por id.
+- **"Monotonia violada" em ovário**: baixo grau ou estágio inicial retira o
+  HRD. O app **explica**: estado `parcial`, resumo dizendo "o critério para o
+  teste somático não foi atendido" e nota com o porquê. Ausência declarada não
+  é perda silenciosa — e é a perda silenciosa que a auditoria procura.
+
+### 70.4 O que o resultado diz
+
+Fora o defeito do prioritário, **nenhuma violação em 67.284 combinações**. Os
+sete tumores, somático e germinativo, atravessam todos os invariantes.

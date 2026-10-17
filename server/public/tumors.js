@@ -1063,7 +1063,20 @@
         tests.push({
           id: 'germinativo-crc-precoce', kind: 'germinativo',
           name: 'Painel germinativo multigênico (APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11)',
-          sample: 'Sangue periférico', order: 'Sangue · germinativo · prioridade', primary: !dmmr,
+          /* §70. `primary: !dmmr` marcava este painel como prioritário sempre
+           * que o status de MMR era desconhecido — que é exatamente quando o
+           * teste de MMR também entra, e ele já nasce prioritário. Resultado:
+           * DOIS testes prioritários no mesmo caso, em 468 combinações.
+           *
+           * Na tela isso não é detalhe: o passo prioritário é o que recebe o
+           * nó pintado na sequência (§63), e dois nós pintados dizem que há
+           * dois "primeiros". Quando a triagem é provisória, são também duas
+           * pílulas "confirmar critério".
+           *
+           * Prioritário é o teste que LIDERA este resultado — um só. Com o
+           * MMR na lista, ele lidera: é o rastreio universal que orienta o
+           * germinativo. Sem ele (status já conhecido), o painel lidera. */
+          sample: 'Sangue periférico', order: 'Sangue · germinativo · prioridade', primary: mmrFeito,
           // A estatística é de série prospectiva NÃO selecionada por idade nem
           // por história familiar (15,5% de 361 pacientes, Uson Jr. et al.,
           // Clin Gastroenterol Hepatol 2022) — vale para colorretal em geral,
