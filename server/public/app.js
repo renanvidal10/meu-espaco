@@ -988,7 +988,20 @@
   // Redesenha os dois tiles (nome/contagem, miniaturas) e a lista de chips
   // removíveis a partir do estado atual de pdfFiles/photoFiles - chamado
   // sempre que um arquivo é adicionado ou removido, pra nunca dessincronizar.
+  /* §60. "Limpar tudo" é ação destrutiva e rara, e ficava sempre na tela com
+   * o mesmo peso da ação principal. Agora ela só existe quando há algo para
+   * limpar — texto digitado ou arquivo anexado. Um botão que não tem o que
+   * fazer é ruído, e ruído ao lado de um botão destrutivo é pior: ensina o
+   * médico a ignorar aquele canto da tela. */
+  function atualizarRascunho() {
+    const campo = document.getElementById('case-text');
+    const temTexto = !!(campo && campo.value.trim());
+    const temArquivo = pdfFiles.length > 0 || photoFiles.length > 0;
+    document.body.classList.toggle('tem-rascunho', temTexto || temArquivo);
+  }
+
   function refreshFileTiles() {
+    atualizarRascunho();
     document.getElementById('file-name-pdf').textContent = pdfFiles.length
       ? (pdfFiles.length === 1 ? pdfFiles[0].name : `${pdfFiles.length} arquivos anexados`)
       : '';
@@ -1043,7 +1056,6 @@
     pdfFiles = [];
     photoFiles = [];
     document.getElementById('case-text').value = '';
-    document.getElementById('tile-text').classList.remove('selected');
     document.getElementById('extract-error').style.display = 'none';
     limparAvisos();
 
@@ -1616,9 +1628,11 @@
     btn.addEventListener('click', () => goTo(idx));
   });
   sincronizarPassos();
-  document.getElementById('case-text').addEventListener('input', function () {
-    document.getElementById('tile-text').classList.toggle('selected', this.value.trim().length > 0);
-  });
+  // §60. O ladrilho "Texto" marcava a si mesmo quando havia texto digitado.
+  // Ele não existe mais — o campo é a própria superfície. O que ainda importa
+  // é o compositor saber que tem conteúdo, para "Limpar tudo" só aparecer
+  // quando houver o que limpar.
+  document.getElementById('case-text').addEventListener('input', atualizarRascunho);
   setupDropzone();
 
   // Estado inicial da revisão: o primeiro tumor da ordem de prevalência,

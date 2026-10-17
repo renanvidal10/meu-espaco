@@ -3317,3 +3317,84 @@ menos um teste em algum cenário, então zero significa vocabulário incompleto,
 nunca ausência de indicação. O teto de combinações também passou a ser
 reportado — mama e próstata estavam sendo **truncadas** em 4.000 casos, e
 número truncado em auditoria é número errado.
+
+## 60. A tela de entrada virou um compositor (v1.24)
+
+Observação do dono do produto: *"a opção de escrever através de texto tem voz,
+tem texto, tem PDF, não faz muito sentido, porque logo embaixo tem a parte onde
+ele já coloca o texto"*. Correta, e havia mais do que um item redundante.
+
+### 60.1 O que estava errado
+
+A tela tinha **três blocos empilhados**: a grade de quatro ladrilhos
+(PDF · Foto · Texto · Voz), o campo de texto, e a linha de botões.
+
+1. **O ladrilho "Texto" não fazia nada.** Seu `onclick` era
+   `document.getElementById('case-text').focus()` — dar foco a um campo que já
+   estava visível, na mesma tela, logo abaixo dele. Um quarto da fileira para
+   uma ação que o médico executa clicando no campo.
+2. **Voz não é da mesma categoria que PDF e Foto.** PDF e Foto **anexam
+   arquivo**; Voz **dita no campo**. Quatro ladrilhos idênticos afirmavam
+   quatro modos equivalentes. A voz pertence ao campo onde o texto dela
+   aparece.
+3. **A hierarquia estava invertida.** Os ladrilhos eram caixas preenchidas com
+   ícone e borda; o campo principal era cinza-chapado e sem contorno. O
+   elemento mais importante da tela parecia o mais desabilitado dela — em toda
+   a outra tela do app, campo editável é branco com borda.
+4. **Duas frases dizendo o mesmo**: a linha de apoio do título e a dica dentro
+   do card.
+5. **"Limpar tudo" com o mesmo peso de "Estruturar caso"** — ação destrutiva e
+   rara competindo com a ação principal, e presente mesmo sem nada a limpar.
+
+### 60.2 O que é agora
+
+**Um compositor.** O campo é a superfície; as ações moram numa barra dentro da
+mesma moldura: anexar à esquerda (PDF · Foto · Ditar), agir à direita
+(Estruturar caso). Três blocos viram um objeto.
+
+- O campo perdeu a moldura própria: a moldura é o compositor. Duas molduras
+  concêntricas eram o que fazia a tela parecer caixa dentro de caixa.
+- O anel de foco migrou para o compositor (`:focus-within`), para iluminar o
+  objeto inteiro em vez de um retângulo interno.
+- "Limpar tudo" só aparece quando há texto ou arquivo (`body.tem-rascunho`), em
+  peso discreto, com destaque de alerta só no hover. Botão sem o que fazer é
+  ruído, e ruído ao lado de um botão destrutivo ensina a ignorar aquele canto.
+- No celular a barra empilha e os anexos dividem a largura — ali eles são alvo
+  de dedo, não ênfase.
+
+O CSS da grade e dos ladrilhos foi **removido**, não só desconectado. CSS morto
+não é inofensivo: na leitura seguinte alguém reaproveita um seletor que não
+pinta mais nada.
+
+### 60.3 O vazamento do §46.1 renasceu, e quase passou
+
+Remover o ladrilho deixou **duas** chamadas órfãs a
+`getElementById('tile-text')` em `app.js`. A primeira estava **dentro de
+`clearIntake()`**, duas linhas antes do trecho que apaga o nome do paciente:
+
+```js
+document.getElementById('case-text').value = '';
+document.getElementById('tile-text').classList.remove('selected');  // ← morria aqui
+...
+if (campoNome) campoNome.value = '';   // nunca executava
+```
+
+A função morria no meio e **o nome do paciente sobrevivia ao "Iniciar novo
+caso"** — exatamente o vazamento do §46.1, de volta por outro caminho, três
+meses depois de corrigido.
+
+Pegou porque existia um teste de navegador específico para aquele vazamento.
+Um elemento menos sortudo teria passado.
+
+### 60.4 A trava que faltava
+
+A lista fixa de quatro ids do §54.3 não cobria isto. A trava virou geral: **todo
+`getElementById('x')` literal em `app.js` precisa de um `id="x"` existente** —
+na marcação ou nos modelos que o próprio `app.js` gera.
+
+Ela achou um órfão real na primeira execução (`gena-typing`) que se revelou
+falso positivo: o id é atribuído por `wrap.id = 'gena-typing'`, não por
+atributo. A varredura passou a entender as duas formas — falso positivo treina
+quem lê a ignorar o teste, e aí o teste não serve mais para nada.
+
+Custo: milissegundos. Cobertura: a classe inteira do problema, não um id.

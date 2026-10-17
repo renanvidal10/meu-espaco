@@ -565,17 +565,73 @@
   @media (prefers-reduced-motion: reduce) { .mode-panel.active { animation: none; } }
 
   /* ---- ingestion ---- */
-  .dropzone {
+  /* §60. O COMPOSITOR. O campo de texto era cinza-chapado e sem contorno,
+     enquanto os ladrilhos ao redor eram caixas preenchidas: o elemento mais
+     importante da tela parecia o mais desabilitado dela. Agora a superfície
+     é uma só — campo e ações dentro da mesma moldura, que ganha o anel de
+     foco quando o médico está escrevendo. */
+  .compositor {
     position: relative;
-    border-radius: var(--r-sm);
-    border: 2px dashed transparent;
-    padding: 2px;
-    transition: border-color .15s ease, background .15s ease;
+    background: var(--surface);
+    border: 1px solid var(--border-control);
+    border-radius: var(--r-lg);
+    padding: 6px 6px 6px;
+    box-shadow: var(--elev-1);
+    transition: border-color var(--mov-rapido) var(--ease), box-shadow var(--mov-rapido) var(--ease);
   }
-  .dropzone.drag-over {
+  .compositor:focus-within {
     border-color: var(--accent);
+    box-shadow: var(--elev-2), 0 0 0 3px var(--accent-soft);
+  }
+  .compositor.drag-over {
+    border-color: var(--accent);
+    border-style: dashed;
     background: var(--accent-soft);
   }
+
+  /* Barra de dentro: anexar à esquerda, agir à direita. A separação por
+     filete, e não por espaço, mantém os dois como partes do mesmo objeto. */
+  .compositor-barra {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 8px 6px;
+    border-top: 1px solid var(--border);
+    margin-top: 2px;
+  }
+  .compositor-anexos { display: flex; gap: 6px; flex-wrap: wrap; }
+  .anexo {
+    display: inline-flex; align-items: center; gap: 7px;
+    min-height: var(--toque); padding: 0 13px;
+    border: 1px solid transparent; border-radius: var(--r-sm);
+    background: transparent; color: var(--ink-muted);
+    font-family: inherit; font-size: var(--fs-xs); font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--mov-rapido) var(--ease), color var(--mov-rapido) var(--ease), border-color var(--mov-rapido) var(--ease);
+  }
+  .anexo .ic { width: 17px; height: 17px; }
+  .anexo:hover { background: var(--surface-2); color: var(--ink); }
+  .anexo:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  /* Anexo COM arquivo dentro muda de estado: o médico precisa ver que já
+     anexou sem ter que procurar o chip na lista. */
+  .anexo.selected { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-soft-border); }
+  .anexo.gravando { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+  @media (max-width: 560px) {
+    .compositor-barra { flex-direction: column; align-items: stretch; }
+    .compositor-barra .primary { width: 100%; }
+    .compositor-anexos { justify-content: space-between; }
+    .anexo { flex: 1; justify-content: center; }
+  }
+
+  .anexos-area:empty { display: none; }
+
+  /* "Limpar tudo" é destrutivo e raro. Tinha o mesmo peso visual da ação
+     principal; vira ação discreta, abaixo e fora do compositor. */
+  .btn-row.sutil { margin-top: 10px; justify-content: flex-start; display: none; }
+  body.tem-rascunho .btn-row.sutil { display: flex; }
+  .btn-row.sutil .linklike {
+    font-size: var(--fs-xs); font-weight: 500; color: var(--ink-faint);
+    min-height: var(--toque); display: inline-flex; align-items: center;
+  }
+  .btn-row.sutil .linklike:hover { color: var(--warm); text-decoration: underline; }
   .dropzone-hint {
     display: none;
     position: absolute;
@@ -586,10 +642,10 @@
     font-weight: 600;
     color: var(--accent);
     background: var(--accent-soft);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-lg);
     pointer-events: none;
   }
-  .dropzone.drag-over .dropzone-hint { display: flex; }
+  .compositor.drag-over .dropzone-hint { display: flex; }
 
   .thumb-row { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
   .thumb-row img { width: 22px; height: 22px; object-fit: cover; border-radius: var(--r-xs); border: 1px solid var(--border); }
@@ -647,47 +703,12 @@
   /* Trava geral contra rolagem horizontal: nenhum filho de grid/flex pode
      usar o conteúdo como largura mínima. Sem isto, um nome de arquivo comprido
      alarga a coluna e espreme as vizinhas. */
-  .intake-tile, .field, .test-step .step-body, .program-row .who, .file-chip { min-width: 0; }
-  .intake-tile .file-name, .doc-preview .v, .field .value { overflow-wrap: anywhere; }
+  .field, .test-step .step-body, .program-row .who, .file-chip { min-width: 0; }
+  .doc-preview .v, .field .value { overflow-wrap: anywhere; }
 
-  .intake-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-  @media (max-width: 680px) { .intake-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 380px) { .intake-grid { grid-template-columns: 1fr; } }
-
-  .intake-tile {
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    padding: 9px 10px;
-    background: var(--surface-2);
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-    color: var(--ink);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    transition: border-color .15s ease, background .15s ease;
-  }
-  .intake-tile { border-color: transparent; background: var(--surface-2); border-radius: var(--r-md); }
-  .intake-tile:hover { background: var(--accent-soft); }
-  .intake-tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .intake-tile.selected { border: 1px solid var(--accent); background: var(--accent-soft); }
-  .intake-tile .row { display: flex; align-items: center; gap: 8px; }
-  .intake-tile .icon {
-    font-size: var(--fs-sm); line-height: 1;
-    width: 26px; height: 26px; border-radius: var(--r-sm);
-    background: var(--surface); border: 1px solid var(--border);
-    display: inline-flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .intake-tile.selected .icon { background: var(--accent-soft); border-color: var(--accent-soft-border); }
-  .intake-tile .title { font-size: var(--fs-xs); font-weight: 600; }
-  .intake-tile .desc { font-size: var(--fs-2xs); color: var(--ink-faint); line-height: 1.35; }
-  .intake-tile .file-name { font-size: var(--fs-2xs); color: var(--accent); font-weight: 600; margin-top: 1px; overflow-wrap: anywhere; }
+  /* §60. A grade de quatro ladrilhos e tudo que a vestia saíram junto com
+     ela. CSS morto não é inofensivo: na próxima leitura alguém reaproveita um
+     seletor que não pinta mais nada. */
 
   textarea {
     width: 100%;
@@ -705,13 +726,19 @@
   textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
   /* O campo principal da tela de entrada: preenchido, sem contorno, raio
      maior. O contorno só aparece quando ele está em foco. §51 */
+  /* O campo não tem mais moldura própria: a moldura é o compositor. Duas
+     molduras concêntricas é o que fazia a tela parecer "caixa dentro de
+     caixa". O anel de foco também migrou para o compositor (:focus-within),
+     para o foco iluminar o objeto inteiro e não um retângulo interno. */
   #case-text {
-    background: var(--surface-2);
-    border-color: transparent;
+    background: transparent;
+    border: none;
     border-radius: var(--r-md);
-    min-height: 104px;
+    min-height: 124px;
+    padding: 14px 14px 6px;
+    resize: vertical;
   }
-  #case-text:focus { background: var(--surface); border-color: var(--border-control); }
+  #case-text:focus, #case-text:focus-visible { background: transparent; border: none; outline: none; }
 
   .plaud-row {
     margin-top: 14px;
@@ -916,7 +943,7 @@
 
   /* Movimento: só onde ele explica uma mudança de estado. Nada de entrada
      coreografada — em software clínico isso lê como enfeite. */
-  .card, .test-step, .program-row, .intake-tile, button.primary, button.ghost, a.link {
+  .card, .test-step, .program-row, .compositor, button.primary, button.ghost, a.link {
     transition:
       box-shadow var(--mov-rapido) var(--ease),
       border-color var(--mov-rapido) var(--ease),
@@ -925,7 +952,7 @@
       color var(--mov-rapido) var(--ease),
       transform var(--mov-painel) var(--ease);
   }
-  button.primary:active, button.ghost:active, .intake-tile:active { transform: scale(0.985); }
+  button.primary:active, button.ghost:active { transform: scale(0.985); }
 
   /* §55. Botão indisponível fica legível: o médico precisa entender que falta
      um dado, não achar que a tela travou. O cursor e a ausência de resposta ao
@@ -941,8 +968,8 @@
   .campo-aviso[hidden] { display: none; }
   .card:hover { box-shadow: 0 1px 2px rgba(16, 28, 23, 0.05), 0 10px 22px -10px rgba(16, 28, 23, 0.13), 0 28px 50px -28px rgba(16, 28, 23, 0.16); }
   @media (prefers-reduced-motion: reduce) {
-    .card, .test-step, .program-row, .intake-tile, button.primary, button.ghost { transition: none; }
-    button.primary:active, button.ghost:active, .intake-tile:active { transform: none; }
+    .card, .test-step, .program-row, .compositor, button.primary, button.ghost { transition: none; }
+    button.primary:active, button.ghost:active { transform: none; }
   }
 
   /* Alvos de toque que estavam abaixo do piso de 44px desde antes desta

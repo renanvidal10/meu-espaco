@@ -94,3 +94,42 @@ test('os contêineres que a lógica procura existem na marcação', () => {
     assert.ok(MARCACAO.includes(`id="${id}"`), `index.html não tem id="${id}"`);
   }
 });
+
+/* §60. A lista fixa acima não bastou. Ao remover o ladrilho "Texto" da tela de
+ * entrada, duas chamadas a getElementById('tile-text') ficaram órfãs em
+ * app.js. A primeira estava DENTRO de clearIntake(), antes da linha que apaga
+ * o nome do paciente: a função morria no meio e o nome sobrevivia ao "Iniciar
+ * novo caso" — exatamente o vazamento do §46.1, de volta por outro caminho.
+ *
+ * Só a bateria de navegador pegou, e por sorte: existia um teste específico
+ * para aquele vazamento. Um elemento menos sortudo teria passado.
+ *
+ * Esta trava é geral: TODO getElementById('x') literal em app.js precisa de um
+ * id="x" em algum lugar — na marcação ou nos modelos que o próprio app.js
+ * gera. Custa milissegundos e cobre a classe inteira do problema. */
+const LOGICA = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.js'), 'utf8');
+
+test('nenhum getElementById aponta para id que não existe', () => {
+  const procurados = new Set();
+  for (const m of LOGICA.matchAll(/getElementById\(\s*'([^']+)'\s*\)/g)) procurados.add(m[1]);
+  assert.ok(procurados.size > 20, `só ${procurados.size} ids encontrados — a varredura não está lendo o arquivo`);
+
+  // Ids podem nascer na marcação OU nos modelos que app.js monta.
+  const declarados = new Set();
+  for (const fonte of [MARCACAO, LOGICA]) {
+    for (const m of fonte.matchAll(/id="([^"]+)"/g)) declarados.add(m[1]);
+    // Modelo com interpolação: id="doc-${...}" vira prefixo.
+    for (const m of fonte.matchAll(/id="([^"$]*)\$\{/g)) declarados.add(m[1] + '*');
+    // Elemento criado em JS recebe o id por atribuição, não por atributo:
+    // `wrap.id = 'gena-typing'`. Sem esta linha a varredura acusa como órfão
+    // um id que existe — e um falso positivo treina quem lê a ignorar.
+    for (const m of fonte.matchAll(/\.id\s*=\s*'([^']+)'/g)) declarados.add(m[1]);
+  }
+  const prefixos = [...declarados].filter((d) => d.endsWith('*')).map((d) => d.slice(0, -1));
+
+  const orfaos = [...procurados].filter((id) =>
+    !declarados.has(id) && !prefixos.some((pre) => pre && id.startsWith(pre)));
+
+  assert.deepStrictEqual(orfaos, [],
+    `app.js procura id(s) que não existem: ${orfaos.join(', ')}`);
+});

@@ -234,7 +234,7 @@
   <section class="screen active" id="screen-0">
     <div class="eyebrow" id="eyebrow-0"></div>
     <h1>Descreva o caso</h1>
-    <p class="lede">Anexe o laudo ou descreva o caso. O subtipo oncológico é identificado sozinho.</p>
+    <p class="lede">Anexe o laudo, escreva ou dite. O subtipo oncológico é identificado sozinho.</p>
 
     <p class="cobertura">
       <span class="cobertura-label">Cobre</span>
@@ -242,41 +242,34 @@
       <button class="linklike como-funciona" type="button" onclick="abrirBoasVindas()">Como funciona</button>
     </p>
 
+    <!-- §60. Eram TRÊS blocos empilhados: a grade de quatro ladrilhos
+         (PDF · Foto · Texto · Voz), o campo de texto, e a linha de botões.
+         Dois problemas de fundo:
+
+         1. O ladrilho "Texto" só dava foco num campo que JÁ ESTAVA na tela,
+            logo abaixo dele. Era uma quarta parte da fileira gasta para não
+            fazer nada que o médico não pudesse fazer clicando no campo.
+         2. PDF e Foto ANEXAM ARQUIVO; Voz DITA NO CAMPO. Quatro ladrilhos
+            idênticos diziam que eram quatro modos equivalentes, e não são. A
+            voz pertence ao campo onde o texto dela aparece.
+
+         Agora é UM compositor: o campo é a superfície, e as ações moram na
+         barra de dentro — anexar à esquerda, agir à direita. Três blocos
+         viram um objeto só. -->
     <div class="mode-panel active" id="mode-form">
-      <div class="card">
-        <p class="hint">Anexe o laudo, escreva ou dite. Pode combinar mais de uma fonte.</p>
-        <div class="dropzone" id="dropzone">
-          <div class="intake-grid">
-            <button class="intake-tile" id="tile-pdf" type="button" onclick="document.getElementById('input-pdf').click()">
-              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span><span class="title">PDF</span></span>
-              <span class="file-name" id="file-name-pdf"></span>
-            </button>
-            <button class="intake-tile" id="tile-photo" type="button" onclick="document.getElementById('input-photo').click()">
-              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span><span class="title">Foto</span></span>
-              <span class="file-name" id="file-name-photo"></span>
-              <div class="thumb-row" id="thumb-row"></div>
-            </button>
-            <button class="intake-tile" id="tile-text" type="button" onclick="document.getElementById('case-text').focus()">
-              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg></span><span class="title">Texto</span></span>
-            </button>
-            <button class="intake-tile" id="tile-voice" type="button" onclick="toggleVoicePanel()">
-              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span><span class="title">Voz</span></span>
-            </button>
-          </div>
-          <div class="dropzone-hint">Solte os arquivos aqui</div>
-        </div>
+      <div class="compositor" id="dropzone">
+        <label class="sr-only" for="case-text">Descrição do caso clínico</label>
+        <textarea id="case-text" placeholder="Descreva o caso ou cole o laudo. Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC."></textarea>
+
         <input type="file" id="input-pdf" accept="application/pdf" multiple style="display:none" onchange="addFiles('pdf', this.files)" />
         <input type="file" id="input-photo" accept="image/*" multiple style="display:none" onchange="addFiles('photo', this.files)" />
 
-        <div class="attached-files-list" id="attached-files-list" style="display:none;"></div>
-
-        <div class="ocr-disclaimer" id="ocr-disclaimer" style="display:none;">
-          PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto abaixo - tudo é combinado na estruturação do caso.
+        <div class="anexos-area">
+          <div class="attached-files-list" id="attached-files-list" style="display:none;"></div>
+          <div class="thumb-row" id="thumb-row"></div>
+          <span class="sr-only" id="file-name-pdf"></span>
+          <span class="sr-only" id="file-name-photo"></span>
         </div>
-        <div class="ocr-disclaimer" id="extract-error" role="alert" style="display:none; background:#fde2e2; color:#7a1f1f;"></div>
-
-        <label class="sr-only" for="case-text">Descrição do caso clínico</label>
-        <textarea id="case-text" placeholder="Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, estágio IIIC."></textarea>
 
         <div class="voice-panel" id="voice-panel">
           <div class="voice-row">
@@ -286,9 +279,14 @@
             </div>
             <span class="voice-time mono" id="voice-time">00:00</span>
           </div>
-          <p class="hint" style="margin:8px 0 0;">O texto falado aparece direto no campo abaixo, em tempo real, à medida que você fala - o áudio nunca sai do seu navegador. Funciona no Chrome e no Edge; peça permissão de microfone quando o navegador solicitar.</p>
+          <p class="hint" style="margin:8px 0 0;">O texto falado aparece direto no campo acima, em tempo real, à medida que você fala - o áudio nunca sai do seu navegador. Funciona no Chrome e no Edge; peça permissão de microfone quando o navegador solicitar.</p>
           <p class="hint" id="voice-unsupported" role="status" style="display:none; margin-top:8px; color:var(--warn);">Seu navegador não suporta ditado por voz nativo. Tente no Chrome ou Edge, ou digite/cole o texto diretamente.</p>
         </div>
+
+        <div class="ocr-disclaimer" id="ocr-disclaimer" style="display:none;">
+          PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto - tudo é combinado na estruturação do caso.
+        </div>
+        <div class="ocr-disclaimer" id="extract-error" role="alert" style="display:none; background:#fde2e2; color:#7a1f1f;"></div>
 
         <div class="plaud-row" id="plaud-row" style="display:none;">
           <div class="left">
@@ -300,13 +298,22 @@
           </div>
           <button class="ghost plaud-action" type="button" id="plaud-action" onclick="plaudAction()" style="display:none;"></button>
         </div>
-
         <div class="plaud-list" id="plaud-list" style="display:none;"></div>
+
+        <div class="compositor-barra">
+          <div class="compositor-anexos">
+            <button class="anexo" id="tile-pdf" type="button" onclick="document.getElementById('input-pdf').click()" title="Anexar PDF do laudo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg><span>PDF</span></button>
+            <button class="anexo" id="tile-photo" type="button" onclick="document.getElementById('input-photo').click()" title="Anexar foto do laudo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><span>Foto</span></button>
+            <button class="anexo" id="tile-voice" type="button" onclick="toggleVoicePanel()" title="Ditar por voz"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg><span>Ditar</span></button>
+          </div>
+          <button class="primary compacto" type="button" id="btn-extract" onclick="runExtraction()">Estruturar caso →</button>
+        </div>
+
+        <div class="dropzone-hint">Solte os arquivos aqui</div>
       </div>
 
-      <div class="btn-row">
-        <button class="ghost" type="button" onclick="clearIntake()">Limpar tudo</button>
-        <button class="primary" type="button" id="btn-extract" onclick="runExtraction()">Estruturar caso →</button>
+      <div class="btn-row sutil">
+        <button class="linklike" type="button" onclick="clearIntake()">Limpar tudo</button>
       </div>
       <!-- A nota de privacidade estava NA MESMA LINHA dos botões, competindo
            com a ação principal. Quatro elementos de pesos diferentes numa
