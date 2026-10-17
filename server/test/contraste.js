@@ -52,6 +52,11 @@ const ALVOS = [
   // Placeholder costuma ficar fora de medição de contraste porque "é só
   // dica" — aqui ele é a única orientação da tela de entrada.
   { seletor: '#case-text', minimo: 4.5, nota: 'texto de exemplo do compositor', placeholder: true },
+  // §63. Os nós numerados da sequência. Número dentro de círculo pintado é
+  // texto pequeno sobre cor forte — o caso em que o olho perdoa e o medidor
+  // não. Medido nas duas telas onde ele aparece.
+  { seletor: '.test-step.primary .step-num', minimo: 4.5, nota: 'no da sequencia (resultado)' },
+  { seletor: '.prog-cabeca .step-num', minimo: 4.5, nota: 'no da sequencia (programas)' },
 ];
 
 function paraRgb(css) {
@@ -271,6 +276,11 @@ if (require.main === module) {
     await pagina.click('#verdict-next-btn');
     await pagina.waitForSelector('#screen-3.active');
     await pagina.waitForTimeout(300);
+    const nosMedidos = await pagina.locator('.prog-cabeca .step-num').count();
+    if (nosMedidos === 0) {
+      console.error('FALHA: o no numerado da tela de programas nao apareceu — o alvo nao foi medido.');
+      process.exitCode = 1;
+    }
     const avisoPresente = await pagina.locator('#patient-name-aviso:visible').count();
     if (avisoPresente === 0) {
       console.error('FALHA: o aviso do campo obrigatório não apareceu — o alvo de --warn não foi medido.');

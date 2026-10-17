@@ -3506,3 +3506,67 @@ A cor do `::placeholder` **não aparece** em `getComputedStyle(el).color` — é
 preciso ler o pseudo-elemento. Sem isso a bateria mediria a cor do texto
 *digitado* e aprovaria uma dica ilegível. Medido: **5,70:1** no claro e
 **6,60:1** no escuro. 28 medições.
+
+## 63. A tela de resultado virou sequência (v1.25)
+
+### 63.1 Lista não é ordem
+
+Eram cards iguais empilhados com 14px de respiro — leitura de **menu**:
+"escolha um". Mas a ordem entre os testes é clínica. No endométrio dMMR, pedir
+o germinativo antes da metilação de MLH1 encaminha ao geneticista uma paciente
+cuja perda é esporádica (§54). O app dizia a ordem com um número dentro de um
+card solto, e a forma dizia o contrário.
+
+Agora é um **trilho**: os nós numerados ficam numa coluna, ligados por uma
+linha contínua que desce de um para o outro. O olho percorre de cima para baixo
+e entende "primeiro este, depois aquele".
+
+Os cards **perderam a moldura**. Sobre um trilho, a borda de cada um recortava
+a sequência em pedaços de novo — era a moldura que fazia o conjunto voltar a
+parecer lista. A ênfase do passo prioritário migrou da borda do card para o
+**nó**, que é onde a posição na sequência mora.
+
+E o rodapé do passo (selo estatístico e amostra) passou a ocupar **uma linha
+só**. Eram dois degraus num card que já tinha seis: ordem, título, descrição,
+"por que este teste", selo e amostra. Seis degraus para um teste.
+
+### 63.2 O médico assinava uma justificativa que nunca tinha lido
+
+`test.justify` é o texto que vai **impresso no pedido**, no campo
+"Justificativa clínica", logo acima da assinatura e do CRM. Ele não aparecia em
+lugar nenhum da tela — o médico só o encontraria abrindo a prévia do documento
+na tela seguinte, e ainda assim sem saber que aquilo era editável ou de onde
+vinha.
+
+Agora ele aparece dentro de "Por que este teste", rotulado pelo que é:
+**"Vai assim no pedido, acima da sua assinatura"**. Quem assina lê antes.
+
+### 63.3 O cartão de segurança parou de gritar
+
+"Como ler qualquer resultado" tinha título em **caixa alta mostarda** com
+espacejamento largo — um bloco de cor que brigava com o azul da plataforma e
+pesava mais que o veredito logo acima.
+
+O filete lateral continua em `--warn`, porque o sentido é de cautela: as três
+regras descrevem leituras que mudam conduta para pior. Mas a cor não precisa
+estar também no texto para dizer isso. O título virou texto normal, e ganhou
+uma linha que diz do que se trata — *"Três resultados que parecem mais
+conclusivos do que são"* — para o médico não passar direto achando que é texto
+jurídico.
+
+O marcador de abrir/fechar era `+` / `–` aqui e chevron nos cartões de nota, na
+**mesma tela**. Dois sinais para o mesmo gesto obrigam a aprender duas vezes.
+Unificado no chevron.
+
+### 63.4 A ponte entre as telas 3 e 4
+
+As duas telas listam os mesmos testes na mesma ordem, e na tela de programas
+cada um virava um card idêntico ao anterior, sem nada que dissesse "este é o
+teste 1 que você acabou de ler".
+
+O mesmo nó numerado da sequência entrou no cabeçalho do card de programas. É a
+única ponte necessária, e custa um elemento.
+
+Os dois nós entraram na bateria de contraste — número pequeno dentro de círculo
+pintado é o caso em que o olho perdoa e o medidor não. 6,91:1 no claro, 8,26:1
+no escuro, com falha explícita se o alvo não aparecer. 32 medições.

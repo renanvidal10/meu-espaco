@@ -1202,16 +1202,35 @@
       const corte = desc.indexOf('. ');
       const cabeca = corte > 0 ? desc.slice(0, corte + 1) : desc;
       const cauda = corte > 0 ? desc.slice(corte + 2) : '';
+      /* §63. O número vira NÓ DE UM TRILHO, não um selo dentro de um card
+       * solto. Quando a triagem indica dois testes, a ordem entre eles é
+       * clínica — no endométrio dMMR, pedir o germinativo antes da metilação
+       * de MLH1 encaminha ao geneticista uma paciente cuja perda é
+       * esporádica. Dois cards idênticos empilhados comunicam "menu, escolha
+       * um". Um trilho comunica "primeiro este, depois aquele". */
       return `
       <div class="test-step${test.primary ? ' primary' : ''}">
-        <span class="step-num">${i + 1}</span>
+        <div class="trilho" aria-hidden="true"><span class="step-num">${i + 1}</span></div>
         <div class="step-body">
           <div class="order">${esc(test.order || '')}</div>
           <h4>${esc(test.name)}${provisorio && test.primary ? ' <span class="pill warn">confirmar critério</span>' : ''}</h4>
           <p>${esc(cabeca)}</p>
-          ${cauda ? `<details class="detalhe-teste"><summary>Por que este teste</summary><p>${esc(cauda)}</p></details>` : ''}
-          ${test.stat ? `<span class="stat-badge">${esc(test.stat)}</span>` : ''}
-          <div class="src">Amostra: ${esc(test.sample || '-')}</div>
+          ${cauda || test.justify ? `<details class="detalhe-teste">
+            <summary>Por que este teste</summary>
+            ${cauda ? `<p>${esc(cauda)}</p>` : ''}
+            ${/* §63.2. test.justify é o texto que vai IMPRESSO no pedido, no
+                  campo "Justificativa clínica", acima da assinatura do médico
+                  — e não aparecia em lugar nenhum da tela. O médico assinava
+                  uma justificativa que nunca tinha lido. */''}
+            ${test.justify ? `<div class="justificativa-assinada">
+              <span class="rotulo">Vai assim no pedido, acima da sua assinatura</span>
+              <p>${esc(test.justify)}</p>
+            </div>` : ''}
+          </details>` : ''}
+          <div class="rodape-teste">
+            ${test.stat ? `<span class="stat-badge">${esc(test.stat)}</span>` : ''}
+            <span class="src">Amostra: ${esc(test.sample || '-')}</span>
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -1283,7 +1302,7 @@
     const provisorio = result.state === 'provisorio';
     const doctor = `${doctorName} - CRM ${doctorCRM}`;
 
-    container.innerHTML = tests.map((test) => {
+    container.innerHTML = tests.map((test, i) => {
       const provisional = provisorio && test.primary;
       // O toLowerCase() servia para emendar a frase, e destruía nome de gene e
       // de laboratório no documento ASSINADO: "Painel BRCA1/2 (Invitae)" saía
@@ -1366,8 +1385,16 @@
              última palavra. Era a origem do "tudo um em cima do outro". Como
              status, ela pertence ACIMA do nome: diz em que pé está o item que
              vem a seguir, e nunca mais depende de onde o texto quebrou. -->
+        <!-- §63.4. O MESMO NÚMERO da tela de resultado. As duas telas listam
+             os mesmos testes na mesma ordem, e na tela de programas cada um
+             virava um card idêntico ao anterior — sem nada que dissesse "este
+             é o teste 1 que você acabou de ler". O número é a única ponte
+             necessária, e custa um elemento. -->
         <div class="prog-topo">
-          <span class="pill ${provisional ? 'warn' : 'ok'}">${provisional ? 'indicação provável - confirmar' : 'indicado neste caso'}</span>
+          <div class="prog-cabeca">
+            <span class="step-num">${i + 1}</span>
+            <span class="pill ${provisional ? 'warn' : 'ok'}">${provisional ? 'indicação provável - confirmar' : 'indicado neste caso'}</span>
+          </div>
           <h3>${esc(test.name)}</h3>
         </div>
         ${temIndustria ? '<p class="programas-custo">Programas de indústria: sem custo para o paciente. O que muda entre eles é o critério de elegibilidade, descrito em cada um.</p>' : ''}

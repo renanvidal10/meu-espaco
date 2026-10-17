@@ -1150,28 +1150,77 @@
 
   /* Passos numerados do resultado pareado — deixa claro, de cara, que são
      2 testes distintos a solicitar, com o HRD (maior taxa de achado) em destaque. */
-  .test-steps { margin-top: 20px; display: flex; flex-direction: column; gap: 14px; }
+  /* §63. SEQUÊNCIA, NÃO LISTA.
+     Eram cards iguais empilhados com 14px de respiro entre eles — leitura de
+     menu: "escolha um". A ordem entre os testes é clínica, e o app precisa
+     dizer isso com a forma, não só com o número. Um trilho contínuo liga os
+     passos: o olho percorre de cima para baixo e entende "primeiro este,
+     depois aquele". Os cards perderam a moldura: sobre um trilho, a borda de
+     cada um recortava a sequência em pedaços de novo. */
+  .test-steps { margin-top: 22px; display: flex; flex-direction: column; }
   .test-step {
-    border-color: var(--borda-card);
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    padding: 13px 15px;
-    background: var(--surface);
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    column-gap: 16px;
+    padding: 0 0 22px;
+    background: transparent;
+    border: none;
   }
-  .test-step.primary { border-color: var(--accent-soft-border); border-left: 3px solid var(--accent); }
+  .test-step:last-child { padding-bottom: 0; }
+
+  /* Coluna do trilho: o nó e a linha que desce até o próximo nó. */
+  .test-step .trilho { position: relative; display: flex; justify-content: center; }
+  .test-step:not(:last-child) .trilho::after {
+    content: '';
+    position: absolute;
+    top: 32px; bottom: -22px; left: 50%;
+    width: 2px; margin-left: -1px;
+    background: var(--border);
+  }
   .test-step .step-num {
-    flex-shrink: 0;
-    width: 26px; height: 26px; border-radius: 50%;
+    position: relative; z-index: 1;
+    width: 30px; height: 30px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: var(--fs-xs); font-weight: 700;
-    background: var(--surface-2); color: var(--ink-muted);
-    border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink-muted);
+    border: 2px solid var(--border);
   }
-  .test-step.primary .step-num { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .test-step .step-body { flex: 1; min-width: 0; }
+  /* O passo prioritário marca o nó, não a borda de um card: a ênfase fica na
+     posição da sequência, que é o que importa. */
+  .test-step.primary .step-num {
+    background-color: var(--accent);
+    background-image: var(--acao);
+    color: var(--accent-ink);
+    border-color: transparent;
+    box-shadow: 0 2px 8px -3px color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+  .test-step.primary:not(:last-child) .trilho::after { background: var(--accent-soft-border); }
+  .test-step .step-body { min-width: 0; padding-top: 3px; }
+
+  /* Rodapé do passo: amostra e estatística na MESMA linha. Eram dois níveis
+     empilhados num card que já tinha seis — ordem, título, descrição,
+     "por que", selo e amostra. Seis degraus para um teste. */
+  .test-step .rodape-teste {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .test-step .rodape-teste .src { margin: 0; }
+
+  /* §63.2. A justificativa que vai impressa, acima da assinatura. */
+  .justificativa-assinada {
+    margin-top: 10px;
+    border-left: 2px solid var(--accent-soft-border);
+    background: var(--surface-2);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    padding: 10px 13px;
+  }
+  .justificativa-assinada .rotulo {
+    display: block;
+    font-size: var(--fs-2xs); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-faint); margin-bottom: 5px;
+  }
+  .justificativa-assinada p { font-size: var(--fs-xs); color: var(--ink); margin: 0; line-height: 1.5; }
   .test-step .order { font-size: var(--fs-2xs); color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
   .test-step h4 { font-size: var(--fs-md); font-weight: 700; margin: 2px 0 6px; letter-spacing: -0.01em; text-wrap: balance; }
   .test-step p { font-size: var(--fs-sm); color: var(--ink-muted); line-height: 1.5; margin: 0 0 8px; }
@@ -1375,6 +1424,18 @@
   /* §57. Cabeçalho do card de programa. O status vem antes do nome, numa
      linha própria, e o nome ganha largura inteira para quebrar onde quiser. */
   .prog-topo { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; margin-bottom: 18px; }
+  /* §63.4. Mesmo nó numerado da sequência da tela de resultado, para o médico
+     reconhecer de qual teste são estes programas sem reler o nome inteiro. */
+  .prog-cabeca { display: flex; align-items: center; gap: 10px; }
+  .prog-cabeca .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--fs-2xs); font-weight: 700;
+    background-color: var(--accent);
+    background-image: var(--acao);
+    color: var(--accent-ink);
+    flex-shrink: 0;
+  }
   .prog-topo h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; letter-spacing: -0.015em; line-height: 1.3; }
 
   /* Frase de custo, dita UMA vez e valendo para todos os programas da lista.
@@ -2096,9 +2157,18 @@
     margin: 22px 0 18px;
     border-radius: var(--r-sm);
   }
+  /* §63.3. O título era CAIXA ALTA em mostarda, com espacejamento largo — um
+     bloco de cor que brigava com o azul da plataforma e gritava mais que o
+     veredito logo acima. O filete lateral continua em --warn porque o sentido
+     é de cautela (as três regras descrevem leituras que MUDAM CONDUTA para
+     pior), mas a cor não precisa estar também no texto para dizer isso. */
   .regras-gerais h3 {
-    font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .07em;
-    color: var(--warn); margin: 0 0 8px; font-weight: 700;
+    font-size: var(--fs-sm); letter-spacing: -0.01em;
+    color: var(--ink); margin: 0 0 4px; font-weight: 650;
+  }
+  .regras-gerais .sub {
+    font-size: var(--fs-2xs); color: var(--ink-faint);
+    margin: 0 0 6px; line-height: 1.45;
   }
   /* As três regras transversais não podem sair da tela — mudam conduta. Mas
      85 palavras sempre abertas viram parede. O enunciado fica visível; a
@@ -2111,11 +2181,19 @@
   }
   .regras-gerais summary::-webkit-details-marker { display: none; }
   .regras-gerais summary::marker { content: ''; }
+  /* O marcador era "+" / "–" aqui e chevron nos cartões de nota, na mesma
+     tela. Dois sinais para o mesmo gesto obrigam o médico a aprender duas
+     vezes. Unificado no chevron. */
   .regras-gerais summary::after {
-    content: '+'; position: absolute; right: 2px; top: 11px;
-    color: var(--ink-faint); font-weight: 700;
+    content: '';
+    position: absolute; right: 4px; top: 50%;
+    width: 8px; height: 8px; margin-top: -6px;
+    border-right: 2px solid var(--ink-faint);
+    border-bottom: 2px solid var(--ink-faint);
+    transform: rotate(45deg);
+    transition: transform var(--mov-rapido) var(--ease);
   }
-  .regras-gerais details[open] summary::after { content: '–'; }
+  .regras-gerais details[open] summary::after { transform: rotate(-135deg); margin-top: -2px; }
   .regras-gerais summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-xs); }
   .regras-gerais p { margin: 0 0 12px; font-size: var(--fs-xs); line-height: 1.5; color: var(--ink-muted); max-width: 66ch; }
   .regras-gerais strong { color: var(--ink); }
