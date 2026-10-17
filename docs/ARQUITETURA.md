@@ -3079,3 +3079,51 @@ constaria como aprovado sem nunca ter sido medido.
 
 Medido: o selo em `--accent` como texto de 12px dá **6,41:1** no tema claro e
 **7,90:1** no escuro. 24 medições, as duas temperaturas.
+
+## 55. Era possível assinar uma solicitação sem paciente (v1.22)
+
+O documento que a tela 3 gera é uma **solicitação de exame que o médico
+assina**. O campo do paciente vem do `#patient-name`, e quando esse campo está
+vazio o documento mostra, literalmente:
+
+> Paciente: `- (preencha o nome do paciente)`
+
+O botão "Baixar PDF preenchido" continuava ativo. O resultado é um pedido de
+exame genético, com justificativa clínica, nome de laboratório e espaço de
+assinatura — **sem paciente**. Não é um rascunho inofensivo: é um pedido em
+branco pronto para ser assinado, e um pedido em branco assinado pode ser
+preenchido por qualquer pessoa depois.
+
+É o mesmo tipo de falha do §46.1 (o nome atravessando de um caso para o
+seguinte): nos dois casos o documento sai com um nome que não é o do paciente
+daquele caso. Aqui o nome simplesmente não existe.
+
+### 55.1 A correção, em duas camadas
+
+- **`updateDocs()`** desabilita todos os botões primários de `.doc-actions`
+  enquanto o campo estiver vazio, e revela `#patient-name-aviso` dizendo o
+  motivo. Preencher libera outra vez — a trava não vira beco sem saída.
+- **`downloadDoc()`** se recusa a imprimir sem nome, leva o foco ao campo e
+  rola até ele. A segunda camada existe porque `downloadDoc` é alcançável por
+  caminhos que não passam pelo clique no botão.
+
+O aviso está ligado ao campo por `aria-describedby`: quem usa leitor de tela
+ouve o motivo ao chegar no campo, não ao chegar no botão — um botão
+desabilitado não recebe foco.
+
+### 55.2 O que a trava custou nos testes
+
+O teste "a tela sai do modo impressão sem depender do afterprint" **passava por
+causa do defeito**: ele rodava logo depois de um "novo caso", que zera o nome, e
+imprimia sem paciente. Ele agora preenche o nome antes — que é o caminho de quem
+vai assinar. Um teste que dependia de um comportamento inseguro para passar é um
+teste que estava medindo a coisa errada.
+
+Três asserções novas na bateria de navegador: download barrado com o motivo na
+tela, `downloadDoc` recusando a impressão, e o download liberado ao preencher.
+
+### 55.3 Contraste do aviso
+
+Pela mesma regra do §54.4, o alvo entrou na bateria de contraste com falha
+explícita se ele não aparecer. `--warn` como texto de 12px: **8,62:1**. 26
+medições.

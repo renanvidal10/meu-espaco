@@ -439,7 +439,10 @@
     <div class="card name-card">
       <div class="field">
         <label for="patient-name" style="font-size: var(--fs-2xs);color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Nome completo do paciente</label>
-        <input id="patient-name" type="text" value="" placeholder="Preenchido automaticamente se identificado no material anexado" oninput="updateDocs()" />
+        <input id="patient-name" type="text" value="" placeholder="Preenchido automaticamente se identificado no material anexado" oninput="updateDocs()" aria-describedby="patient-name-aviso" />
+        <!-- §55. O documento é uma solicitação de exame que o médico assina.
+             Sem nome, baixar produzia um pedido assinado sem paciente. -->
+        <p class="campo-aviso" id="patient-name-aviso">Preencha o nome para liberar o download dos documentos.</p>
       </div>
       <button class="primary" type="button" onclick="updateDocs()">Atualizar documentos</button>
     </div>

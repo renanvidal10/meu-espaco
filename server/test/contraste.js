@@ -44,6 +44,10 @@ const ALVOS = [
   // vira TEXTO de 12px sobre superfície clara, que é o caso mais exigente.
   { seletor: '.note-card.acao .tag', minimo: 4.5, nota: 'selo da nota de acao (--accent como texto)' },
   { seletor: '.note-card.acao h4', minimo: 4.5, nota: 'titulo da nota de acao' },
+  // §55. Aviso que explica por que o download está barrado: --warn como texto
+  // de 12px. Se não for legível, o botão desabilitado fica sem motivo visível
+  // e a tela parece travada.
+  { seletor: '#patient-name-aviso', minimo: 4.5, nota: 'aviso do campo obrigatorio (--warn como texto)' },
 ];
 
 function paraRgb(css) {
@@ -225,6 +229,17 @@ if (require.main === module) {
     const medidos = await pagina.locator('.note-card.acao .tag').count();
     if (medidos === 0) {
       console.error('FALHA: o caso de endométrio dMMR não renderizou nota de ação — os alvos de --accent não foram medidos.');
+      process.exitCode = 1;
+    }
+
+    // Tela 3 com o campo do paciente vazio: é onde o aviso de §55 aparece. A
+    // extração deste caso não traz nome, então o aviso está visível de fato.
+    await pagina.click('#verdict-next-btn');
+    await pagina.waitForSelector('#screen-3.active');
+    await pagina.waitForTimeout(300);
+    const avisoPresente = await pagina.locator('#patient-name-aviso:visible').count();
+    if (avisoPresente === 0) {
+      console.error('FALHA: o aviso do campo obrigatório não apareceu — o alvo de --warn não foi medido.');
       process.exitCode = 1;
     }
     for (const tema of ['light', 'dark']) todos.push(...await medirTema(pagina, tema));

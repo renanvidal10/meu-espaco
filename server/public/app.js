@@ -1369,11 +1369,32 @@
   }
 
   function updateDocs() {
-    const name = document.getElementById('patient-name').value.trim() || '- (preencha o nome do paciente)';
+    const preenchido = document.getElementById('patient-name').value.trim();
+    const name = preenchido || '- (preencha o nome do paciente)';
     document.querySelectorAll('#programs-dynamic .doc-name').forEach((el) => { el.textContent = name; });
+
+    /* §55. Sem nome, o documento é uma solicitação de exame cujo campo do
+     * paciente diz "(preencha o nome do paciente)" — e era possível baixar e
+     * assinar exatamente isso. Documento assinado sem paciente não é um
+     * rascunho: é um pedido em branco com a assinatura de um médico. O botão
+     * de baixar só existe quando há nome. */
+    document.querySelectorAll('#programs-dynamic .doc-actions .primary').forEach((b) => {
+      b.disabled = !preenchido;
+      b.title = preenchido ? '' : 'Preencha o nome do paciente para baixar o documento';
+    });
+    const aviso = document.getElementById('patient-name-aviso');
+    if (aviso) aviso.hidden = !!preenchido;
   }
 
   function downloadDoc(wrapId) {
+    // Segunda rede: o botão desabilitado já barra o clique, mas downloadDoc é
+    // chamável por teclado em navegador antigo e por qualquer caminho futuro.
+    if (!document.getElementById('patient-name').value.trim()) {
+      const campo = document.getElementById('patient-name');
+      campo.focus();
+      campo.scrollIntoView({ block: 'center' });
+      return;
+    }
     document.querySelectorAll('.doc-preview-wrap').forEach((el) => el.classList.remove('print-target'));
     const alvo = document.getElementById(wrapId);
     // Um <details> fechado não entra na impressão: sem esta linha o médico

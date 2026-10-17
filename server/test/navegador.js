@@ -495,6 +495,37 @@ async function rodar(nome, dispositivo) {
     await p.locator('#programs-dynamic .doc-actions button.ghost').first().click();
     const editavel = await p.locator('#programs-dynamic .doc-preview.editing').count();
     linha(ok(editavel === 1, 'editar campos não ativou'), 'editar campos do documento');
+
+    /* §55. Sem nome, o documento sai com "(preencha o nome do paciente)" no
+     * campo do paciente — e era possível baixar e assinar isso. O teste apaga
+     * o nome e exige que o download esteja barrado nas duas camadas: o botão
+     * e a função. */
+    await p.fill('#patient-name', '');
+    await p.dispatchEvent('#patient-name', 'input');
+    await p.waitForTimeout(100);
+    const travado = await p.locator('#programs-dynamic .doc-actions .primary:disabled').count();
+    const totalBotoes = await p.locator('#programs-dynamic .doc-actions .primary').count();
+    const avisoVisivel = await p.locator('#patient-name-aviso:visible').count();
+    linha(
+      ok(travado === totalBotoes && totalBotoes > 0 && avisoVisivel === 1, `travados=${travado}/${totalBotoes} aviso=${avisoVisivel}`),
+      'sem nome do paciente → download barrado e motivo na tela',
+    );
+    const imprimiu = await p.evaluate(() => {
+      let chamou = false;
+      window.print = () => { chamou = true; };
+      const alvo = document.querySelector('#programs-dynamic details.doc-preview-wrap');
+      downloadDoc(alvo.id);
+      return chamou;
+    });
+    linha(ok(imprimiu === false, 'downloadDoc imprimiu documento sem paciente'), 'downloadDoc se recusa a imprimir sem nome');
+
+    // E voltar a preencher libera outra vez: a trava não pode virar beco.
+    await p.fill('#patient-name', 'Ana P. Lima');
+    await p.dispatchEvent('#patient-name', 'input');
+    await p.waitForTimeout(100);
+    const liberados = await p.locator('#programs-dynamic .doc-actions .primary:disabled').count();
+    const avisoSumiu = await p.locator('#patient-name-aviso:visible').count();
+    linha(ok(liberados === 0 && avisoSumiu === 0, `travados=${liberados} aviso=${avisoSumiu}`), 'preencher o nome libera o download');
     await p.close();
   }
 
@@ -556,6 +587,11 @@ async function rodar(nome, dispositivo) {
 
     // E a tela não pode ficar presa no modo impressão: em vários navegadores o
     // afterprint não dispara, e sem topbar nem botões o app parece quebrado.
+    // §55: baixar exige nome do paciente. O caso anterior foi zerado de
+    // propósito logo acima, então aqui o nome é preenchido — que é o caminho
+    // real de quem vai assinar o pedido.
+    await p.fill('#patient-name', 'Beatriz R. Souza');
+    await p.dispatchEvent('#patient-name', 'input');
     await p.evaluate(() => { window.print = () => {}; });
     await p.evaluate(() => {
       const d = document.querySelector('#programs-dynamic details.doc-preview-wrap');

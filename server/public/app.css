@@ -796,6 +796,19 @@
     transition: box-shadow .18s ease, border-color .18s ease, background-color .18s ease, transform .18s ease;
   }
   button.primary:active, button.ghost:active, .intake-tile:active { transform: scale(0.985); }
+
+  /* §55. Botão indisponível fica legível: o médico precisa entender que falta
+     um dado, não achar que a tela travou. O cursor e a ausência de resposta ao
+     toque dizem o resto; o motivo está no aviso abaixo do campo. */
+  button.primary:disabled, button.ghost:disabled {
+    opacity: .45; cursor: not-allowed; box-shadow: none;
+  }
+  button.primary:disabled:active, button.ghost:disabled:active { transform: none; }
+  .campo-aviso {
+    font-size: var(--fs-2xs); color: var(--warn);
+    margin: 6px 0 0; line-height: 1.4;
+  }
+  .campo-aviso[hidden] { display: none; }
   .card:hover { box-shadow: 0 1px 2px rgba(16, 28, 23, 0.05), 0 10px 22px -10px rgba(16, 28, 23, 0.13), 0 28px 50px -28px rgba(16, 28, 23, 0.16); }
   @media (prefers-reduced-motion: reduce) {
     .card, .test-step, .program-row, .intake-tile, button.primary, button.ghost { transition: none; }
