@@ -4099,3 +4099,21 @@ Agora o teste zera `min-height` e `height` antes de medir, e devolve tudo. E
 ganhou o outro lado, que é a queixa do dono: **reprova se sobrar mais de 30px
 de vazio**. Provado forçando a caixa para 260px — acusa *"78px de vazio no
 campo (caixa 260px, texto 182px)"*.
+
+### 72.4 Texto novo, caixa remedida (v1.34)
+
+O dono reescreveu o exemplo, pedindo explicitamente o máximo de informação:
+
+> Forneça o máximo de informações que souber sobre o caso, anexe laudo e o que
+> mais tiver: histologia, grau, estadiamento, tratamentos e história familiar.
+>
+> Ex.: mulher, 61 anos, carcinoma seroso de alto grau de ovário, FIGO IIIC, em
+> carboplatina.
+
+São 39 palavras, contra 30. A caixa foi **remedida**, não estimada: 206px no
+celular (caixa 208) e 98px no desktop (caixa 100). Dois pixels de folga nos
+dois.
+
+É a regra do §72.1 aplicada no sentido certo — quando o conteúdo muda, a
+exceção que existia para ele é refeita na mesma hora, em vez de ficar para trás
+e virar o defeito seguinte.
