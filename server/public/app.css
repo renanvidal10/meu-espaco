@@ -1595,13 +1595,19 @@
   details.doc-preview-wrap > summary:hover { background: var(--accent-soft); }
   details.doc-preview-wrap > summary::-webkit-details-marker { display: none; }
   details.doc-preview-wrap > summary::marker { content: ''; }
+  /* O rótulo da esquerda é que cede espaço; a pílula da direita nunca quebra.
+     Pílula com duas linhas de texto dentro deixa de parecer botão e encosta no
+     rótulo ao lado. */
+  details.doc-preview-wrap > summary .doc-rotulo { min-width: 0; }
   details.doc-preview-wrap > summary::after {
     content: 'Ver documento';
     margin-left: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
     font-size: var(--fs-2xs); font-weight: 600; color: var(--accent);
     border: 1px solid var(--accent-soft-border);
     background: var(--surface);
-    padding: 4px 10px;
+    padding: 5px 12px;
     border-radius: var(--r-full);
   }
   details.doc-preview-wrap[open] > summary::after { content: 'Ocultar'; }
@@ -1650,19 +1656,29 @@
     background-color: #0e6180;
     background-image: linear-gradient(90deg, #11768f 0%, #0e6180 55%, #0b5570 100%);
   }
+  /* §64. `space-between` sem GAP encosta os dois textos: quando a largura
+     aperta, um quebra em duas linhas e encaixa na folga do outro, e as
+     palavras se tocam. Gap é o que impede duas caixas de se encostarem,
+     e quando não cabem lado a lado elas empilham em vez de colidir. */
   .doc-preview .doc-head {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+    gap: 6px 16px;
+    flex-wrap: wrap;
     padding-bottom: 12px;
     margin-bottom: 18px;
     border-bottom: 1px solid #e4e9ee;
   }
-  .doc-preview .doc-head::before {
-    content: 'OncoGenYX';
+  .doc-preview .doc-head .doc-marca {
     font-size: var(--fs-xs); font-weight: 700; letter-spacing: -0.02em; color: #0e6180;
+    white-space: nowrap;
   }
-  .doc-preview .doc-head .doc-type { font-size: var(--fs-2xs); color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.06em; }
+  .doc-preview .doc-head .doc-type {
+    font-size: var(--fs-2xs); color: #6b6b6b;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    text-align: right;
+  }
   .doc-preview .doc-row {
     display: flex;
     justify-content: space-between;
@@ -1709,7 +1725,20 @@
     box-shadow: 0 8px 24px -8px rgba(15, 107, 92, 0.65);
     transition: transform .18s ease, box-shadow .18s ease;
   }
-  .gena-fab:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -8px rgba(15, 107, 92, 0.75); }
+  .gena-fab:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -8px color-mix(in srgb, var(--accent) 75%, transparent); }
+
+  /* §64.3. No celular o botão flutuante é uma pílula de ~120px parada sobre o
+     canto inferior direito — e é lá que fica o "Baixar PDF" de cada programa.
+     Rolando a tela, a Gena cobre a ação principal do card: o médico toca
+     "Baixar" e abre o assistente. Sem rótulo ele vira um círculo de 52px,
+     que é alvo de dedo confortável e cobre um quinto da área. A sombra
+     também acompanha a cor nova da marca — continuava verde do tema antigo. */
+  .gena-fab { box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--accent) 65%, transparent); }
+  @media (max-width: 560px) {
+    .gena { right: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+    .gena-fab { padding: 8px; gap: 0; width: 52px; height: 52px; justify-content: center; }
+    .gena-fab .gena-fab-label { display: none; }
+  }
   .gena-fab:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
   .gena-fab .gena-face { width: 34px; height: 34px; display: block; }
   .gena-fab .gena-face svg { width: 100%; height: 100%; overflow: visible; }

@@ -3570,3 +3570,72 @@ O mesmo nó numerado da sequência entrou no cabeçalho do card de programas. É
 Os dois nós entraram na bateria de contraste — número pequeno dentro de círculo
 pintado é o caso em que o olho perdoa e o medidor não. 6,91:1 no claro, 8,26:1
 no escuro, com falha explícita se o alvo não aparecer. 32 medições.
+
+## 64. Acabamento de diagramação e o download que não acontecia (v1.26)
+
+Três relatos do dono, do celular dele. Dois de diagramação, um funcional.
+
+### 64.1 Texto encostando em texto
+
+**"OncoGenYXFORMULÁRIO DE SOLICITAÇÃO"** — a marca e o tipo do documento
+coladas, sem um pixel entre elas. E a pílula **"Ver documento"** partida em
+duas linhas, encostando no rótulo ao lado.
+
+A causa dos dois é a mesma: `justify-content: space-between` **sem `gap`**.
+Enquanto cabe, as caixas ficam nos extremos e parece tudo bem; quando a largura
+aperta, uma quebra em duas linhas e encaixa na folga da outra, e as palavras se
+tocam. Gap é o que impede duas caixas de se encostarem — e, com `flex-wrap`,
+elas empilham em vez de colidir.
+
+A marca também deixou de ser `content:` num `::before`. Texto de conteúdo em
+CSS não é mensurável por teste nem legível por leitor de tela.
+
+**A trava** percorre as **quatro telas**, com todos os `<details>` abertos, e
+reprova quando duas caixas de texto irmãs num contêiner flex ou grade ficam a
+menos de 4px uma da outra, ou quando um texto transborda a própria caixa.
+
+A primeira versão dela procurava **sobreposição de áreas** e não achou nada: o
+defeito não era sobreposição, era **gap zero** — as caixas estão lado a lado, e
+é o texto que se toca. Reescrita para medir o vão, ela nomeia o defeito exato:
+`span.doc-marca e span.doc-type com 0px entre eles`. **Provada** desfazendo a
+correção.
+
+A comparação é só entre filhos do mesmo contêiner flex/grade. Em texto corrido,
+duas caixas vizinhas com gap zero são normais — o espaço entre as palavras está
+dentro do nó de texto, não entre as caixas.
+
+### 64.2 O download que não acontecia no iPhone
+
+*"Você clica e nada acontece. Ele não abre para salvar nem para imprimir."*
+
+No Chromium o botão funciona: medido, `window.print()` é chamado. A causa é o
+iPhone — com o app instalado na tela de início (que foi o que construímos),
+**o iOS não tem impressão**: `window.print()` não abre nada e não lança erro.
+
+Não dá para detectar a falha depois do fato, porque `print()` não devolve nada.
+Então o caminho é escolhido **antes**: em modo aplicativo
+(`navigator.standalone` ou `display-mode: standalone`), o app monta o documento
+como arquivo autocontido — com a faixa de marca e os estilos embutidos, já que
+a folha do app não acompanha — e abre numa aba do navegador, onde o
+compartilhar do iOS oferece "Imprimir" e "Salvar em Arquivos". Aba bloqueada,
+baixa o arquivo.
+
+**A lacuna de teste**: a bateria chamava `downloadDoc()` por avaliação —
+**nunca clicava no botão**. Um `onclick` quebrado, um botão coberto ou
+desabilitado por engano passariam inteiros. Agora um teste clica de verdade, e
+outro simula o modo aplicativo e exige que o documento seja **aberto**, não
+impresso no vazio.
+
+### 64.3 A Gena cobrindo o botão
+
+No celular o botão flutuante é uma pílula de ~120px parada no canto inferior
+direito — exatamente onde fica o "Baixar PDF" de cada programa. Rolando a tela,
+ela cobre a ação principal do card: o médico toca "Baixar" e abre o assistente.
+
+Sem rótulo ele vira um círculo de 52px — alvo de dedo confortável, um quinto da
+área anterior. A sombra dele também continuava verde do tema antigo; passou a
+derivar de `--accent`.
+
+Elemento `fixed` fica **fora** da varredura de diagramação de propósito: cobrir
+conteúdo é o que um painel flutuante faz. Este caso é de dimensionamento, não
+de sobreposição acidental.

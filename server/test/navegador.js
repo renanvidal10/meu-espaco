@@ -491,6 +491,37 @@ async function rodar(nome, dispositivo) {
     const abertoDepois = await fechado.evaluate((el) => el.open);
     linha(ok(!abertoAntes && abertoDepois, `antes=${abertoAntes} depois=${abertoDepois}`),
       'baixar PDF abre o documento recolhido antes de imprimir');
+    /* §64.2. O teste chamava downloadDoc() por avaliação — nunca CLICAVA no
+     * botão. Um onclick quebrado, um botão coberto por outro elemento ou
+     * desabilitado por engano passariam inteiros. O médico clica. */
+    const clicou = await p.evaluate(() => { window.__imprimiu = 0; window.print = () => { window.__imprimiu++; }; });
+    void clicou;
+    await p.locator('#programs-dynamic .doc-actions .primary').first().click();
+    await p.waitForTimeout(200);
+    const imprimiuPeloBotao = await p.evaluate(() => window.__imprimiu);
+    linha(ok(imprimiuPeloBotao === 1, `window.print chamado ${imprimiuPeloBotao}x ao clicar no botão`),
+      'clicar em Baixar PDF realmente imprime');
+
+    /* No iPhone com o app instalado na tela de início não existe impressão:
+     * window.print() não abre nada e não lança erro. O app precisa escolher o
+     * outro caminho ANTES de chamar, porque depois não dá para saber que
+     * falhou. Aqui o modo aplicativo é simulado e o teste exige que o
+     * documento seja ABERTO, não impresso. */
+    const semImpressao = await p.evaluate(() => {
+      window.__imprimiu = 0;
+      window.__abriu = null;
+      window.open = (u) => { window.__abriu = String(u); return { focus() {} }; };
+      Object.defineProperty(window.navigator, 'standalone', { value: true, configurable: true });
+      const d = document.querySelector('#programs-dynamic details.doc-preview-wrap');
+      downloadDoc(d.id);
+      return { imprimiu: window.__imprimiu, abriu: window.__abriu };
+    });
+    linha(
+      ok(semImpressao.imprimiu === 0 && /^blob:/.test(semImpressao.abriu || ''),
+        `imprimiu=${semImpressao.imprimiu} abriu=${semImpressao.abriu}`),
+      'em modo aplicativo, abre o documento em vez de imprimir no vazio',
+    );
+
     // Edição inline do documento
     await p.locator('#programs-dynamic .doc-actions button.ghost').first().click();
     const editavel = await p.locator('#programs-dynamic .doc-preview.editing').count();
@@ -691,6 +722,125 @@ async function rodar(nome, dispositivo) {
     const hist = await p.inputValue('#f-historico_familiar');
     linha(ok(idade === '61' && /mãe/.test(hist), `idade="${idade}" histórico="${hist}"`),
       'corrigir o subtipo preserva idade e histórico familiar');
+    await p.close();
+  }
+
+  /* ---------- 14. varredura de diagramação: texto encostando em texto ---------- */
+  {
+    /* §64.1. Dois defeitos relatados do celular eram da mesma família:
+     * "OncoGenYXFORMULÁRIO DE SOLICITAÇÃO" (duas caixas adjacentes sem
+     * respiro, uma quebrando em duas linhas e encaixando na folga da outra) e
+     * a pílula "Ver documento" partida em duas linhas encostando no rótulo.
+     *
+     * Corrigir os dois não impede o terceiro. Esta varredura percorre as
+     * QUATRO telas e reprova se duas caixas de texto se sobrepuserem, ou se o
+     * texto transbordar a própria caixa. Não conhece os casos de hoje — mede
+     * a página. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('diagramacao: ' + e.message));
+    await mockExtracao(p, { tipo_tumor: 'Próstata', extensao_doenca: 'Metastático hormônio-sensível (mHSPC)', gleason_grade_group: 'Gleason 4+4=8', nome_paciente: 'Ramon Sergio Sampaio Vianna' });
+    await entrar(p);
+    await p.fill('#case-text', 'caso de próstata');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('button:has-text("Rodar triagem")');
+    await p.waitForSelector('#screen-2.active');
+    await p.click('#verdict-next-btn');
+    await p.waitForSelector('#screen-3.active');
+    // Abre tudo que recolhe: defeito escondido atrás de um clique continua
+    // sendo defeito, e é onde a diagramação costuma falhar.
+    await p.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+    await p.waitForTimeout(400);
+
+    const problemas = await p.evaluate(() => {
+      const achados = [];
+      const telas = Array.from(document.querySelectorAll('.screen'));
+
+      const visivel = (el) => {
+        const r = el.getBoundingClientRect();
+        if (r.width < 2 || r.height < 2) return null;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
+        // Elemento tirado do fluxo pode legitimamente cobrir outro (menu,
+        // painel flutuante, véu). A varredura é sobre texto EM FLUXO.
+        if (cs.position === 'absolute' || cs.position === 'fixed') return null;
+        return { r, cs };
+      };
+      const nomear = (el) => `${el.tagName.toLowerCase()}${el.className ? '.' + String(el.className).split(' ')[0] : ''}`;
+
+      for (const tela of telas) {
+        const eraAtiva = tela.classList.contains('active');
+        if (!eraAtiva) tela.classList.add('active');
+
+        const folhas = Array.from(tela.querySelectorAll('*')).filter((el) => {
+          if (el.children.length) return false;
+          if (!(el.textContent || '').trim()) return false;
+          // Campos de formulário têm recorte próprio e placeholder; não são
+          // caixas de texto em fluxo no sentido desta varredura.
+          if (/^(INPUT|TEXTAREA|SELECT|SVG|PATH)$/.test(el.tagName)) return false;
+          return !!visivel(el);
+        });
+
+        // 1. Texto transbordando a própria caixa.
+        for (const el of folhas) {
+          const cs = getComputedStyle(el);
+          if (cs.overflow !== 'hidden' && cs.overflowX !== 'hidden') continue;
+          if (el.scrollWidth > el.clientWidth + 1) {
+            achados.push(`${tela.id}: ${nomear(el)} cortado ("${el.textContent.trim().slice(0, 30)}")`);
+          }
+        }
+
+        /* 2. Caixas de texto IRMÃS encostando.
+         *
+         * O defeito relatado não era sobreposição: era gap ZERO. Em
+         * "OncoGenYXFORMULÁRIO DE SOLICITAÇÃO" as duas caixas estão lado a
+         * lado, sem um pixel entre elas, e as palavras se tocam.
+         *
+         * A comparação é só entre filhos do MESMO contêiner flex ou grade.
+         * Em texto corrido, duas caixas vizinhas com gap zero são normais — o
+         * espaço entre as palavras está dentro do nó de texto, não entre as
+         * caixas. Num contêiner flex, gap zero é falta de acabamento. */
+        const filhosDeFlex = new Map();
+        for (const el of folhas) {
+          const pai = el.parentElement;
+          if (!pai) continue;
+          const disp = getComputedStyle(pai).display;
+          if (!/flex|grid/.test(disp)) continue;
+          if (!filhosDeFlex.has(pai)) filhosDeFlex.set(pai, []);
+          filhosDeFlex.get(pai).push({ el, r: el.getBoundingClientRect() });
+        }
+
+        for (const [pai, itens] of filhosDeFlex) {
+          void pai;
+          for (let i = 0; i < itens.length; i++) {
+            for (let j = i + 1; j < itens.length; j++) {
+              const a = itens[i];
+              const b = itens[j];
+              // Na mesma linha visual? Sem isso, itens empilhados (que têm
+              // gap horizontal negativo por definição) acusariam sempre.
+              const sobreposicaoVertical = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
+              const menorAltura = Math.min(a.r.height, b.r.height);
+              if (sobreposicaoVertical < menorAltura * 0.5) continue;
+
+              const vao = a.r.left < b.r.left
+                ? b.r.left - a.r.right
+                : a.r.left - b.r.right;
+              if (vao >= 4) continue;
+              achados.push(
+                `${tela.id}: ${nomear(a.el)} e ${nomear(b.el)} com ${Math.round(vao)}px entre eles ` +
+                `("${a.el.textContent.trim().slice(0, 20)}" / "${b.el.textContent.trim().slice(0, 20)}")`,
+              );
+            }
+          }
+        }
+
+        if (!eraAtiva) tela.classList.remove('active');
+      }
+      return achados;
+    });
+
+    linha(ok(problemas.length === 0, `${problemas.length} problema(s): ${problemas.slice(0, 4).join(' | ')}`),
+      'nenhum texto encosta ou transborda, nas quatro telas');
     await p.close();
   }
 

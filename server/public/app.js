@@ -1403,7 +1403,16 @@
         <details class="doc-preview-wrap" id="doc-${esc(test.id)}">
           <summary><span class="doc-rotulo">Solicitação pronta para assinar</span></summary>
           <div class="doc-preview">
-            <div class="doc-head"><span class="doc-type">Formulário de solicitação</span></div>
+            <!-- §64. A marca era conteúdo de um ::before em CSS. No
+                 celular ela colidia com o tipo do documento — duas caixas
+                 adjacentes sem respiro, uma delas quebrando em duas linhas:
+                 "OncoGenYXFORMULÁRIO DE SOLICITAÇÃO". Pseudo-elemento também
+                 não é mensurável por teste, nem legível por leitor de tela.
+                 Texto de conteúdo mora na marcação. -->
+            <div class="doc-head">
+              <span class="doc-marca">OncoGenYX</span>
+              <span class="doc-type">Formulário de solicitação</span>
+            </div>
             <div class="doc-row"><span class="k">Paciente</span><span class="v doc-name">-</span></div>
             <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">${esc(doctor)}</span></div>
             <div class="doc-row"><span class="k">Diagnóstico</span><span class="v">${esc(diagnostico)}</span></div>
@@ -1473,8 +1482,89 @@
     // baixaria um PDF em branco.
     alvo.open = true;
     alvo.classList.add('print-target');
+
+    /* §64.2. No iPhone, com o app instalado na tela de início, NÃO EXISTE
+     * impressão: `window.print()` não abre nada e não lança erro — o médico
+     * toca o botão e não acontece coisa alguma. Foi exatamente o relato.
+     *
+     * Não dá para detectar a falha depois do fato (print não devolve nada),
+     * então o caminho é escolhido ANTES: em modo aplicativo, abre o documento
+     * numa aba do navegador, onde o compartilhar do iOS oferece "Imprimir" e
+     * "Salvar em Arquivos". Se a aba for bloqueada, baixa o arquivo. */
+    if (modoAplicativo()) {
+      sairDoModoImpressao();
+      abrirDocumentoFora(alvo);
+      return;
+    }
     entrarNoModoImpressao();
     window.print();
+  }
+
+  // Instalado na tela de início (iOS usa navigator.standalone; o resto do
+  // mundo usa display-mode). Em navegador comum, os dois dão falso.
+  function modoAplicativo() {
+    if (window.navigator && window.navigator.standalone === true) return true;
+    return typeof window.matchMedia === 'function'
+      && window.matchMedia('(display-mode: standalone)').matches;
+  }
+
+  /* Monta o documento como arquivo autocontido: a folha de estilo do app não
+   * acompanha, então o essencial vai embutido. É o mesmo documento, não uma
+   * segunda versão dele — o conteúdo sai do DOM que o médico acabou de ver. */
+  function documentoAutocontido(alvo) {
+    const papel = alvo.querySelector('.doc-preview');
+    const nome = (document.getElementById('patient-name').value || '').trim();
+    return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solicitação - ${esc(nome)}</title>
+<style>
+  @page { margin: 16mm; }
+  body { margin: 0; padding: 22px; background: #fff; color: #1c1c1c;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .doc-preview { max-width: 62ch; margin: 0 auto; position: relative; }
+  .faixa { height: 3px; margin-bottom: 18px;
+    background: linear-gradient(90deg, #11768f 0%, #0e6180 55%, #0b5570 100%); }
+  .doc-head { display: flex; justify-content: space-between; align-items: baseline;
+    gap: 6px 16px; flex-wrap: wrap; padding-bottom: 12px; margin-bottom: 18px;
+    border-bottom: 1px solid #e4e9ee; }
+  .doc-marca { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: #0e6180; white-space: nowrap; }
+  .doc-type { font-size: 12px; color: #6b6b6b; text-transform: uppercase; letter-spacing: .06em; text-align: right; }
+  .doc-row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; padding: 8px 0; }
+  .doc-row + .doc-row { border-top: 1px solid #f0f3f6; }
+  .doc-row .k { color: #6b6b6b; }
+  .doc-row .v { font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+  .doc-justif { margin-top: 16px; font-size: 14px; line-height: 1.65; color: #2a2a2a;
+    background: #f6f9fb; border-left: 3px solid #0e6180; padding: 13px 15px; border-radius: 0 8px 8px 0; }
+  .doc-justif .label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #6b6b6b; margin-bottom: 5px; }
+  .doc-sign { margin-top: 34px; padding-top: 14px; border-top: 1px solid #1c1c1c;
+    display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: #6b6b6b; }
+  .aviso { max-width: 62ch; margin: 26px auto 0; font-size: 12px; color: #6b6b6b; line-height: 1.5; }
+  @media print { .aviso { display: none; } }
+</style></head><body>
+<div class="doc-preview"><div class="faixa"></div>${papel ? papel.innerHTML : ''}</div>
+<p class="aviso">Para salvar em PDF ou imprimir: use o botão de compartilhar do navegador e escolha "Imprimir" ou "Salvar em Arquivos".</p>
+</body></html>`;
+  }
+
+  function abrirDocumentoFora(alvo) {
+    const html = documentoAutocontido(alvo);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const endereco = URL.createObjectURL(blob);
+    const aba = window.open(endereco, '_blank');
+    if (!aba) {
+      // Aba bloqueada: entrega o arquivo. Pior que abrir, melhor que nada
+      // acontecer — que é o que acontecia antes.
+      const nome = (document.getElementById('patient-name').value || 'solicitacao').trim();
+      const a = document.createElement('a');
+      a.href = endereco;
+      a.download = `Solicitacao - ${nome}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    // O endereço temporário é liberado depois, para a aba ter tempo de ler.
+    setTimeout(() => URL.revokeObjectURL(endereco), 60000);
   }
   function sairDoModoImpressao() {
     document.body.classList.remove('printing');
