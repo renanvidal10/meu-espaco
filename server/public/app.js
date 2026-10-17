@@ -423,6 +423,102 @@
     }
   });
 
+  /* ===================== INSTALAR O APLICATIVO (§65) =====================
+   *
+   * Dois mundos diferentes, e é por isso que não dá para ter um botão só:
+   *
+   * - ANDROID/CHROME dispara `beforeinstallprompt`. Guardando o evento, o
+   *   botão instala de verdade, com a caixa de confirmação do sistema.
+   * - iPHONE não tem API nenhuma. Nunca teve. O único caminho é o médico
+   *   abrir o compartilhar do Safari e escolher "Adicionar à Tela de Início".
+   *   Então, no iOS, o passo a passo NÃO é documentação de apoio: é o
+   *   mecanismo inteiro.
+   *
+   * O botão some quando instalar não é possível — já instalado, ou navegador
+   * sem suporte. Botão que não faz nada ensina a desconfiar da barra toda. */
+  let promptDeInstalacao = null;
+  let focoAntesDoInstalar = null;
+
+  function ehIOS() {
+    const ua = navigator.userAgent || '';
+    // iPad moderno se anuncia como Mac; o toque é o que o distingue.
+    return /iPad|iPhone|iPod/.test(ua)
+      || (/Macintosh/.test(ua) && typeof document.ontouchend !== 'undefined');
+  }
+
+  function atualizarBotaoInstalar() {
+    const btn = document.getElementById('instalar-btn');
+    if (!btn) return;
+    // Já instalado: não há o que oferecer.
+    if (modoAplicativo()) { btn.hidden = true; return; }
+    // Android só depois do evento; iOS sempre, porque lá o caminho é manual.
+    btn.hidden = !(promptDeInstalacao || ehIOS());
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Sem isto o Chrome mostra a própria barra, fora do desenho do produto.
+    e.preventDefault();
+    promptDeInstalacao = e;
+    atualizarBotaoInstalar();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    promptDeInstalacao = null;
+    atualizarBotaoInstalar();
+    fecharInstalar();
+  });
+
+  function abrirInstalar() {
+    focoAntesDoInstalar = document.activeElement;
+    // Abre já na aba do aparelho de quem está olhando.
+    mostrarPassos(ehIOS() ? 'ios' : 'android');
+    const instalarAgoraBtn = document.getElementById('inst-instalar');
+    if (instalarAgoraBtn) instalarAgoraBtn.hidden = !promptDeInstalacao;
+    document.getElementById('instalar').classList.add('aberto');
+    setTimeout(() => {
+      const alvo = document.getElementById(promptDeInstalacao ? 'inst-instalar' : 'inst-fechar');
+      if (alvo) alvo.focus();
+    }, 60);
+  }
+
+  function fecharInstalar() {
+    document.getElementById('instalar').classList.remove('aberto');
+    if (focoAntesDoInstalar && focoAntesDoInstalar.focus) focoAntesDoInstalar.focus();
+  }
+
+  function mostrarPassos(sistema) {
+    for (const nome of ['ios', 'android']) {
+      const painel = document.getElementById('passos-' + nome);
+      const aba = document.getElementById('aba-' + nome);
+      if (painel) painel.hidden = nome !== sistema;
+      if (aba) {
+        aba.setAttribute('aria-selected', String(nome === sistema));
+        aba.classList.toggle('ativa', nome === sistema);
+      }
+    }
+  }
+
+  async function instalarAgora() {
+    if (!promptDeInstalacao) return;
+    const evento = promptDeInstalacao;
+    // O evento só serve UMA vez: zerar antes evita um segundo clique chamar
+    // um prompt já consumido, que o Chrome rejeita com erro no console.
+    promptDeInstalacao = null;
+    document.getElementById('inst-instalar').hidden = true;
+    try { await evento.prompt(); } catch (e) { /* recusado pelo usuário */ }
+    atualizarBotaoInstalar();
+  }
+
+  document.getElementById('instalar').addEventListener('click', (e) => {
+    if (e.target.id === 'instalar') fecharInstalar();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('instalar').classList.contains('aberto')) {
+      fecharInstalar();
+    }
+  });
+  atualizarBotaoInstalar();
+
   function talvezMostrarBoasVindas() {
     let visto = false;
     try { visto = localStorage.getItem(BOAS_VINDAS_KEY) === '1'; } catch (e) { visto = false; }

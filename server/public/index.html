@@ -207,6 +207,13 @@
     <strong>OncoGenYX</strong>
     <span>· Triagem genômica em oncologia</span>
   </div>
+  <!-- §65. O botão só existe quando instalar é possível: some em aparelho já
+       instalado e em navegador que não suporta. Botão que não faz nada é pior
+       que botão ausente — ensina a desconfiar da barra inteira. -->
+  <button class="instalar-btn" id="instalar-btn" type="button" onclick="abrirInstalar()" hidden>
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><polyline points="8 11 12 15 16 11"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    <span class="instalar-rotulo">Instalar app</span>
+  </button>
   <div class="doctor-chip">
     <span id="doctor-chip-text">-</span>
     <span class="avatar" id="doctor-chip-avatar">--</span>
@@ -513,6 +520,85 @@
       <button class="primary" type="button" id="pv-fechar" onclick="fecharPrivacidade()">Entendi</button>
     </div>
     <p class="modal-nota">Ferramenta de apoio à decisão clínica. Não substitui julgamento médico, laudo laboratorial ou aconselhamento genético.</p>
+  </div>
+</div>
+
+<!-- ===================== INSTALAR O APLICATIVO ===================== -->
+<!-- §65. O iPhone NÃO deixa um site pedir instalação por código: não existe
+     API. O único caminho é o médico abrir o compartilhar do Safari e escolher
+     "Adicionar à Tela de Início". Por isso o passo a passo não é enfeite — no
+     iOS ele É o mecanismo. No Android existe a API, e aí o botão instala de
+     verdade; o passo a passo fica como reserva. -->
+<div class="modal-fundo" id="instalar" role="dialog" aria-modal="true" aria-labelledby="inst-titulo">
+  <div class="modal">
+    <h2 id="inst-titulo">Instale o OncoGenYX no celular</h2>
+    <p class="modal-sub">Abre em tela cheia, sem barra de navegador, e fica com os outros aplicativos. Não ocupa espaço: não é um download, é um atalho que roda sozinho.</p>
+
+    <div class="sistema-abas" role="tablist" aria-label="Escolha o seu aparelho">
+      <button class="sistema-aba" id="aba-ios" type="button" role="tab" aria-selected="true" aria-controls="passos-ios" onclick="mostrarPassos('ios')">iPhone e iPad</button>
+      <button class="sistema-aba" id="aba-android" type="button" role="tab" aria-selected="false" aria-controls="passos-android" onclick="mostrarPassos('android')">Android</button>
+    </div>
+
+    <div class="modal-passos" id="passos-ios" role="tabpanel" aria-labelledby="aba-ios">
+      <div class="modal-passo">
+        <span class="n">1</span>
+        <div>
+          <strong>Abra esta página no Safari</strong>
+          <span>Precisa ser o Safari. Chrome e Firefox no iPhone não conseguem instalar — é limitação do sistema, não da plataforma.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">2</span>
+        <div>
+          <strong>Toque no botão de compartilhar</strong>
+          <span>É o quadrado com a seta para cima, na barra de baixo do Safari.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">3</span>
+        <div>
+          <strong>Escolha "Adicionar à Tela de Início"</strong>
+          <span>Role a lista até encontrar. Depois toque em "Adicionar", no canto superior direito.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">4</span>
+        <div>
+          <strong>Pronto</strong>
+          <span>O ícone aparece na tela de início. Ao abrir por ele, o app roda em tela cheia.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-passos" id="passos-android" role="tabpanel" aria-labelledby="aba-android" hidden>
+      <div class="modal-passo">
+        <span class="n">1</span>
+        <div>
+          <strong>Toque em "Instalar agora" abaixo</strong>
+          <span>O Android mostra a confirmação do próprio sistema. Se o botão não aparecer, siga os passos seguintes.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">2</span>
+        <div>
+          <strong>Ou abra o menu do navegador</strong>
+          <span>Os três pontinhos no canto superior direito do Chrome.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">3</span>
+        <div>
+          <strong>Escolha "Instalar aplicativo"</strong>
+          <span>Em alguns aparelhos aparece como "Adicionar à tela inicial".</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-rodape">
+      <button class="primary" type="button" id="inst-instalar" onclick="instalarAgora()" hidden>Instalar agora</button>
+      <button class="ghost" type="button" id="inst-fechar" onclick="fecharInstalar()">Fechar</button>
+    </div>
+    <p class="modal-nota">O app instalado continua sem guardar caso de paciente: os dados seguem existindo só enquanto a tela está aberta.</p>
   </div>
 </div>
 

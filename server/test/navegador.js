@@ -725,6 +725,77 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- 13b. instalar o aplicativo ---------- */
+  {
+    /* §65. Três estados, três comportamentos diferentes, e errar qualquer um
+     * deles entrega ao médico um botão que mente:
+     *   - Android com suporte: o botão instala de verdade.
+     *   - iPhone: não existe API; o botão só pode ensinar o caminho manual.
+     *   - Já instalado: não há o que oferecer, o botão some. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('instalar: ' + e.message));
+    await entrar(p);
+
+    /* 1. Sem evento do sistema, só o iPhone oferece o botão — lá o caminho é
+     *    manual e sempre existe. Em qualquer outro aparelho, nada a oferecer.
+     *    O teste roda nos dois contextos, então pergunta ao app qual é. */
+    const noIos = await p.evaluate(() => ehIOS());
+    const aparece = await p.locator('#instalar-btn').isVisible();
+    linha(ok(aparece === noIos, `iOS=${noIos} botão visível=${aparece}`),
+      noIos ? 'iPhone → botão aparece mesmo sem API' : 'sem suporte a instalação → botão ausente');
+
+    // 2. Android: o evento do sistema chega e o botão aparece.
+    await p.evaluate(() => {
+      const e = new Event('beforeinstallprompt');
+      e.prompt = () => { window.__promptChamado = (window.__promptChamado || 0) + 1; return Promise.resolve(); };
+      window.dispatchEvent(e);
+    });
+    await p.waitForTimeout(150);
+    linha(ok(await p.locator('#instalar-btn').isVisible(), 'o botão não apareceu após o evento do sistema'),
+      'Android → botão de instalar aparece');
+
+    await p.click('#instalar-btn');
+    await p.waitForSelector('#instalar.aberto');
+    const temBotaoReal = await p.locator('#inst-instalar:visible').count();
+    linha(ok(temBotaoReal === 1, 'com suporte, falta o botão que instala de fato'),
+      'Android → oferece instalar de verdade');
+    await p.click('#inst-instalar');
+    await p.waitForTimeout(150);
+    const chamou = await p.evaluate(() => window.__promptChamado || 0);
+    linha(ok(chamou === 1, `prompt do sistema chamado ${chamou}x`), 'Android → o clique chama o instalador do sistema');
+    // Um segundo clique não pode reusar um evento já consumido.
+    const sumiu = await p.locator('#inst-instalar:visible').count();
+    linha(ok(sumiu === 0, 'o botão de instalar continuou clicável depois de usado'),
+      'o instalador do sistema não é chamado duas vezes');
+
+    // 3. O passo a passo do iPhone precisa estar completo: lá ele É o
+    //    mecanismo, não documentação de apoio.
+    await p.click('#aba-ios');
+    await p.waitForTimeout(120);
+    const textoIos = await p.locator('#passos-ios').innerText();
+    const temSafari = /safari/i.test(textoIos);
+    const temCompartilhar = /compartilhar/i.test(textoIos);
+    const temAdicionar = /adicionar à tela de início/i.test(textoIos);
+    linha(
+      ok(temSafari && temCompartilhar && temAdicionar, `safari=${temSafari} compartilhar=${temCompartilhar} adicionar=${temAdicionar}`),
+      'iPhone → passo a passo nomeia Safari, compartilhar e Adicionar à Tela de Início',
+    );
+    const androidOculto = await p.locator('#passos-android').isVisible();
+    linha(ok(androidOculto === false, 'os dois passo a passo aparecem ao mesmo tempo'),
+      'uma aba por vez');
+    await p.click('#inst-fechar');
+
+    // 4. Já instalado: some.
+    await p.evaluate(() => {
+      Object.defineProperty(window.navigator, 'standalone', { value: true, configurable: true });
+      atualizarBotaoInstalar();
+    });
+    await p.waitForTimeout(120);
+    linha(ok((await p.locator('#instalar-btn').isVisible()) === false, 'o botão continua oferecendo instalar num app já instalado'),
+      'já instalado → botão some');
+    await p.close();
+  }
+
   /* ---------- 14. varredura de diagramação: texto encostando em texto ---------- */
   {
     /* §64.1. Dois defeitos relatados do celular eram da mesma família:

@@ -177,6 +177,15 @@
     vertical-align: -0.125em;
   }
 
+  /* §65.2. O atributo `hidden` tem especificidade de folha do navegador:
+     QUALQUER regra que declare `display` o vence. O botão "Instalar agora"
+     continuava clicável depois de usado porque o `.modal-rodape` dava
+     `display: flex` aos filhos — e um segundo clique reusa um evento de
+     instalação já consumido, que o Chrome rejeita com erro no console.
+     Uma linha fecha a classe inteira do problema, em vez de um seletor por
+     elemento escondido. */
+  [hidden] { display: none !important; }
+
   @media (prefers-reduced-motion: reduce) {
     /* animation-delay precisa entrar aqui. Sem ele, uma animação de entrada
        escalonada (card 1 em 0ms, card 2 em 60ms, card 3 em 120ms) continua
@@ -1980,6 +1989,53 @@
   .modal .modal-sub { font-size: var(--fs-xs); color: var(--ink-muted); margin: 0 0 18px; line-height: 1.5; }
   .modal-passos { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
   .modal-passo { display: flex; gap: 12px; align-items: flex-start; }
+  /* §65. Botão de instalar, na barra. Fica entre a marca e a conta — é
+     oferta, não ação de fluxo, então não disputa com nada do caso em curso.
+     Discreto em repouso; só ganha a cor da marca no toque. */
+  .instalar-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    min-height: 38px; padding: 0 13px;
+    margin-left: auto;
+    border: 1px solid var(--border-control); border-radius: var(--r-full);
+    background: var(--surface); color: var(--ink-muted);
+    font-family: inherit; font-size: var(--fs-2xs); font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+    transition: background-color var(--mov-rapido) var(--ease),
+                border-color var(--mov-rapido) var(--ease),
+                color var(--mov-rapido) var(--ease);
+  }
+  .instalar-btn .ic { width: 15px; height: 15px; }
+  .instalar-btn:hover { background: var(--accent-soft); border-color: var(--accent-soft-border); color: var(--accent); }
+  .instalar-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  /* No celular o rótulo sai e sobra o ícone: a barra ali já disputa espaço
+     com a marca e a conta, e três rótulos não cabem sem quebrar linha — que é
+     exatamente o defeito de acabamento do §64.1. */
+  @media (max-width: 560px) {
+    .instalar-btn { min-width: var(--toque); min-height: var(--toque); justify-content: center; padding: 0 10px; }
+    .instalar-btn .instalar-rotulo { display: none; }
+  }
+
+  /* Abas iPhone / Android dentro do modal. */
+  .sistema-abas {
+    display: flex; gap: 4px; padding: 4px;
+    background: var(--surface-2); border-radius: var(--r-md);
+    margin: 18px 0 6px;
+  }
+  .sistema-aba {
+    flex: 1; min-height: var(--toque);
+    border: none; border-radius: var(--r-sm);
+    background: transparent; color: var(--ink-muted);
+    font-family: inherit; font-size: var(--fs-xs); font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--mov-rapido) var(--ease), color var(--mov-rapido) var(--ease);
+  }
+  .sistema-aba:hover { color: var(--ink); }
+  .sistema-aba.ativa {
+    background: var(--surface); color: var(--ink);
+    box-shadow: var(--elev-1);
+  }
+  .sistema-aba:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+
   .modal-passo .n {
     flex-shrink: 0;
     width: 24px; height: 24px; border-radius: var(--r-sm);

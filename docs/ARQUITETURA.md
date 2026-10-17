@@ -3639,3 +3639,56 @@ derivar de `--accent`.
 Elemento `fixed` fica **fora** da varredura de diagramação de propósito: cobrir
 conteúdo é o que um painel flutuante faz. Este caso é de dimensionamento, não
 de sobreposição acidental.
+
+## 65. Instalar o aplicativo (v1.27)
+
+O app já era instalável desde o §48 — manifesto, service worker, ícone — mas
+nada na tela dizia isso. O médico só descobria se conhecesse o menu do próprio
+navegador.
+
+### 65.1 Dois mundos, e é por isso que não dá um botão só
+
+- **Android/Chrome** dispara `beforeinstallprompt`. Guardando o evento, o botão
+  instala de verdade, com a confirmação do sistema. O `preventDefault()` é
+  necessário: sem ele o Chrome mostra a própria barra, fora do desenho do
+  produto.
+- **iPhone não tem API nenhuma.** Nunca teve. O único caminho é o médico abrir
+  o compartilhar do Safari e escolher "Adicionar à Tela de Início". No iOS, o
+  passo a passo **é o mecanismo**, não documentação de apoio — e por isso ele
+  nomeia o Safari explicitamente: Chrome e Firefox no iPhone não instalam, e
+  quem tentar por lá vai achar que a plataforma está quebrada.
+
+O botão **some** quando instalar não é possível: já instalado, ou navegador sem
+suporte fora do iOS. Botão que não faz nada ensina a desconfiar da barra toda.
+
+A detecção de iPad é por toque, não por nome: iPad moderno se anuncia como Mac.
+
+### 65.2 O defeito latente que a trava revelou
+
+O teste "o instalador do sistema não é chamado duas vezes" reprovou, e o motivo
+não era do botão de instalar:
+
+**O atributo `hidden` tem especificidade de folha do navegador — qualquer regra
+que declare `display` o vence.** O `.modal-rodape` dava `display: flex` aos
+filhos, então `inst-instalar.hidden = true` não escondia nada. Um segundo
+clique reusaria um evento de instalação já consumido, que o Chrome rejeita com
+erro no console.
+
+A correção é uma linha, `[hidden] { display: none !important; }`, e fecha a
+classe inteira em vez de um seletor por elemento escondido. Os dois remendos
+pontuais que eu tinha escrito (`.instalar-btn[hidden]`, `.modal-passos[hidden]`)
+saíram junto.
+
+### 65.3 A trava
+
+Quatro estados, no celular e no desktop:
+
+- sem evento do sistema e fora do iOS → botão ausente;
+- iPhone → botão presente mesmo sem API;
+- evento do sistema chega → botão aparece, e o clique chama o instalador real
+  uma única vez;
+- já instalado → botão some.
+
+E o conteúdo do passo a passo do iPhone é verificado por palavra —
+**Safari**, **compartilhar**, **Adicionar à Tela de Início** —, porque ali o
+texto não é enfeite: é a única instrução que faz a instalação acontecer.
