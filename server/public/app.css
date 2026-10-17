@@ -739,6 +739,11 @@
     resize: vertical;
   }
   #case-text:focus, #case-text:focus-visible { background: transparent; border: none; outline: none; }
+  /* §61. O texto de exemplo é instrução, não decoração: ele diz AO MÉDICO o
+     que vale a pena colar. Fica claro o bastante para não competir com o que
+     ele escrever, e escuro o bastante para ser lido antes de escrever —
+     medido na bateria de contraste, não estimado. */
+  #case-text::placeholder { color: var(--ink-faint); opacity: 1; }
 
   .plaud-row {
     margin-top: 14px;
@@ -2012,6 +2017,8 @@
     body.printing .name-card,
     body.printing .reident-note,
     body.printing .program-card > h3,
+    body.printing .prog-topo,
+    body.printing .programas-custo,
     body.printing .program-row,
     body.printing .screen > .disclaimer,
     body.printing .foot-nav {
@@ -2029,6 +2036,35 @@
     body.printing .doc-preview-wrap.print-target {
       display: block !important;
       margin: 0 !important;
+      border: none !important;
+      background: transparent !important;
+      overflow: visible !important;
+    }
+    /* §61. Regra de RAIZ, no lugar de listar filho por filho: o card que não
+       contém o documento a imprimir não vai para o papel. Antes, cada
+       elemento novo dentro do card precisava ser lembrado nesta lista — e o
+       que não fosse saía impresso em cima do pedido assinado. Foi o que
+       aconteceu com .prog-topo: nasceu no §57.5 e ninguém o acrescentou aqui,
+       então a pílula "indicado neste caso" e o nome do teste passaram a sair
+       no formulário. */
+    body.printing .program-card:not(:has(.print-target)) { display: none !important; }
+
+    /* O papel ocupa a página. Na tela ele tem largura de leitura e margem
+       automática dentro do card; no papel a margem é a da própria folha
+       (@page), e uma segunda margem interna desloca o documento para a
+       direita e encolhe a área útil. */
+    body.printing .doc-preview {
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 0 0 8px !important;
+    }
+    /* A faixa de marca é a única coisa que fica: ela é a identidade do
+       documento. Passa a nascer no topo da folha, alinhada ao conteúdo. */
+    body.printing .doc-preview::before {
+      position: static !important;
+      display: block !important;
+      height: 3px !important;
+      margin-bottom: 18px !important;
     }
     body.printing .doc-actions { display: none !important; }
     body.printing details.doc-preview-wrap > summary { display: none !important; }

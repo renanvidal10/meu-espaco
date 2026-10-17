@@ -48,6 +48,10 @@ const ALVOS = [
   // de 12px. Se não for legível, o botão desabilitado fica sem motivo visível
   // e a tela parece travada.
   { seletor: '#patient-name-aviso', minimo: 4.5, nota: 'aviso do campo obrigatorio (--warn como texto)' },
+  // §61. O texto de exemplo do compositor instrui o médico sobre o que colar.
+  // Placeholder costuma ficar fora de medição de contraste porque "é só
+  // dica" — aqui ele é a única orientação da tela de entrada.
+  { seletor: '#case-text', minimo: 4.5, nota: 'texto de exemplo do compositor', placeholder: true },
 ];
 
 function paraRgb(css) {
@@ -118,7 +122,11 @@ function coletar(sel) {
     }
     no = no.parentElement;
   }
-  return { cor: cs.color, tamanho: cs.fontSize, peso: cs.fontWeight, camadas };
+  // A cor do ::placeholder não sai em getComputedStyle(el).color. Lê-se pelo
+  // pseudo-elemento; sem isto, mediríamos a cor do texto DIGITADO e daríamos
+  // por aprovada uma dica ilegível.
+  const ps = getComputedStyle(el, '::placeholder');
+  return { cor: cs.color, corPlaceholder: ps && ps.color, tamanho: cs.fontSize, peso: cs.fontWeight, camadas };
 }
 
 async function medirTema(pagina, tema, entrar) {
@@ -144,7 +152,7 @@ async function medirTema(pagina, tema, entrar) {
       const c = paraRgb(dados.camadas[i]);
       if (c) fundo = c.a === 1 ? c : sobrepor(c, fundo);
     }
-    const cor = paraRgb(dados.cor);
+    const cor = paraRgb(alvo.placeholder && dados.corPlaceholder ? dados.corPlaceholder : dados.cor);
     if (!cor) continue;
     const frente = cor.a === 1 ? cor : sobrepor(cor, fundo);
 

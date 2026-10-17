@@ -617,6 +617,58 @@ async function rodar(nome, dispositivo) {
     });
     linha(ok(invisiveis.length === 0, `elementos invisíveis no papel: ${invisiveis.slice(0, 3).join(' | ')}`),
       'nada fica invisível no modo impressão (PDF em branco)');
+
+    /* §61. O OUTRO lado do mesmo problema: o que NÃO devia ir ao papel e vai.
+     *
+     * A regra de impressão escondia os elementos do card listando-os um a um
+     * (`.program-card > h3`, `.program-row`, ...). Quando o §57.5 moveu o
+     * título para dentro de `.prog-topo`, a lista deixou de alcançá-lo: a
+     * pílula "indicado neste caso", o nome do teste e a frase de custo
+     * passaram a sair IMPRESSOS acima do pedido que o médico assina — e o
+     * card do segundo teste saía junto, sem documento nenhum.
+     *
+     * Lista de exceções é frágil por construção: ela esquece o elemento que
+     * ainda não existe. Este teste não verifica a lista, verifica o PAPEL —
+     * qualquer texto visível fora do documento alvo reprova, seja ele qual
+     * for. Tudo numa avaliação só, porque trocar a mídia para 'print'
+     * dispara afterprint, que desliga o modo. */
+    await p.emulateMedia({ media: 'print' });
+    const intrusos = await p.evaluate(() => {
+      const alvo = document.querySelector('.doc-preview-wrap');
+      alvo.open = true;
+      document.querySelectorAll('.doc-preview-wrap').forEach((e) => e.classList.remove('print-target'));
+      alvo.classList.add('print-target');
+      document.body.classList.add('printing');
+
+      const fora = [];
+      document.querySelectorAll('body *').forEach((el) => {
+        if (alvo.contains(el) || el.contains(alvo)) return;
+        // getComputedStyle num descendente de ancestral display:none devolve
+        // o display DECLARADO, não 'none' — ler só o próprio elemento acusa
+        // como impressa a tela de acesso inteira, que está oculta. O que vale
+        // é se o elemento ocupa área na página.
+        const caixas = el.getClientRects();
+        if (!caixas.length) return;
+        const r = caixas[0];
+        if (r.width === 0 || r.height === 0) return;
+        // Fora do papel: o link "pular para o conteúdo" vive deslocado para
+        // fora da tela e nunca chega à folha.
+        if (r.bottom <= 0 || r.right <= 0) return;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
+        // Só folhas de texto: um contêiner cujo conteúdo está oculto não
+        // imprime nada por si.
+        if (el.children.length) return;
+        const txt = (el.textContent || '').trim();
+        if (txt) fora.push(`${el.tagName}.${el.className || '-'}: "${txt.slice(0, 40)}"`);
+      });
+      return fora;
+    });
+    await p.emulateMedia({ media: 'screen' });
+    linha(
+      ok(intrusos.length === 0, `texto fora do documento sai impresso: ${intrusos.slice(0, 4).join(' | ')}`),
+      'só a solicitação vai para o papel',
+    );
     await p.waitForTimeout(1900);
     const saiu = !(await p.evaluate(() => document.body.classList.contains('printing')));
     linha(ok(entrou && saiu, `entrou=${entrou} saiu=${saiu}`), 'a tela sai do modo impressão sem depender do afterprint');

@@ -3398,3 +3398,111 @@ atributo. A varredura passou a entender as duas formas — falso positivo treina
 quem lê a ignorar o teste, e aí o teste não serve mais para nada.
 
 Custo: milissegundos. Cobertura: a classe inteira do problema, não um id.
+
+## 61. O PDF baixado levava a tela junto (v1.24)
+
+O dono do produto pediu para **simular o download e olhar o arquivo**. Era o
+passo que faltava: até aqui eu tinha revisado o documento **na tela**, e tela e
+papel são caminhos diferentes — o papel passa pelas regras de `@media print`.
+
+### 61.1 O que saía impresso
+
+Acima do formulário que o médico assina:
+
+- a pílula **"indicado neste caso"**;
+- o **nome do teste** em título;
+- a frase **"Programas de indústria: sem custo para o paciente…"**.
+
+E abaixo, o **card inteiro do segundo teste** — pílula e título —, sem
+documento nenhum.
+
+Um pedido de exame assinado com pílula de interface e frase sobre custo de
+programa em cima não é um documento clínico; é uma captura de tela impressa.
+
+### 61.2 Por que aconteceu
+
+A regra de impressão escondia os elementos do card **listando-os um a um**:
+
+```css
+body.printing .program-card > h3,
+body.printing .program-row,
+...
+```
+
+Quando o §57.5 moveu o `h3` para dentro de `.prog-topo` — para a pílula parar
+de pousar no meio do título quebrado —, o seletor `.program-card > h3` deixou
+de casar. O elemento não foi esquecido: ele **mudou de lugar**, e a lista não
+acompanha mudança de lugar.
+
+Lista de exceções é frágil por construção: ela não conhece o elemento que ainda
+não existe.
+
+### 61.3 A correção
+
+Regra de raiz no lugar da lista:
+
+```css
+body.printing .program-card:not(:has(.print-target)) { display: none !important; }
+```
+
+O card que não contém o documento a imprimir não vai ao papel, seja qual for o
+seu conteúdo futuro. As entradas de `.prog-topo` e `.programas-custo`
+permaneceram na lista como rede para navegador sem `:has()`.
+
+E o papel passou a ocupar a página: na tela o documento tem largura de leitura
+e margem automática dentro do card; no papel a margem é a da folha (`@page`), e
+a segunda margem interna deslocava o documento para a direita. A faixa de marca
+deixou de ser absoluta e nasce no topo da folha, alinhada ao conteúdo.
+
+### 61.4 A trava
+
+Teste de navegador que **verifica o papel, não a lista**: entra no modo
+impressão e reprova se houver **qualquer texto visível fora do documento
+alvo**. Não enumera o que deve sumir — exige que nada sobre.
+
+Duas armadilhas na escrita dele:
+
+- `getComputedStyle` num descendente de ancestral `display:none` devolve o
+  display **declarado**, não `none`. Lendo só o próprio elemento, o teste
+  acusava a tela de acesso inteira como impressa. O que vale é se o elemento
+  **ocupa área** (`getClientRects`).
+- Trocar a mídia para `print` dispara `afterprint`, e o app usa esse evento
+  para sair do modo impressão. Toda a montagem do estado e a coleta acontecem
+  numa avaliação só, sem espera no meio.
+
+**Provado**: removendo a regra `:has()` e a entrada de `.prog-topo`, o teste
+reprova nomeando exatamente `SPAN.pill "indicado neste caso"` e o título do
+painel germinativo. Restauradas, passa nos dois dispositivos.
+
+## 62. O campo de entrada pede o material completo (v1.24)
+
+Pedido do dono: que o campo peça, além da descrição, **o máximo de informação
+disponível** — laudos e tudo que houver do paciente —, porque material mais
+completo leva à indicação correta do teste. Está certo: as regras do registro
+usam histologia, grau, estadiamento, idade, tratamento em curso e história
+familiar. Faltando qualquer um deles, a regra cai para um ramo mais
+conservador, e o médico recebe menos do que o caso permitia.
+
+O texto de exemplo passou a nomear **o que** colar:
+
+> Cole o laudo e tudo que tiver sobre o caso: anatomopatológico,
+> imuno-histoquímico, estadiamento, cirurgia, tratamentos já feitos e história
+> familiar. Quanto mais completo o material, mais precisa a indicação do teste.
+>
+> Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, FIGO IIIC,
+> citorredução ótima, em carboplatina + paclitaxel. Mãe com câncer de mama aos 58.
+
+O exemplo deixou de ser uma frase genérica e passou a exibir **os eixos que a
+regra lê**, na ordem em que ela os usa — ele ensina o formato enquanto mostra o
+conteúdo.
+
+### 62.1 Placeholder entrou na medição de contraste
+
+Texto de exemplo costuma ficar fora de auditoria de contraste porque "é só
+dica". Aqui ele é a **única orientação da tela de entrada**: se não for
+legível, o médico não sabe o que colar.
+
+A cor do `::placeholder` **não aparece** em `getComputedStyle(el).color` — é
+preciso ler o pseudo-elemento. Sem isso a bateria mediria a cor do texto
+*digitado* e aprovaria uma dica ilegível. Medido: **5,70:1** no claro e
+**6,60:1** no escuro. 28 medições.
