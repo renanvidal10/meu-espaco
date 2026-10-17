@@ -4170,3 +4170,40 @@ as camadas (§57.2), e os dois alvos entraram nela.
 
 Medido: lista de tumores **5,83:1** no claro e **8,74:1** no escuro; rótulo
 **5,25:1** e **7,24:1**. 42 medições.
+
+## 74. Uma borda de texto só, e o exemplo em itálico (v1.36)
+
+> *"Essa parte de design eu sou muito crítico, queria sempre que você tivesse
+> essa atenção para todas as áreas que você for fazer."*
+
+O dono notou o "Como funciona" fora da borda dos demais. Medido: borda de texto
+da página em **16px** (título, linha de apoio, compositor, nota de rodapé); o
+link em **18px**, por causa de `padding-left: 2px` que eu tinha escrito sem
+razão nenhuma.
+
+Dois pixels bastam para o olho registrar desalinho sem saber por quê.
+
+### 74.1 A regra, e por que ela virou teste
+
+Atenção humana não escala para quatro telas a cada mudança. A regra virou
+trava: **no nível da página, todo elemento começa na mesma borda de texto.**
+Conteúdo dentro de uma superfície recua — é o inset dela —, então superfícies
+ficam de fora da conta.
+
+A trava percorre as quatro telas, toma a borda mais frequente como referência e
+reprova quem destoar dela por mais de 1px, **nomeando o elemento e as duas
+medidas**.
+
+**Na primeira execução ela achou outro**, do mesmo tipo e feito por mim:
+`.programas-custo` também tinha `padding-left: 2px`. O mesmo erro, em dois
+lugares, e eu só tinha percebido um — e porque o dono apontou.
+
+**Provada** pondo 3px de volta: acusa *"tela 0: p.cobertura-ajuda começa em
+35px, e a borda da página é 32px"*.
+
+### 74.2 O exemplo em itálico
+
+Pedido do dono, e a razão é boa: a cor mais clara sozinha não diz que aquilo
+não foi escrito por ninguém. O médico chega a olhar duas vezes para saber se já
+há conteúdo no campo. O itálico resolve **antes da leitura** — é a convenção de
+"isto é indicação, não texto".

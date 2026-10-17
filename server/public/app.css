@@ -907,7 +907,11 @@
      que vale a pena colar. Fica claro o bastante para não competir com o que
      ele escrever, e escuro o bastante para ser lido antes de escrever —
      medido na bateria de contraste, não estimado. */
-  #case-text::placeholder { color: var(--ink-faint); opacity: 1; }
+  /* §74. Itálico no texto de exemplo. A cor mais clara sozinha não diz que
+     aquilo não foi escrito por ninguém — o médico chega a olhar duas vezes
+     para saber se já tem conteúdo no campo. O itálico resolve antes da
+     leitura: é a convenção de "isto é indicação, não texto". */
+  #case-text::placeholder { color: var(--ink-faint); opacity: 1; font-style: italic; }
 
   .plaud-row {
     margin-top: 14px;
@@ -1607,7 +1611,9 @@
   .programas-custo {
     font-size: var(--fs-2xs); color: var(--ink-faint);
     margin: -14px 0 22px; line-height: 1.45;
-    padding-left: 2px;
+    /* §74. Tinha 2px de recuo, igual ao "Como funciona" — o mesmo erro meu,
+       em dois lugares, achado pela trava de alinhamento na primeira execução
+       dela. Elemento no nível da página começa na borda da página. */
   }
 
   /* A linha era um flex com `justify-content: space-between`: o bloco de
@@ -2119,8 +2125,13 @@
     color: var(--ink-faint);
     margin-right: 2px;
   }
-  /* A ação mora fora do bloco de informação. */
-  .cobertura-ajuda { margin: 0 0 22px; padding-left: 2px; }
+  /* §74. A ação mora fora do bloco de informação — e na MESMA borda de texto
+     que todo o resto do nível da página: título, linha de apoio, compositor e
+     nota de rodapé. Os 2px de recuo que eu tinha posto aqui não tinham razão
+     nenhuma, e 2px bastam para o olho registrar desalinho sem saber por quê.
+     Conteúdo dentro de uma superfície é que recua; conteúdo no nível da
+     página, nunca. */
+  .cobertura-ajuda { margin: 0 0 22px; padding-left: 0; }
   .chips { display: contents; }
   .chip {
     display: inline-flex;

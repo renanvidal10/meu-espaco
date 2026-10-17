@@ -1108,6 +1108,68 @@ async function rodar(nome, dispositivo) {
     await ctxLimpo.close();
   }
 
+  /* ---------- 13g. uma borda de texto só, nas quatro telas ---------- */
+  {
+    /* §74. "Essa parte de design eu sou muito crítico, queria sempre que
+     * você tivesse essa atenção para todas as áreas." — o dono, depois de
+     * notar o "Como funciona" 2px fora da borda dos demais.
+     *
+     * Dois pixels bastam para o olho registrar desalinho sem saber por quê,
+     * e atenção humana não escala para quatro telas a cada mudança. A regra
+     * vira teste: no nível da página, todo elemento começa na MESMA borda de
+     * texto. Conteúdo dentro de uma superfície recua — é o inset dela, e por
+     * isso superfícies ficam de fora da conta. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('alinhamento: ' + e.message));
+    await mockExtracao(p, { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61', nome_paciente: 'Maria S. Oliveira' });
+    await entrar(p);
+    await p.fill('#case-text', 'caso de ovário');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('button:has-text("Rodar triagem")');
+    await p.waitForSelector('#screen-2.active');
+    await p.click('#verdict-next-btn');
+    await p.waitForSelector('#screen-3.active');
+
+    const desalinhados = await p.evaluate(() => {
+      const fora = [];
+      document.querySelectorAll('.screen').forEach((tela, i) => {
+        const era = tela.classList.contains('active');
+        if (!era) tela.classList.add('active');
+
+        const bordas = [];
+        Array.from(tela.children).forEach((el) => {
+          if (!el.getClientRects().length) return;
+          const cs = getComputedStyle(el);
+          // Superfície (fundo pintado ou borda) tem inset próprio: o texto
+          // dela recua de propósito e não entra nesta conta.
+          const temFundo = cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent';
+          const temBorda = parseFloat(cs.borderLeftWidth) > 0;
+          if (temFundo || temBorda) return;
+          const inicioDoTexto = el.getBoundingClientRect().left + (parseFloat(cs.paddingLeft) || 0);
+          bordas.push({ el: el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(' ')[0] : ''), x: Math.round(inicioDoTexto) });
+        });
+
+        if (bordas.length < 2) { if (!era) tela.classList.remove('active'); return; }
+        // A borda da página é a mais frequente; o que destoa dela é o defeito.
+        const contagem = new Map();
+        bordas.forEach((b) => contagem.set(b.x, (contagem.get(b.x) || 0) + 1));
+        const referencia = [...contagem.entries()].sort((a, b) => b[1] - a[1])[0][0];
+        bordas.forEach((b) => {
+          if (Math.abs(b.x - referencia) > 1) {
+            fora.push(`tela ${i}: ${b.el} começa em ${b.x}px, e a borda da página é ${referencia}px`);
+          }
+        });
+        if (!era) tela.classList.remove('active');
+      });
+      return fora;
+    });
+
+    linha(ok(desalinhados.length === 0, desalinhados.slice(0, 4).join(' | ')),
+      'uma borda de texto só, nas quatro telas');
+    await p.close();
+  }
+
   /* ---------- 14. varredura de diagramação: texto encostando em texto ---------- */
   {
     /* §64.1. Dois defeitos relatados do celular eram da mesma família:
