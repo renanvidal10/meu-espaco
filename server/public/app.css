@@ -1451,7 +1451,8 @@
      Ver §56: custo no nome de um programa só induz o clique naquele. */
   .programas-custo {
     font-size: var(--fs-2xs); color: var(--ink-faint);
-    margin: 0 0 12px; line-height: 1.45;
+    margin: -14px 0 22px; line-height: 1.45;
+    padding-left: 2px;
   }
 
   /* A linha era um flex com `justify-content: space-between`: o bloco de
@@ -1632,6 +1633,9 @@
      card de 900px transforma uma ação secundária no elemento mais pesado da
      tela — foi o que deixou a tela de programas "gigante". */
   .doc-actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  /* §66.2. Ferramentas do documento, dentro dele. */
+  .doc-ferramentas { display: flex; justify-content: flex-end; padding: 12px 14px 0; }
+  body.printing .doc-ferramentas { display: none !important; }
   button.primary.compacto, button.ghost.compacto {
     min-height: var(--toque);
     padding: 0 18px;

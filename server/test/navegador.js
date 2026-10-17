@@ -523,7 +523,8 @@ async function rodar(nome, dispositivo) {
     );
 
     // Edição inline do documento
-    await p.locator('#programs-dynamic .doc-actions button.ghost').first().click();
+    // §66.2: "Editar campos" mora dentro do documento agora.
+    await p.locator('#programs-dynamic .doc-ferramentas button.ghost').first().click();
     const editavel = await p.locator('#programs-dynamic .doc-preview.editing').count();
     linha(ok(editavel === 1, 'editar campos não ativou'), 'editar campos do documento');
 

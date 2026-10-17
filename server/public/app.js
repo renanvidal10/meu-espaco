@@ -1398,6 +1398,16 @@
     const provisorio = result.state === 'provisorio';
     const doctor = `${doctorName} - CRM ${doctorCRM}`;
 
+    /* §66. A frase sobre custo era repetida DENTRO de cada card de teste, com
+     * o mesmo texto. Ela não fala de um teste — fala dos programas de
+     * indústria, que são os mesmos em toda a tela. Repetida, ela some: o olho
+     * aprende que aquele parágrafo cinza não muda e para de lê-lo. Dita uma
+     * vez, no topo, ela ainda informa. */
+    const temIndustriaNaTela = tests.some((t) =>
+      (t.programs || []).some((prog) => prog.tipo === 'patrocinado'));
+    const avisoCusto = document.getElementById('programas-custo');
+    if (avisoCusto) avisoCusto.hidden = !temIndustriaNaTela;
+
     container.innerHTML = tests.map((test, i) => {
       const provisional = provisorio && test.primary;
       // O toLowerCase() servia para emendar a frase, e destruía nome de gene e
@@ -1448,7 +1458,6 @@
 
       // A ordem mora no registro clínico (§56), não aqui.
       const listaProgramas = TUMORS.ordenarProgramas(test.programs || []);
-      const temIndustria = listaProgramas.some((p) => p.tipo === 'patrocinado');
 
       const programas = listaProgramas.map((p) => {
         const selo = SELO[p.tipo] || null;
@@ -1493,11 +1502,18 @@
           </div>
           <h3>${esc(test.name)}</h3>
         </div>
-        ${temIndustria ? '<p class="programas-custo">Programas de indústria: sem custo para o paciente. O que muda entre eles é o critério de elegibilidade, descrito em cada um.</p>' : ''}
         ${programas}
 
         <details class="doc-preview-wrap" id="doc-${esc(test.id)}">
           <summary><span class="doc-rotulo">Solicitação pronta para assinar</span></summary>
+          <!-- §66.2. "Editar campos" morava FORA do documento, numa fileira de
+               ações repetida em cada card e visível mesmo com o documento
+               fechado — um botão oferecendo editar algo que não está na tela.
+               Mora agora dentro do documento aberto, encostado no que ele
+               edita, e some junto com ele. -->
+          <div class="doc-ferramentas">
+            <button class="ghost compacto" type="button" onclick="toggleEditDoc('doc-${esc(test.id)}', this)">Editar campos</button>
+          </div>
           <div class="doc-preview">
             <!-- §64. A marca era conteúdo de um ::before em CSS. No
                  celular ela colidia com o tipo do documento — duas caixas
@@ -1532,7 +1548,6 @@
              mesma linha: o rótulo explica, o botão age, e o card encolhe em
              mais de uma centena de pixels por programa. -->
         <div class="doc-actions">
-          <button class="ghost compacto" type="button" onclick="toggleEditDoc('doc-${esc(test.id)}', this)">Editar campos</button>
           <button class="primary compacto" type="button" onclick="downloadDoc('doc-${esc(test.id)}')">Baixar PDF ↓</button>
         </div>
       </div>`;

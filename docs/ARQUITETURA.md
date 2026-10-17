@@ -3692,3 +3692,42 @@ Quatro estados, no celular e no desktop:
 E o conteúdo do passo a passo do iPhone é verificado por palavra —
 **Safari**, **compartilhar**, **Adicionar à Tela de Início** —, porque ali o
 texto não é enfeite: é a única instrução que faz a instalação acontecer.
+
+## 66. A tela de programas parou de se repetir (v1.28)
+
+A queixa era que cada teste repetia o card inteiro. Medindo o que de fato se
+repetia **com o mesmo conteúdo**, em vez de reorganizar a tela por impressão:
+
+### 66.1 A frase que se repetia idêntica
+
+*"Programas de indústria: sem custo para o paciente…"* aparecia **dentro de
+cada card**, com exatamente o mesmo texto. Ela não fala de um teste — fala dos
+programas de indústria, que são os mesmos em toda a tela.
+
+Repetida, ela some: o olho aprende que aquele parágrafo cinza não muda e para
+de lê-lo. Dita **uma vez**, e junto do aviso de elegibilidade — os dois falam
+da mesma coisa, o que decide se o paciente entra no programa —, ela volta a
+informar.
+
+### 66.2 O botão que oferecia editar o que não estava na tela
+
+"Editar campos" ficava **fora** do documento, numa fileira de ações repetida em
+cada card e visível **mesmo com o documento fechado**. Um botão oferecendo
+editar campos que o médico não está vendo.
+
+Mora agora **dentro** do documento aberto, encostado no que ele edita, e some
+junto com ele. A fileira de ações do card ficou com um botão só — "Baixar PDF",
+que é a ação que faz sentido com o documento fechado.
+
+### 66.3 O que NÃO mudou, e por quê
+
+A ideia de painel mestre-detalhe — testes numa coluna estreita à esquerda,
+conteúdo do selecionado à direita — foi considerada e descartada. Ela corta a
+altura da página no desktop, mas no celular volta a ser lista, e acrescenta um
+estado de seleção que o médico precisa administrar para ver o segundo teste.
+Hoje os dois testes estão à vista; com o painel, um deles passa a exigir um
+clique.
+
+O card por teste continua: cada teste tem programas e documento próprios, e
+essa repetição é estrutural, não redundância. O que saiu foi o que repetia
+**conteúdo idêntico**.
