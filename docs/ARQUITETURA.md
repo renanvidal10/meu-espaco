@@ -3987,3 +3987,58 @@ Vale registrar, porque falso positivo treina a ignorar a ferramenta:
 
 Fora o defeito do prioritário, **nenhuma violação em 67.284 combinações**. Os
 sete tumores, somático e germinativo, atravessam todos os invariantes.
+
+## 71. Espaçamento: dois defeitos e duas medições falsas (v1.33)
+
+O dono circulou em vermelho, no celular: o texto de exemplo do compositor com
+entrelinha folgada demais e **cortado** no meio da última frase; os três anexos
+sem contorno, parecendo palavras soltas; e as três linhas legais do acesso
+afastadas como se fossem avisos separados.
+
+### 71.1 O exemplo não cabia, e a primeira medição disse que cabia
+
+Em 390px o exemplo ocupa cinco linhas e o campo tinha 124px. Correção: fonte um
+degrau menor e mais altura no celular.
+
+**A regra não aplicou.** Ficou ANTES da regra base no arquivo, e `@media` não
+aumenta especificidade — só vale se vier depois. O campo continuou em 124px.
+
+E quase passou despercebido, porque **`scrollHeight` de uma textarea vazia
+ignora o `placeholder`**: a primeira medição respondeu "não está cortado" sobre
+um campo que estava. Para medir, o exemplo vira valor por um instante e volta.
+
+Hoje: 152px de campo para 152px de texto, e o teste de regressão mede do mesmo
+jeito. **Provado** desfazendo a correção.
+
+### 71.2 O rodapé legal, e um teste que teria passado com qualquer coisa
+
+`.gate-legal` tinha `padding-top: 26px`, e são **três** elementos empilhados.
+26px entre frases que formam um bloco só.
+
+Duas descobertas na correção:
+
+- A regra de irmão adjacente (`+`) **não serve aqui**: o primeiro parágrafo
+  está dentro do `<form>` e o segundo fora, então não são irmãos. O afastamento
+  teve de diminuir em todos.
+- **O primeiro teste era vazio.** Ele media `top - bottom` entre as caixas — e
+  `padding-top` mora **dentro** da caixa, então os retângulos se tocam e o vão
+  dá zero com qualquer espaçamento. Teria passado com 100px.
+
+Corrigido para somar os paddings na conta. Agora reprova nomeando o número:
+*"vãos de 26, 26px entre linhas do mesmo bloco"*.
+
+### 71.3 Contorno nos anexos
+
+PDF, Foto e Ditar eram texto sobre faixa, sem moldura — não se liam como
+botões. Ganharam a borda do card (a mesma do resto da interface, discreta o
+bastante para não competir com a ação principal ao lado) e fundo de superfície.
+
+### 71.4 Uma sobreposição que eu quase "consertei" sem existir
+
+A captura de página inteira mostrava o botão flutuante da Gena por cima de
+"Estruturar caso". Medido no viewport real, rolado até o fim: **não há
+sobreposição** — `fullPage` desenha elemento fixo na posição do primeiro
+quadro, e o `padding-bottom` de 96px do `main` já reserva o espaço.
+
+Fica registrado porque corrigir um defeito inexistente custa tanto quanto
+deixar um real: mexeria no posicionamento do botão e quebraria o que funciona.

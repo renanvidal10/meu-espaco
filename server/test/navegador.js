@@ -1011,6 +1011,80 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- 13e. o texto de exemplo cabe no campo ---------- */
+  {
+    /* §71. O exemplo do compositor vinha CORTADO no meio da última linha no
+     * celular: o campo não tinha altura para ele. A correção foi fonte um
+     * degrau menor e mais altura — mas a regra ficou ANTES da regra base no
+     * arquivo, e media query não aumenta especificidade: não valeu nada.
+     *
+     * E quase passou, porque `scrollHeight` de uma textarea VAZIA ignora o
+     * texto de exemplo — a primeira medição disse "não está cortado" sobre
+     * um campo que estava. O teste põe o exemplo como valor para medir, e
+     * devolve o campo ao estado anterior. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('exemplo: ' + e.message));
+    await entrar(p);
+    const medida = await p.evaluate(() => {
+      const t = document.getElementById('case-text');
+      const exemplo = t.placeholder;
+      const antes = t.value;
+      t.value = exemplo;
+      const precisa = t.scrollHeight;
+      t.value = antes;
+      return { cabe: t.clientHeight, precisa, palavras: exemplo.trim().split(/\s+/).length };
+    });
+    linha(
+      ok(medida.precisa <= medida.cabe + 2, `o exemplo precisa de ${medida.precisa}px e o campo tem ${medida.cabe}px`),
+      'o texto de exemplo cabe inteiro no campo',
+    );
+    linha(ok(medida.palavras >= 20, `só ${medida.palavras} palavras — o exemplo encolheu e deixaria de instruir`),
+      'o exemplo continua nomeando o que colar');
+    await p.close();
+  }
+
+  /* ---------- 13f. o rodapé legal do acesso é um bloco, não três avisos ---------- */
+  {
+    /* §71. `.gate-legal` tinha `padding-top: 26px`, e são TRÊS elementos
+     * empilhados: dois parágrafos e o "Sobre esta versão". 26px entre frases
+     * que formam um bloco só as faz parecer avisos soltos. O afastamento é
+     * do bloco; dentro dele, as linhas respiram pouco. */
+    // Contexto PRÓPRIO: as abas acima compartilham o localStorage e já têm
+    // sessão, então a tela de acesso não apareceria nelas.
+    const ctxLimpo = await browser.newContext(dispositivo);
+    const p = await ctxLimpo.newPage();
+    p.on('pageerror', (e) => erros.push('rodape-legal: ' + e.message));
+    await p.goto(BASE);
+    await p.waitForSelector('#acesso-name', { state: 'visible' });
+    await p.waitForTimeout(300);
+    const vaos = await p.evaluate(() => {
+      const itens = Array.from(document.querySelectorAll('.gate-legal'))
+        .filter((el) => el.getClientRects().length);
+      const fora = [];
+      for (let i = 1; i < itens.length; i++) {
+        const anterior = itens[i - 1].getBoundingClientRect();
+        const atual = itens[i].getBoundingClientRect();
+        /* O vão que o olho vê é da ÚLTIMA LINHA de texto de um até a
+         * PRIMEIRA do seguinte. `padding-top` mora DENTRO da caixa, então
+         * `top - bottom` dá zero mesmo com 26px de respiro — a primeira
+         * versão deste teste media exatamente isso e teria passado com
+         * qualquer espaçamento. O padding do elemento seguinte entra na
+         * conta, e o de baixo do anterior também. */
+        const padCima = parseFloat(getComputedStyle(itens[i]).paddingTop) || 0;
+        const padBaixo = parseFloat(getComputedStyle(itens[i - 1]).paddingBottom) || 0;
+        fora.push(Math.round((atual.top - anterior.bottom) + padCima + padBaixo));
+      }
+      return { quantos: itens.length, vaos: fora };
+    });
+    linha(ok(vaos.quantos >= 2, `só ${vaos.quantos} linha(s) legal(is) — o teste não mediria nada`),
+      'o rodapé legal tem mais de uma linha');
+    const folgado = vaos.vaos.filter((v) => v > 14);
+    linha(ok(folgado.length === 0, `vãos de ${vaos.vaos.join(', ')}px entre linhas do mesmo bloco`),
+      'as linhas do rodapé legal ficam juntas como um bloco');
+    await p.close();
+    await ctxLimpo.close();
+  }
+
   /* ---------- 14. varredura de diagramação: texto encostando em texto ---------- */
   {
     /* §64.1. Dois defeitos relatados do celular eram da mesma família:

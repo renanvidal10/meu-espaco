@@ -405,7 +405,19 @@
   .gate-alert.error { background: var(--warn-soft); border: 1px solid var(--warn-soft-border, var(--warn)); color: var(--warn); }
   .gate-alert.success { background: var(--accent-soft); border: 1px solid var(--accent-soft-border); color: var(--accent); }
 
-  .gate-legal { margin: auto 0 0; padding-top: 26px; font-size: var(--fs-2xs); line-height: 1.5; color: var(--ink-faint); }
+  /* §71. `margin: auto 0 0` empurra o bloco legal para o rodapé do painel —
+     isso é o certo. Mas `padding-top: 26px` valia para CADA linha empilhada,
+     e são três: dois parágrafos e o "Sobre esta versão". O resultado era
+     26px entre frases que são um bloco só, com cara de três avisos soltos.
+     O afastamento é do BLOCO; dentro dele, as linhas respiram pouco. */
+  /* §71. `margin: auto 0 0` empurra o bloco legal para o rodapé do painel —
+     isso é o certo. O que estava errado era `padding-top: 26px` valendo para
+     CADA uma das três linhas empilhadas: 26px entre frases que são um bloco
+     só, com cara de três avisos soltos.
+     A regra de irmão adjacente (`+`) NÃO resolve aqui: o primeiro parágrafo
+     fica dentro do `<form>` e o segundo fora, então eles não são irmãos. O
+     que serve é o próprio afastamento ser pequeno em todos. */
+  .gate-legal { margin: auto 0 0; padding-top: 10px; font-size: var(--fs-2xs); line-height: 1.45; color: var(--ink-faint); }
 
   /* Painel de valor só faz sentido com espaço horizontal; abaixo de 860px ele
      empurraria o formulário (a tarefa real da tela) para fora da primeira dobra.
@@ -716,17 +728,20 @@
     margin-top: 2px;
   }
   .compositor-anexos { display: flex; gap: 6px; flex-wrap: wrap; }
+  /* §71. Contorno suave: sem ele os três eram palavras soltas numa faixa, e
+     não se liam como botões. A borda é a do card (1,3:1 contra o fundo) —
+     delimita sem competir com a ação principal ao lado. */
   .anexo {
     display: inline-flex; align-items: center; gap: 7px;
     min-height: var(--toque); padding: 0 13px;
-    border: 1px solid transparent; border-radius: var(--r-sm);
-    background: transparent; color: var(--ink-muted);
+    border: 1px solid var(--border); border-radius: var(--r-sm);
+    background: var(--surface); color: var(--ink-muted);
     font-family: inherit; font-size: var(--fs-xs); font-weight: 600;
     cursor: pointer;
     transition: background-color var(--mov-rapido) var(--ease), color var(--mov-rapido) var(--ease), border-color var(--mov-rapido) var(--ease);
   }
   .anexo .ic { width: 17px; height: 17px; }
-  .anexo:hover { background: var(--surface-2); color: var(--ink); }
+  .anexo:hover { background: var(--surface-2); color: var(--ink); border-color: var(--border-control); }
   .anexo:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   /* Anexo COM arquivo dentro muda de estado: o médico precisa ver que já
      anexou sem ter que procurar o chip na lista. */
@@ -855,8 +870,23 @@
     min-height: 124px;
     padding: 14px 14px 6px;
     resize: vertical;
+    /* 1.5 de entrelinha num bloco de cinco linhas abre buracos entre elas e
+       o texto perde a aparência de parágrafo. 1.4 ainda é folgado para
+       leitura e junta as linhas num bloco só. §71 */
+    line-height: 1.4;
   }
   #case-text:focus, #case-text:focus-visible { background: transparent; border: none; outline: none; }
+  /* §71. O exemplo tem cinco linhas na largura do celular e vinha CORTADO no
+     meio da última — o campo não tinha altura para ele. Fonte um degrau menor
+     e mais altura: o médico lê a instrução inteira antes de escrever por cima
+     dela.
+     Esta regra PRECISA vir depois da base: media query não aumenta
+     especificidade, e na primeira tentativa ela ficou antes e não valeu
+     nada — o campo continuou em 124px e eu quase não percebi, porque
+     `scrollHeight` de textarea vazia ignora o texto de exemplo. */
+  @media (max-width: 560px) {
+    #case-text { font-size: var(--fs-2xs); min-height: 152px; line-height: 1.45; }
+  }
   /* §61. O texto de exemplo é instrução, não decoração: ele diz AO MÉDICO o
      que vale a pena colar. Fica claro o bastante para não competir com o que
      ele escrever, e escuro o bastante para ser lido antes de escrever —
