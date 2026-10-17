@@ -1199,9 +1199,26 @@
   }
 
   function renderNotes(notes) {
-    const wrap = document.getElementById('verdict-notes');
-    wrap.innerHTML = notes.map((note) => `
-      <details class="note-card${note.warn ? ' warn' : ''}">
+    /* §45.2 uma camada acima: a nota que MUDA CONDUTA é enunciado e fica
+     * aberta, ACIMA dos cards que ela governa. A que só explica uma ausência
+     * é elaboração e recolhe.
+     *
+     * Antes disto, a regra de sequenciamento mais perigosa do app — pedir
+     * metilação de MLH1 ANTES do germinativo — ficava atrás de um clique,
+     * enquanto 55 palavras de texto jurídico ficavam totalmente abertas logo
+     * abaixo. Ver §53. */
+    const lista = notes || [];
+    const acao = lista.filter((n) => n.nivel === 'acao' || n.warn);
+    const contexto = lista.filter((n) => !(n.nivel === 'acao' || n.warn));
+    const destino = document.getElementById('verdict-notes-acao');
+    if (destino) destino.innerHTML = acao.map((n) => cartaoDeNota(n, true)).join('');
+    document.getElementById('verdict-notes').innerHTML =
+      (destino ? contexto : lista).map((n) => cartaoDeNota(n, false)).join('');
+  }
+
+  function cartaoDeNota(note, aberta) {
+    return `
+      <details class="note-card${note.warn ? ' warn' : ''}${aberta ? ' acao' : ''}"${aberta ? ' open' : ''}>
         <summary>
           <span class="summary-text">
             <span class="tag">${esc(note.tag)}</span>
@@ -1210,7 +1227,7 @@
           <span class="chevron">${CHEVRON}</span>
         </summary>
         <div class="card-body"><p>${esc(note.body)}</p></div>
-      </details>`).join('');
+      </details>`;
   }
 
   /* ---------------- Programas de acesso e documentos ---------------- */
@@ -1268,8 +1285,31 @@
         laboratorio: { txt: 'Laboratório parceiro', cls: 'neutro' },
         'sem-via': { txt: 'Sem via verificada', cls: 'warn' },
       };
+      /* Cortar a nota do programa em 78 CARACTERES partia a frase no meio do
+       * critério. No teste HRD da GSK, o que ficava visível era
+       * "Elegível: carcinoma seroso ou…" — e o que sumia atrás do "mais" era
+       * "de ALTO GRAU" e "EM PRIMEIRA LINHA de tratamento", ou seja, os dois
+       * critérios que RECUSAM o paciente, mais o aviso de que a solicitação
+       * não é por portal. O médico lia a metade que inclui e não lia a metade
+       * que exclui. Agora o corte respeita o fim de frase: o que fica visível
+       * é sempre um enunciado inteiro. Ver §53. */
+      const cortarNota = (txt) => {
+        const t = String(txt || '');
+        if (t.length <= 120) return { cabeca: t, cauda: '' };
+        let fim = t.indexOf('. ');
+        // Uma primeira frase curta demais não explica nada: busca a seguinte.
+        while (fim > 0 && fim < 60) {
+          const prox = t.indexOf('. ', fim + 2);
+          if (prox < 0) break;
+          fim = prox;
+        }
+        if (fim <= 0 || fim >= t.length - 2) return { cabeca: t, cauda: '' };
+        return { cabeca: t.slice(0, fim + 1), cauda: t.slice(fim + 2) };
+      };
+
       const programas = (test.programs || []).map((p) => {
         const selo = SELO[p.tipo] || null;
+        const nota = cortarNota(p.note);
         const acao = p.url
           ? `<a class="link" href="${esc(p.url)}" target="_blank" rel="noopener">Abrir portal ↗</a>`
           : (p.tipo === 'sem-via' ? '' : '<span class="link-ausente">Solicite pelo representante</span>');
@@ -1279,9 +1319,10 @@
             <span class="logo">${icon}</span>
             <div>
               <div class="name">${esc(p.name)}${selo ? ` <span class="selo ${selo.cls}">${selo.txt}</span>` : ''}</div>
-              ${p.note && p.note.length > 120
-                ? `<details class="prog-nota"><summary>${esc(p.note.slice(0, p.note.indexOf(' ', 78) > 0 ? p.note.indexOf(' ', 78) : 100))}…</summary><div class="test">${esc(p.note)}</div></details>`
-                : `<div class="test">${esc(p.note)}</div>`}
+              ${nota.cauda
+                ? `<details class="prog-nota"><summary>${esc(nota.cabeca)}</summary><div class="test">${esc(nota.cauda)}</div></details>`
+                : `<div class="test">${esc(nota.cabeca)}</div>`}
+              ${p.verificadoEm ? `<div class="prog-verif">Via conferida em ${esc(p.verificadoEm.split('-').reverse().join('/'))}</div>` : ''}
             </div>
           </div>
           ${acao}

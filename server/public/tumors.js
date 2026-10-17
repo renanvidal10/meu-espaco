@@ -961,7 +961,7 @@
         // A nota de manutenção com PARP fica restrita à doença METASTÁTICA: o
         // POLO estudou doença metastática, e estender a afirmação à doença
         // localmente avançada seria afirmar mais do que o estudo mostrou.
-        notes: platina && metastatico ? [{ tag: 'Impacto terapêutico', title: 'Paciente em platina',
+        notes: platina && metastatico ? [{ nivel: 'acao', tag: 'Impacto terapêutico', title: 'Paciente em platina',
           body: 'Em doença metastática com mutação germinativa BRCA1/2 e resposta mantida à platina, existe indicação de terapia de manutenção com inibidor de PARP. O resultado do teste muda a conduta nesta janela.' }] : [],
       };
     },
@@ -1068,6 +1068,7 @@
 
       if (dmmr) {
         notasExtras.push({
+          nivel: 'acao',
           tag: 'Ordem importa',
           title: 'Perda de MLH1/PMS2 pede metilação antes do germinativo',
           body: 'A maioria da perda de MLH1 é esporádica, por metilação do promotor. Solicite a metilação de MLH1 (BRAF V600E pode complementar) antes de encaminhar ao germinativo: metilado sugere causa esporádica; não metilado indica investigação de Lynch. Perda de MSH2/MSH6, MSH6 isolada ou PMS2 isolada segue direto ao germinativo.',
@@ -1171,6 +1172,7 @@
 
       if (dmmr) {
         notasEndo.push({
+          nivel: 'acao',
           tag: 'Ordem importa',
           title: 'Perda de MLH1/PMS2 pede metilação antes do germinativo',
           body: 'A maioria da perda de MLH1 é esporádica, por metilação do promotor. Solicite a metilação de MLH1 antes de encaminhar ao germinativo: metilado sugere causa esporádica; não metilado indica investigação de Lynch. Perda de MSH2/MSH6, MSH6 isolada ou PMS2 isolada segue direto ao germinativo.',

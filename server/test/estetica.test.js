@@ -65,3 +65,32 @@ test('o texto clínico não pode encolher abaixo do corpo', () => {
 test('o alvo mínimo de toque está declarado em 44px', () => {
   assert.match(HTML, /--toque:\s*44px/, 'o piso de 44px do alvo de toque sumiu');
 });
+
+// §54. O index.html era um arquivo único; ao separá-lo, app.js passou a ser
+// carregado SÓ pelo navegador — e nenhum teste de unidade o lê como código,
+// apenas como texto. Uma chave órfã deixada numa reescrita derrubou o app
+// inteiro na primeira linha, e a bateria de unidade seguiu verde: 248 testes
+// passando sobre um aplicativo que não abria. A bateria de navegador pegou,
+// mas ela é lenta e nem sempre roda. Esta trava custa milissegundos.
+test('o JavaScript do navegador compila', () => {
+  const { execFileSync } = require('child_process');
+  const alvos = ['app.js', 'tumors.js', 'sw.js'];
+  for (const nome of alvos) {
+    const caminho = path.join(__dirname, '..', 'public', nome);
+    if (!fs.existsSync(caminho)) continue;
+    try {
+      execFileSync(process.execPath, ['--check', caminho], { stdio: 'pipe' });
+    } catch (e) {
+      assert.fail(`${nome} não compila:\n${String(e.stderr || e.message)}`);
+    }
+  }
+});
+
+// A marcação e a lógica combinam por nome de id. Se um lado renomeia e o outro
+// não, o conteúdo simplesmente não aparece — sem erro, sem aviso. Os ids abaixo
+// são os que carregam decisão clínica.
+test('os contêineres que a lógica procura existem na marcação', () => {
+  for (const id of ['verdict-notes-acao', 'verdict-notes', 'test-steps', 'programs-dynamic']) {
+    assert.ok(MARCACAO.includes(`id="${id}"`), `index.html não tem id="${id}"`);
+  }
+});

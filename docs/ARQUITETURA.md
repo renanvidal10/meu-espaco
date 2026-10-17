@@ -2971,3 +2971,111 @@ corpo, sem `defer`. Um `<script src>` nessa posição executa na mesma ordem e
 com o mesmo DOM disponível que o inline executava. Mover para o `<head>` com
 `defer` teria sido "mais moderno" e teria mudado o momento de execução: é o
 tipo de melhoria que introduz um bug que só aparece em máquina lenta.
+
+## 53. O corte de 78 caracteres escondia o critério de exclusão (v1.22)
+
+O card de programa mostrava um resumo do critério de elegibilidade cortado em
+78 caracteres, com reticências. Para o programa de ovário, o texto completo é:
+
+> Elegível: carcinoma seroso ou endometrioide **de ALTO GRAU** de ovário, trompa
+> ou peritônio, **EM PRIMEIRA LINHA de tratamento**. A solicitação não é feita
+> por portal.
+
+O corte produzia:
+
+> Elegível: carcinoma seroso ou…
+
+O médico lia **a metade que inclui** e não lia **a metade que exclui**. As três
+informações perdidas são exatamente as que negam o encaminhamento: o grau, a
+linha de tratamento e o canal de solicitação. Um resumo que preserva só o
+critério de inclusão não é um resumo curto — é um critério diferente, e mais
+permissivo que o real.
+
+### 53.1 A correção
+
+`cortarNota()` passou a cortar em **fronteira de frase**, não em contagem de
+caractere: mantém frases inteiras até caber, e se nem a primeira frase cabe,
+não corta — mostra inteira. Uma frase clínica é a unidade mínima que ainda
+significa o que o documento original dizia.
+
+O card ganhou também a linha `prog-verif` com a data de `verificadoEm`: quem
+olha o critério vê quando ele foi conferido pela última vez na fonte.
+
+### 53.2 A trava
+
+Teste em `regras.test.js` que afirma, para o programa de ovário, que as duas
+expressões **"ALTO GRAU"** e **"PRIMEIRA LINHA"** continuam presentes no texto
+que a tela mostra. A trava é sobre os critérios de exclusão, não sobre o
+comprimento: se amanhã alguém encurtar de outro jeito, o teste falha pelo motivo
+certo.
+
+## 54. A regra que muda a ordem do pedido estava escondida (v1.22)
+
+Na tela de resultado todas as notas eram `<details>` recolhidos, em um único
+contêiner **abaixo** do card de testes. Isso colocava no mesmo nível visual duas
+coisas de naturezas diferentes:
+
+- **"Perda de MLH1/PMS2 pede metilação antes do germinativo"** — a regra de
+  sequenciamento mais perigosa do aplicativo. A maioria da perda de MLH1 é
+  esporádica, por metilação do promotor; seguir a ordem errada encaminha ao
+  germinativo uma paciente cuja causa é esporádica.
+- O texto jurídico de leitura de resultado, que não muda conduta nenhuma e
+  ficava **inteiramente aberto** logo abaixo.
+
+A regra que corrige a ordem do pedido ficava atrás de um clique, e **depois** do
+card que ela corrige. Quem lê de cima para baixo assina a solicitação antes de
+encontrar a correção.
+
+### 54.1 A diretriz
+
+Nota que **muda conduta ou ordem** é enunciado: nasce aberta, e vem **antes** do
+card que ela governa. Nota que apenas explica um contexto ou uma ausência é
+elaboração: nasce recolhida, depois.
+
+A marcação da nota declara isso com `nivel: 'acao'` em `tumors.js` — o registro
+clínico continua sendo a única fonte, e a tela só obedece. Três notas carregam o
+rótulo hoje: as duas de `Ordem importa` (colorretal e endométrio dMMR) e a de
+`Impacto terapêutico` do pâncreas em platina.
+
+### 54.2 Como a tela separa
+
+`index.html` ganhou `#verdict-notes-acao` **acima** de `#test-steps`.
+`renderNotes` divide a lista em ação e contexto e rende cada metade no seu
+contêiner; se o contêiner de ação não existir, tudo cai no contêiner antigo —
+degradação sem perda de informação.
+
+Alerta (`warn`) continua mais grave que ação: quando a nota é as duas coisas, a
+cor de alerta prevalece (`.acao:not(.warn)`).
+
+### 54.3 O defeito que isto revelou, e a trava que faltava
+
+A reescrita de `renderNotes` deixou **uma chave órfã** em `app.js`. O arquivo
+inteiro parou de ser avaliado — o aplicativo não abria, primeira linha. E a
+bateria de unidade seguiu **verde, 248 testes passando**.
+
+A causa é estrutural, não distração: desde que o arquivo único virou três
+(§52), `app.js` é carregado **só pelo navegador**. `estetica.test.js` o lia como
+texto, para proibir valor cru de fonte; nenhum teste o lia como **código**. A
+única bateria que pegava era a de navegador, que é lenta e nem sempre roda.
+
+Duas travas novas em `estetica.test.js`, ambas em milissegundos:
+
+- **`node --check`** em `app.js`, `tumors.js` e `sw.js`. Se o JavaScript do
+  navegador não compila, a bateria de unidade falha.
+- Os **ids que a lógica procura existem na marcação**: `verdict-notes-acao`,
+  `verdict-notes`, `test-steps`, `programs-dynamic`. Marcação e lógica combinam
+  por nome; quando um lado renomeia e o outro não, o conteúdo simplesmente não
+  aparece — sem erro e sem aviso.
+
+### 54.4 Um alvo que nunca aparece passa por aprovado
+
+`medirTema` ignora seletor ausente (`if (!dados) continue`). Acrescentar
+`.note-card.acao .tag` à lista de contraste não mediria nada: a nota de ação é
+renderizada por JS e o roteiro só rodava um caso de ovário, que não a produz.
+
+A bateria passou a rodar um **segundo caso** — endométrio dMMR — e a **falhar
+explicitamente** se ele não renderizar nota de ação. Sem isso, o alvo novo
+constaria como aprovado sem nunca ter sido medido.
+
+Medido: o selo em `--accent` como texto de 12px dá **6,41:1** no tema claro e
+**7,90:1** no escuro. 24 medições, as duas temperaturas.

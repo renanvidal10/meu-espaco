@@ -39,6 +39,11 @@ const ALVOS = [
   { seletor: '.field label', minimo: 4.5, nota: 'rotulo de campo (--ink-faint)' },
   { seletor: '.eyebrow', minimo: 4.5, nota: 'sobretitulo (--ink-faint)' },
   { seletor: '.doc-preview .doc-row .k', minimo: 4.5, nota: 'rotulo do documento' },
+  // §54. O selo da nota de ação trocou --warn por --accent. A cor de destaque
+  // foi escolhida para botão (fundo cheio, texto branco por cima); aqui ela
+  // vira TEXTO de 12px sobre superfície clara, que é o caso mais exigente.
+  { seletor: '.note-card.acao .tag', minimo: 4.5, nota: 'selo da nota de acao (--accent como texto)' },
+  { seletor: '.note-card.acao h4', minimo: 4.5, nota: 'titulo da nota de acao' },
 ];
 
 function paraRgb(css) {
@@ -191,6 +196,37 @@ if (require.main === module) {
     const seguir = pagina.locator('#btn-to-result');
     if (await seguir.count()) { await seguir.click(); await pagina.waitForTimeout(600); }
 
+    for (const tema of ['light', 'dark']) todos.push(...await medirTema(pagina, tema));
+
+    // Segundo caso: endométrio dMMR é o único que renderiza a nota de AÇÃO, e
+    // a nota de ação é a única que usa --accent como texto. Sem rodar este
+    // caso, os dois alvos novos seriam silenciosamente pulados — medirTema
+    // ignora seletor ausente, então um alvo que nunca aparece passa por
+    // aprovado sem nunca ter sido medido.
+    stub.responderCom({
+      tipo: 'ok',
+      extracao: {
+        tipo_tumor: 'Ginecológico - Endométrio',
+        histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'dMMR / MSI-alto', idade: '58',
+      },
+    }, 1);
+    await pagina.click('.step-btn[data-step="0"]');
+    await pagina.waitForTimeout(300);
+    await pagina.fill('#case-text', 'Mulher 58 anos, carcinoma endometrioide de endometrio, FIGO IA, dMMR.');
+    await pagina.click('#btn-extract');
+    await pagina.waitForSelector('#screen-1.active');
+    // A nota de ação só existe depois da triagem rodar: ela é renderizada por
+    // JS, não está na marcação. Diferente do card do veredito, que existe
+    // vazio no HTML e por isso podia ser medido sem navegar.
+    await pagina.click('button:has-text("Rodar triagem")');
+    await pagina.waitForSelector('#screen-2.active');
+    await pagina.waitForTimeout(300);
+
+    const medidos = await pagina.locator('.note-card.acao .tag').count();
+    if (medidos === 0) {
+      console.error('FALHA: o caso de endométrio dMMR não renderizou nota de ação — os alvos de --accent não foram medidos.');
+      process.exitCode = 1;
+    }
     for (const tema of ['light', 'dark']) todos.push(...await medirTema(pagina, tema));
 
     await navegador.close();

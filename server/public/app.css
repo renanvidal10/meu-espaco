@@ -693,12 +693,14 @@
      entre eles aparece como desalinho. Antes eram 52px e 54px, e o rótulo do
      secundário quebrava em duas linhas por falta de largura. Ver §43. */
   button.primary, button.ghost {
-    min-height: var(--toque);
+    min-height: 46px;
     display: inline-flex; align-items: center; justify-content: center;
     white-space: nowrap;
-    border-radius: var(--r-sm);
-    padding: 11px 20px;
-    font-size: var(--fs-xs);
+    border-radius: var(--r-md);
+    padding: 12px 22px;
+    font-size: var(--fs-sm);
+    font-weight: 590;
+    letter-spacing: -0.006em;
     font-family: inherit;
     cursor: pointer;
     box-sizing: border-box;
@@ -709,14 +711,18 @@
     border: 1px solid transparent;
     font-weight: 600;
   }
-  button.primary:hover { filter: brightness(1.05); }
+  button.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  button.primary:active { transform: translateY(0) scale(.985); }
   button.primary:focus-visible, button.ghost:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   button.ghost {
     background: transparent;
     color: var(--ink-muted);
     border: 1px solid var(--border);
   }
-  button.ghost:hover { color: var(--ink); border-color: var(--ink-faint); }
+  button.ghost:hover { color: var(--ink); background: var(--surface-2); border-color: var(--border-control); }
   .btn-row .note { font-size: var(--fs-xs); color: var(--ink-faint); margin-left: auto; }
 
   /* A condição de elegibilidade da GSK tem 334 caracteres e ocupava cinco
@@ -730,6 +736,10 @@
   .program-row .prog-nota > summary::marker { content: ''; }
   .program-row .prog-nota > summary::after { content: ' mais'; color: var(--accent); font-weight: 600; }
   .program-row .prog-nota[open] > summary { display: none; }
+  /* A data de verificação é o que separa "via de acesso" de "porta morta".
+     O consórcio de pulmão viveu quatro anos no app com uma porta encerrada
+     dentro (§44.1) — e o dado já existia, só não chegava ao médico. */
+  .program-row .prog-verif { font-size: var(--fs-2xs); color: var(--ink-faint); margin-top: 5px; }
   .program-row .prog-nota > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-xs); }
 
   /* Card que nasce recolhido: proveniência do dado importa, mas não é o que o
@@ -791,6 +801,12 @@
     .card, .test-step, .program-row, .intake-tile, button.primary, button.ghost { transition: none; }
     button.primary:active, button.ghost:active, .intake-tile:active { transform: none; }
   }
+
+  /* Alvos de toque que estavam abaixo do piso de 44px desde antes desta
+     passada: não apareciam na bateria porque não estavam visíveis no
+     percurso testado. Falha latente, corrigida. §53 */
+  .plaud-item button, .plaud-action,
+  .gena-cta button, .gena-compose input, .gena-send { min-height: var(--toque); }
 
   .selo {
     display: inline-block; vertical-align: middle; margin-left: 6px;
@@ -1055,6 +1071,18 @@
   .note-card .card-body { padding: 0 14px 11px; }
   .note-card .card-body p:first-child { margin-top: 0; }
   .note-card .card-body > *:last-child { margin-bottom: 0; }
+
+  /* nota de ação: regra que muda a sequência ou a conduta. Nasce aberta e
+     acima do card de testes, porque o médico precisa dela ANTES de assinar.
+     O chevron recua para não sugerir que há algo escondido. */
+  #verdict-notes-acao { display: flex; flex-direction: column; gap: 10px; margin: 18px 0 0; }
+  #verdict-notes-acao:empty { display: none; }
+  /* :not(.warn) porque alerta é mais grave que ação: se a nota é as duas
+     coisas, a cor de alerta prevalece. */
+  .note-card.acao:not(.warn) { border-left-color: var(--accent); }
+  .note-card.acao:not(.warn) .tag { color: var(--accent); }
+  .note-card.acao > summary .chevron { opacity: .45; }
+  .note-card.acao > summary:hover .chevron { opacity: 1; }
 
   /* selo com a contagem de testes - resposta rápida "quantos e quais",
      sem precisar ler o parágrafo inteiro do veredito. */

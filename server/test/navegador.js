@@ -292,6 +292,49 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- 6e. a regra de SEQUÊNCIA aparece aberta e antes do pedido ---------- */
+  {
+    // §54. A nota "perda de MLH1/PMS2 pede metilação antes do germinativo" é a
+    // regra de ordem mais perigosa do app: seguir a ordem errada manda ao
+    // germinativo uma paciente cuja perda é esporádica. Ela ficava recolhida
+    // atrás de um clique, ABAIXO do card de testes que ela governa, enquanto o
+    // texto jurídico ficava todo aberto. O teste vigia as duas coisas que
+    // importam: que ela nasce aberta, e que vem ANTES do card que ela corrige.
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('ordem-nota: ' + e.message));
+    await mockExtracao(p, { tipo_tumor: 'Ginecológico - Endométrio', histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'dMMR / MSI-alto', idade: '58' });
+    await entrar(p);
+    await p.fill('#case-text', 'endométrio dMMR');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('button:has-text("Rodar triagem")');
+    await p.waitForSelector('#screen-2.active');
+
+    const nota = p.locator('#verdict-notes-acao .note-card').filter({ hasText: 'metilação' }).first();
+    const existe = await nota.count();
+    const aberta = existe ? await nota.evaluate((el) => el.open) : false;
+    // innerText de <details> aberto já traz o corpo: o médico lê sem clicar.
+    const corpo = existe ? await nota.innerText() : '';
+    linha(
+      ok(existe === 1 && aberta && /antes de encaminhar/i.test(corpo), `existe=${existe} aberta=${aberta} corpo="${corpo.slice(0, 60)}"`),
+      'regra de sequência nasce ABERTA e legível sem clique',
+    );
+
+    // Ordem no documento: a nota de ação tem que vir antes do card de testes.
+    const antes = await p.evaluate(() => {
+      const n = document.querySelector('#verdict-notes-acao .note-card');
+      const t = document.getElementById('test-steps');
+      if (!n || !t) return false;
+      return n.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING ? true : false;
+    });
+    linha(ok(antes, 'a regra de ordem ficou depois do card de testes'), 'regra de sequência vem ANTES do pedido');
+
+    // E o texto jurídico, que não muda conduta, continua recolhido.
+    const juridicoAberto = await p.locator('#verdict-notes .note-card[open]').count();
+    linha(ok(juridicoAberto === 0, `${juridicoAberto} nota(s) de contexto nasceram abertas`), 'nota de contexto segue recolhida');
+    await p.close();
+  }
+
   /* ---------- 6. ditado por voz ---------- */
   {
     const p = await ctx.newPage();
