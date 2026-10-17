@@ -783,6 +783,14 @@
   details.gate-mais[open] > summary::after { content: '–'; margin-left: 6px; }
   details.gate-mais > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-xs); }
 
+  .nota-rodape {
+    margin: 12px 0 0;
+    font-size: var(--fs-2xs);
+    color: var(--ink-faint);
+    line-height: 1.5;
+  }
+  .nota-rodape .linklike { font-size: inherit; }
+
   .selo {
     display: inline-block; vertical-align: middle; margin-left: 6px;
     padding: 2px 8px; border-radius: var(--r-full);
@@ -815,7 +823,20 @@
 
   /* ---- review form ---- */
   .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  #fields-hint { margin-bottom: 14px; }
+  #fields-hint { margin: 8px 0 0; }
+  .card-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+  .card-topo h3 { margin: 0; }
+  details.ajuda-campo > summary {
+    list-style: none; cursor: pointer;
+    font-size: var(--fs-2xs); font-weight: 600; color: var(--accent);
+    padding: 6px 0; min-height: var(--toque); display: flex; align-items: center;
+  }
+  details.ajuda-campo > summary::-webkit-details-marker { display: none; }
+  details.ajuda-campo > summary::marker { content: ''; }
+  details.ajuda-campo[open] > summary { color: var(--ink-faint); }
+  details.ajuda-campo > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-xs); }
+  details.ajuda-campo { width: 100%; }
+  .card-topo details.ajuda-campo { width: auto; }
   #fields-dynamic { margin-top: 16px; }
   @media (max-width: 560px) { .field-grid { grid-template-columns: 1fr; } }
   .field { display: flex; flex-direction: column; gap: 5px; }
@@ -1445,10 +1466,12 @@
      Como chips, viram uma informação escaneável de relance. */
   .cobertura {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     flex-wrap: wrap;
-    gap: 6px 8px;
-    margin: 0 0 22px;
+    gap: 4px 10px;
+    margin: 0 0 24px;
+    font-size: var(--fs-xs);
+    color: var(--ink-muted);
   }
   .cobertura-label {
     font-size: var(--fs-2xs);
@@ -2006,39 +2029,35 @@
 
   <!-- SCREEN 1 - INGESTÃO -->
   <section class="screen active" id="screen-0">
-    <div class="eyebrow" id="eyebrow-0">Oncologia · passo 1 de 4</div>
+    <div class="eyebrow" id="eyebrow-0"></div>
     <h1>Descreva o caso</h1>
     <p class="lede">Anexe o laudo ou descreva o caso. O subtipo oncológico é identificado sozinho.</p>
 
-    <div class="cobertura">
-      <span class="cobertura-label">Cobertura</span>
-      <span class="chips" id="tumores-cobertos"></span>
+    <p class="cobertura">
+      <span class="cobertura-label">Cobre</span>
+      <span id="tumores-cobertos"></span>
       <button class="linklike como-funciona" type="button" onclick="abrirBoasVindas()">Como funciona</button>
-    </div>
+    </p>
 
     <div class="mode-panel active" id="mode-form">
       <div class="card">
-        <p class="hint">Arraste arquivos para esta área, ou escolha abaixo. Pode combinar mais de uma fonte.</p>
+        <p class="hint">Anexe o laudo, escreva ou dite. Pode combinar mais de uma fonte.</p>
         <div class="dropzone" id="dropzone">
           <div class="intake-grid">
             <button class="intake-tile" id="tile-pdf" type="button" onclick="document.getElementById('input-pdf').click()">
-              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span><span class="title">Laudo em PDF</span></span>
-              <span class="desc">Anatomopatológico, prontuário.</span>
+              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span><span class="title">PDF</span></span>
               <span class="file-name" id="file-name-pdf"></span>
             </button>
             <button class="intake-tile" id="tile-photo" type="button" onclick="document.getElementById('input-photo').click()">
-              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span><span class="title">Foto do laudo</span></span>
-              <span class="desc">Foto ou print do documento.</span>
+              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span><span class="title">Foto</span></span>
               <span class="file-name" id="file-name-photo"></span>
               <div class="thumb-row" id="thumb-row"></div>
             </button>
             <button class="intake-tile" id="tile-text" type="button" onclick="document.getElementById('case-text').focus()">
-              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg></span><span class="title">Texto ou transcrição</span></span>
-              <span class="desc">Escreva ou cole uma transcrição.</span>
+              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg></span><span class="title">Texto</span></span>
             </button>
             <button class="intake-tile" id="tile-voice" type="button" onclick="toggleVoicePanel()">
-              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span><span class="title">Ditado por voz</span></span>
-              <span class="desc">Grave o caso falando.</span>
+              <span class="row"><span class="icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span><span class="title">Voz</span></span>
             </button>
           </div>
           <div class="dropzone-hint">Solte os arquivos aqui</div>
@@ -2068,7 +2087,7 @@
           <p class="hint" id="voice-unsupported" role="status" style="display:none; margin-top:8px; color:var(--warn);">Seu navegador não suporta ditado por voz nativo. Tente no Chrome ou Edge, ou digite/cole o texto diretamente.</p>
         </div>
 
-        <div class="plaud-row">
+        <div class="plaud-row" id="plaud-row" style="display:none;">
           <div class="left">
             <span class="dot" id="plaud-dot"></span>
             <div>
@@ -2085,8 +2104,11 @@
       <div class="btn-row">
         <button class="ghost" type="button" onclick="clearIntake()">Limpar tudo</button>
         <button class="primary" type="button" id="btn-extract" onclick="runExtraction()">Estruturar caso →</button>
-        <span class="note">O material é lido por um modelo de IA externo. <button type="button" class="linklike" onclick="abrirPrivacidade()">Como seus dados são tratados</button></span>
       </div>
+      <!-- A nota de privacidade estava NA MESMA LINHA dos botões, competindo
+           com a ação principal. Quatro elementos de pesos diferentes numa
+           linha é desalinho; embaixo, ela informa sem disputar. §50 -->
+      <p class="nota-rodape">O material é lido por um modelo de IA externo. <button type="button" class="linklike" onclick="abrirPrivacidade()">Como seus dados são tratados</button></p>
     </div>
 
   </section>
@@ -2098,7 +2120,7 @@
       <span class="code lock"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Caso <span class="mono" id="case-code-1">-</span></span>
     </div>
 
-    <div class="eyebrow" id="eyebrow-1">Oncologia · passo 2 de 4</div>
+    <div class="eyebrow" id="eyebrow-1"></div>
     <h1>Confirme o caso estruturado</h1>
     <p class="lede">Confira e corrija. A triagem usa exatamente o que estiver escrito aqui.</p>
 
@@ -2110,8 +2132,10 @@
     <div id="avisos-revisao" role="alert"></div>
 
     <div class="card">
-      <h3>Perfil clínico</h3>
-      <p class="hint" id="fields-hint"></p>
+      <div class="card-topo">
+        <h3>Perfil clínico</h3>
+        <details class="ajuda-campo"><summary aria-label="O que cada campo significa">O que cada campo significa</summary><p class="hint" id="fields-hint"></p></details>
+      </div>
       <div class="field-grid">
         <div class="field full">
           <label for="field-subtipo">Subtipo oncológico (identificado automaticamente)</label>
@@ -2148,7 +2172,7 @@
       <span class="code lock"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Caso <span class="mono" id="case-code-2">-</span></span>
     </div>
 
-    <div class="eyebrow" id="eyebrow-2">Oncologia · passo 3 de 4</div>
+    <div class="eyebrow" id="eyebrow-2"></div>
     <h1>Resultado da triagem</h1>
 
     <div class="verdict" id="verdict-box" aria-live="polite">
@@ -2195,7 +2219,7 @@
 
   <!-- SCREEN 4 - PROGRAMAS -->
   <section class="screen" id="screen-3">
-    <div class="eyebrow" id="eyebrow-3">Oncologia · passo 4 de 4</div>
+    <div class="eyebrow" id="eyebrow-3"></div>
     <h1>Programas de acesso e modelo de solicitação</h1>
     <p class="lede">Informe o nome do paciente e baixe a solicitação pronta para assinar. A plataforma direciona ao portal oficial — nunca processa o pedido.</p>
     <p class="hint" id="programs-note" role="status" style="display:none; margin: -10px 0 20px;"></p>
@@ -2689,7 +2713,11 @@
   (function listarTumoresCobertos() {
     const el = document.getElementById('tumores-cobertos');
     if (!el) return;
-    el.innerHTML = TUMORS.list().map((t) => `<span class="chip">${t.short}</span>`).join('');
+    // Eram sete pílulas cinza, que o olho lê como filtro clicável — e não
+    // são. A mesma informação numa linha de texto some como ruído e continua
+    // respondendo "meu caso está no escopo?". §50
+    const nomes = TUMORS.list().map((t) => t.short);
+    el.textContent = nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1] + '.';
   })();
 
   // ===================== BOAS-VINDAS =====================
@@ -2818,7 +2846,10 @@
     document.getElementById('fields-hint').textContent = t.hint || '';
     [1, 2, 3].forEach((i) => {
       const el = document.getElementById('eyebrow-' + i);
-      if (el) el.textContent = `${t.short} · passo ${i + 1} de 4`;
+      // A barra de passos, logo acima, já diz em que passo o médico está.
+      // Repetir "passo 2 de 4" aqui é ruído; o que o sobretítulo acrescenta
+      // é o tumor identificado.
+      if (el) el.textContent = t.short;
     });
 
     if (manual) {
@@ -3817,8 +3848,9 @@
     try {
       plaudState = await api('/api/plaud/status');
     } catch (err) {
-      sub.textContent = 'Não foi possível verificar o status da integração.';
-      action.style.display = 'none';
+      // Falha ao verificar: a linha não aparece. Uma mensagem de erro sobre
+      // uma integração que o médico nem sabe que existe não ajuda ninguém.
+      document.getElementById('plaud-row').style.display = 'none';
       return;
     }
 
@@ -3827,11 +3859,13 @@
     list.innerHTML = '';
 
     if (!plaudState.configured) {
-      sub.textContent = 'Importe transcrições de consulta direto do seu gravador Plaud, sem digitar. Integração em liberação.';
+      // Indisponível: a linha inteira fica fora da tela.
+      document.getElementById('plaud-row').style.display = 'none';
       action.style.display = 'none';
       return;
     }
-    // Conectável: o selo "em breve" deixa de fazer sentido.
+    // Disponível de verdade: aparece, e o selo "em breve" deixa de fazer sentido.
+    document.getElementById('plaud-row').style.display = '';
     document.getElementById('plaud-soon').style.display = 'none';
 
     action.style.display = '';

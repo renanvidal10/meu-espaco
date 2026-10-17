@@ -2835,3 +2835,73 @@ Nenhuma mudança de regra foi necessária.
 conferido nesta data". Quando passar de um ano, alguém abre os cinco de novo.
 É barato e é a única coisa que impede uma porta morta de envelhecer dentro do
 produto.
+
+---
+
+## 50. Passada de design sênior, e o veredito sobre a MCP do 21st.dev (v1.21)
+
+### 50.1 A ferramenta pedida: configurada, e por que não serve hoje
+
+O Renan pediu para instalar a **21st.dev Magic MCP** e usá-la para deixar a
+plataforma com cara profissional. A configuração está escrita em `.mcp.json`.
+Mas o veredito honesto, verificado na fonte e não de memória:
+
+**Ela gera componentes React/Tailwind.** Este app é **HTML, CSS e JavaScript
+puros, num arquivo só, sem React, sem Tailwind e sem etapa de build** — as
+únicas dependências de frontend são zero. Um componente gerado por ela não
+pode ser colado aqui.
+
+Usá-la de verdade exigiria reescrever o frontend em React. São ~3.900 linhas,
+e — o que importa mais — **invalidaria as quatro baterias de navegador,
+acessibilidade, contraste e instalação**, que hoje são a rede de segurança de
+um produto clínico. Dias antes de uma venda, trocar a fundação e perder a
+verificação é o pior negócio possível.
+
+Além disso ela exige **chave de API do 21st.dev** (que só o dono da conta
+obtém) e **reinício da sessão** para os tools aparecerem — nenhum dos dois
+acontece de dentro desta conversa.
+
+**O que ela ainda vale:** como catálogo de referência visual. Gerar um
+componente lá, olhar as decisões de espaçamento e hierarquia, e portar à mão
+para o nosso CSS. Isso é legítimo — e é exatamente o que esta seção fez,
+só que sem a dependência.
+
+### 50.2 A crítica, tela por tela
+
+**Tela 1 — entrada.** Onze blocos empilhados antes de o médico digitar a
+primeira letra. Os quatro ladrilhos de entrada tinham **título de uma linha em
+três deles e de duas no quarto**, e descrições que quebravam em alturas
+diferentes: o conjunto nunca alinhava. Desalinhamento de um pixel é o detalhe
+que o olho registra como "amador" sem conseguir nomear.
+
+| O que | De | Para |
+| --- | --- | --- |
+| Ladrilhos | "Laudo em PDF" + descrição de 2 linhas | **PDF · Foto · Texto · Voz** — uma linha, altura igual |
+| Cobertura | 7 pílulas cinza que parecem filtro clicável e não são | uma linha de texto |
+| Gravador Plaud | bloco "EM BREVE" em espaço nobre | some até a integração existir |
+| Nota de privacidade | na mesma linha dos botões, disputando com a ação | abaixo, sem disputar |
+| Sobretítulo | "Oncologia · passo 1 de 4" | — (a barra de passos já diz) |
+
+**Anunciar "em breve" dentro do produto, numa demonstração de venda, lê como
+fraqueza, não como roadmap.** O código da integração continua inteiro; muda
+só quando ele aparece.
+
+**Tela 2 — revisão.** O cartão abria com duas linhas de **aula de patologia**
+("grau e estadiamento são eixos independentes…"), sempre expostas acima dos
+campos. Quem precisa disso precisa uma vez; quem não precisa relê toda vez.
+Virou "O que cada campo significa", que abre sob demanda.
+
+**Sobretítulo em todas as telas.** Dizia "Oncologia · passo 2 de 4" logo
+abaixo de uma barra que já marca o passo 2. Agora diz só o que acrescenta:
+o tumor.
+
+### 50.3 O princípio por trás de tudo isto
+
+É o mesmo do §45, aplicado uma camada acima: **o que não decide nada, sai da
+tela.** Não some do produto — sai do caminho. Interface profissional não é a
+que mostra tudo o que sabe; é a que mostra o que a pessoa precisa para dar o
+próximo passo.
+
+Verificação depois da passada: 243 testes, navegador em celular e desktop,
+contraste AA nos dois temas, acessibilidade e instalação como aplicativo —
+todos aprovados.
