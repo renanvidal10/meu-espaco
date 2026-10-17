@@ -11,7 +11,7 @@ let falhas=0;const ok=(c,m)=>{console.log((c?'  ✓ ':'  ✗ ')+m);if(!c)falhas+
   for(let i=0;i<120;i++){try{if((await fetch(BASE+'/api/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,200));}
 
   console.log('\n=== ARQUIVOS DO APLICATIVO ===');
-  for(const caminho of ['/manifest.webmanifest','/sw.js','/icone.svg','/icone-180.png','/icone-192.png','/icone-512.png','/icone-512-mascara.png']){
+  for(const caminho of ['/manifest.webmanifest','/sw.js','/app.css','/app.js','/icone.svg','/icone-180.png','/icone-192.png','/icone-512.png','/icone-512-mascara.png']){
     const r=await fetch(BASE+caminho);
     ok(r.ok,`${caminho} → ${r.status} ${r.headers.get('content-type')||''}`);
   }

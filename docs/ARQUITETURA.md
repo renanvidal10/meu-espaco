@@ -2905,3 +2905,69 @@ próximo passo.
 Verificação depois da passada: 243 testes, navegador em celular e desktop,
 contraste AA nos dois temas, acessibilidade e instalação como aplicativo —
 todos aprovados.
+
+---
+
+## 52. O arquivo único virou três (v1.22)
+
+O `index.html` tinha **175 KB**: marcação, estilo e lógica no mesmo arquivo.
+Qualquer ajuste de uma vírgula no CSS obrigava a carregar tudo. E o grafo de
+código do §51 indexava esse arquivo com **zero nós** — o extrator cobre
+linguagens de código, não HTML com script embutido. O maior custo do projeto
+era justamente o ponto cego da ferramenta de economia.
+
+| Arquivo | Antes | Depois |
+| --- | --- | --- |
+| `index.html` | 175 KB | **33 KB** — só marcação |
+| `app.css` | — | 72 KB |
+| `app.js` | — | 69 KB |
+
+**Resultado no grafo:** de 868 para 963 nós, com **94 nós novos vindos do
+`app.js`** — lógica que antes era invisível. O CSS continua fora: o extrator
+também não parseia folha de estilo. Isso é limitação dele, registrada e não
+disfarçada.
+
+### 52.1 Como a ausência de regressão foi provada, e não afirmada
+
+Mover 141 KB de código entre arquivos é a classe de mudança que quebra em
+silêncio: ordem de execução, cascata de estilo, momento em que o DOM existe.
+Dizer "rodei os testes e passou" não bastava.
+
+Foi construída uma **impressão digital da plataforma**: estilo computado de
+**19 propriedades** de **todo elemento visível**, mais posição e tamanho, em
+**cinco telas × dois temas** — 1.094 elementos por execução. Medida antes,
+medida depois, comparada linha a linha.
+
+Primeira comparação: **4 diferenças**, todas em `box-shadow` de card, todas na
+quarta casa decimal (9.98774 contra 9.98772). Suspeita de ruído da transição
+em voo, não de regressão — mas suspeita não é prova.
+
+A prova veio de medir **o mesmo código duas vezes**:
+
+| Comparação | Diferenças reais |
+| --- | --- |
+| Mesmo código, duas medições | **3** |
+| Antes × depois da separação | **0** |
+
+Duas execuções do código idêntico divergem **mais** do que antes contra depois.
+O jitter é a animação de sombra sendo amostrada em instantes diferentes. A
+separação não mudou um pixel.
+
+### 52.2 O que precisou acompanhar
+
+- **`sw.js`**: `app.css` e `app.js` entram na casca guardada, e a versão do
+  cache sobe para `v2` — sem isso, quem já tinha o app instalado continuaria
+  recebendo a casca antiga, que apontava para o HTML monolítico.
+- **`estetica.test.js`**: a trava que proíbe valor cru de fonte e raio passou a
+  ler o `app.css`, e continua lendo o HTML para pegar quem reintroduzir estilo
+  inline.
+- **`aplicativo.js`**: os dois arquivos novos entram na checagem de que a casca
+  responde com o tipo certo.
+
+### 52.3 Por que o `<script>` ficou na mesma posição
+
+O arquivo externo entrou **exatamente onde o bloco inline estava** — fim do
+corpo, sem `defer`. Um `<script src>` nessa posição executa na mesma ordem e
+com o mesmo DOM disponível que o inline executava. Mover para o `<head>` com
+`defer` teria sido "mais moderno" e teria mudado o momento de execução: é o
+tipo de melhoria que introduz um bug que só aparece em máquina lenta.

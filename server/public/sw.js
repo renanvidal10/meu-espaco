@@ -19,10 +19,12 @@
  *    app lento, porque a regra desatualizada não se anuncia.
  */
 
-const VERSAO = 'oncogenyx-v1';
+const VERSAO = 'oncogenyx-v2';
 const CASCA = [
   '/',
   '/index.html',
+  '/app.css',
+  '/app.js',
   '/tumors.js',
   '/manifest.webmanifest',
   '/icone.svg',

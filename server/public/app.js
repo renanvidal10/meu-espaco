@@ -1,0 +1,1714 @@
+'use strict';
+// ===================== AUTENTICAÇÃO =====================
+  // O token de sessão fica em localStorage e acompanha toda chamada à API.
+  // Nome e CRM vêm da conta no servidor - não são mais digitados por sessão.
+  const TOKEN_KEY = 'oncogenyx.session';
+  let doctorName = '';
+  let doctorCRM = '';
+
+  function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+  function setToken(token) { localStorage.setItem(TOKEN_KEY, token); }
+  function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+
+  // Wrapper único de API: injeta o Bearer e trata 401 num só lugar, para uma
+  // sessão expirada nunca virar erro genérico no meio de um fluxo clínico.
+  async function api(path, { method = 'GET', body, isForm = false } = {}) {
+    const headers = {};
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (body && !isForm) headers['Content-Type'] = 'application/json';
+
+    let response;
+    try {
+      response = await fetch(path, {
+        method,
+        headers,
+        body: isForm ? body : (body ? JSON.stringify(body) : undefined),
+      });
+    } catch {
+      // "Failed to fetch" é o que o navegador diz. Não é o que o médico
+      // precisa ler num auditório com wi-fi ruim. Ver §46.2
+      throw new Error('Sem conexão com o servidor. Verifique a internet e tente de novo.');
+    }
+
+    if (response.status === 401 && !path.startsWith('/api/auth/')) {
+      clearToken();
+      showGate();
+      throw new Error('Sua sessão expirou. Entre novamente.');
+    }
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+    if (!response.ok) throw new Error((payload && payload.error) || 'Não foi possível completar a operação.');
+    // Portal cativo de hotel responde HTML com status 200: sem esta guarda o
+    // médico via "Cannot read properties of undefined" na caixa de erro.
+    if (payload === null) {
+      throw new Error('A resposta do servidor veio em formato inesperado. Isso costuma ser rede com portal de acesso — abra uma página qualquer no navegador, aceite a conexão e tente de novo.');
+    }
+    return payload;
+  }
+
+  function applyDoctorInfo() {
+    document.getElementById('doctor-chip-text').textContent = `${doctorName} · CRM ${doctorCRM}`;
+    const initials = doctorName.replace(/^Dra?\.\s*/i, '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+    document.getElementById('doctor-chip-avatar').textContent = initials || 'MD';
+    // Os documentos de solicitação são gerados na tela de programas e já
+    // nascem com nome e CRM - só precisam ser refeitos se já existirem.
+    if (typeof lastResult !== 'undefined' && lastResult) renderPrograms();
+  }
+
+  function showGate(view) {
+    document.body.classList.add('gate-active');
+    showView(view || (authMode === 'simples' ? 'acesso' : 'login'));
+  }
+
+  function showView(view) {
+    document.querySelectorAll('.gate-view').forEach((el) => el.classList.remove('active'));
+    const target = document.getElementById(`view-${view}`);
+    if (target) target.classList.add('active');
+    clearAlert();
+    const firstInput = target && target.querySelector('input');
+    if (firstInput) setTimeout(() => firstInput.focus(), 40);
+  }
+
+  function alertGate(message, kind) {
+    const box = document.getElementById('gate-alert');
+    box.className = `gate-alert ${kind}`;
+    box.textContent = message;
+    box.style.display = '';
+  }
+  function clearAlert() {
+    const box = document.getElementById('gate-alert');
+    box.style.display = 'none';
+    box.textContent = '';
+  }
+
+  function togglePw(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.setAttribute('aria-label', showing ? 'Mostrar senha' : 'Ocultar senha');
+  }
+
+  // Feedback de força: comprimento domina o score (recomendação do NIST),
+  // variedade de caracteres é bônus e não requisito.
+  function scorePassword() {
+    const value = document.getElementById('set-password').value;
+    const variety = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((re) => re.test(value)).length;
+    const score = Math.min(100, (Math.min(value.length, 16) / 16) * 75 + variety * 6);
+    const bar = document.getElementById('pw-bar');
+    bar.style.width = `${score}%`;
+    bar.style.background = score < 45 ? 'var(--warn)' : score < 75 ? '#b8860b' : 'var(--accent)';
+    document.getElementById('pw-hint').textContent =
+      value.length < 10 ? `Faltam ${10 - value.length} caractere(s).`
+      : score < 75 ? 'Boa. Uma frase mais longa deixa a senha ainda mais forte.'
+      : 'Senha forte.';
+  }
+
+  function busy(btnId, isBusy, busyLabel) {
+    const btn = document.getElementById(btnId);
+    if (isBusy) {
+      btn.dataset.label = btn.textContent;
+      btn.textContent = busyLabel;
+      btn.disabled = true;
+    } else {
+      btn.textContent = btn.dataset.label || btn.textContent;
+      btn.disabled = false;
+    }
+  }
+
+  function enterApp(user) {
+    doctorName = user.name;
+    doctorCRM = user.crm;
+    applyDoctorInfo();
+    document.body.classList.remove('gate-active');
+    refreshPlaudStatus();
+    // Só depois de entrar: um modal por cima da tela de acesso seria um
+    // obstáculo antes mesmo de o médico saber o que é a ferramenta.
+    talvezMostrarBoasVindas();
+  }
+
+  // Modo de acesso vindo do servidor. Enquanto não é conhecido, a tela fica
+  // no modo simples - que é o padrão - para não piscar entre dois formulários.
+  let authMode = 'simples';
+
+  async function doAcesso(event) {
+    event.preventDefault();
+    clearAlert();
+    busy('acesso-submit', true, 'Entrando...');
+    try {
+      const out = await api('/api/auth/acesso', {
+        method: 'POST',
+        body: {
+          name: document.getElementById('acesso-name').value,
+          crm: document.getElementById('acesso-crm').value,
+        },
+      });
+      setToken(out.token);
+      enterApp(out.user);
+    } catch (err) {
+      alertGate(err.message, 'error');
+    } finally {
+      busy('acesso-submit', false);
+    }
+    return false;
+  }
+
+  async function doLogin(event) {
+    event.preventDefault();
+    clearAlert();
+    busy('login-submit', true, 'Entrando...');
+    try {
+      const out = await api('/api/auth/login', {
+        method: 'POST',
+        body: {
+          email: document.getElementById('login-email').value,
+          password: document.getElementById('login-password').value,
+        },
+      });
+      setToken(out.token);
+      enterApp(out.user);
+    } catch (err) {
+      alertGate(err.message, 'error');
+    } finally {
+      busy('login-submit', false);
+    }
+    return false;
+  }
+
+  async function doRegister(event) {
+    event.preventDefault();
+    clearAlert();
+    busy('reg-submit', true, 'Enviando...');
+    try {
+      const out = await api('/api/auth/register', {
+        method: 'POST',
+        body: {
+          name: document.getElementById('reg-name').value,
+          crm: document.getElementById('reg-crm').value,
+          email: document.getElementById('reg-email').value,
+        },
+      });
+      showView('login');
+      alertGate(out.message, 'success');
+      // Sem provedor de email (ambiente de desenvolvimento), o servidor devolve
+      // o link para o fluxo não travar. Em produção esse campo nunca vem.
+      if (out.devUrl) console.info('[dev] Link de definição de senha:', out.devUrl);
+    } catch (err) {
+      alertGate(err.message, 'error');
+    } finally {
+      busy('reg-submit', false);
+    }
+    return false;
+  }
+
+  async function doForgot(event) {
+    event.preventDefault();
+    clearAlert();
+    busy('forgot-submit', true, 'Enviando...');
+    try {
+      const out = await api('/api/auth/request-reset', {
+        method: 'POST',
+        body: { email: document.getElementById('forgot-email').value },
+      });
+      showView('login');
+      alertGate(out.message, 'success');
+      if (out.devUrl) console.info('[dev] Link de redefinição:', out.devUrl);
+    } catch (err) {
+      alertGate(err.message, 'error');
+    } finally {
+      busy('forgot-submit', false);
+    }
+    return false;
+  }
+
+  async function doSetPassword(event) {
+    event.preventDefault();
+    clearAlert();
+    const password = document.getElementById('set-password').value;
+    if (password !== document.getElementById('set-password2').value) {
+      alertGate('As duas senhas não coincidem.', 'error');
+      return false;
+    }
+    busy('set-submit', true, 'Salvando...');
+    try {
+      const out = await api('/api/auth/set-password', {
+        method: 'POST',
+        body: { token: pendingResetToken, password },
+      });
+      setToken(out.token);
+      history.replaceState(null, '', location.pathname);
+      pendingResetToken = '';
+      enterApp(out.user);
+    } catch (err) {
+      alertGate(err.message, 'error');
+    } finally {
+      busy('set-submit', false);
+    }
+    return false;
+  }
+
+  async function signOut() {
+    try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) { /* segue mesmo se falhar */ }
+    clearToken();
+    location.reload();
+  }
+
+  let pendingResetToken = '';
+
+  (async function initAuth() {
+    const params = new URLSearchParams(location.search);
+
+    // Aviso de conta temporária: mostrado só quando o servidor está de fato
+    // sem banco persistente, para não virar texto decorativo permanente.
+    try {
+      const cfg = await fetch('/api/config').then((r) => r.json());
+      authMode = cfg.authMode || 'simples';
+      if (cfg.ephemeralAccounts) document.getElementById('gate-beta-note').style.display = '';
+    } catch (e) { /* mantém o modo simples, que é o padrão do servidor */ }
+
+    // Retorno do OAuth do Plaud, se houver.
+    const plaudStatus = params.get('plaud');
+    if (plaudStatus) {
+      history.replaceState(null, '', location.pathname);
+      setTimeout(() => reportPlaudReturn(plaudStatus), 400);
+    }
+
+    // Link de definição/redefinição de senha vindo do email.
+    const token = params.get('definir-senha');
+    if (token && authMode === 'completo') {
+      pendingResetToken = token;
+      showGate('set');
+      return;
+    }
+
+    if (!getToken()) { showGate(); return; }
+
+    try {
+      const out = await api('/api/auth/me');
+      enterApp(out.user);
+    } catch (err) {
+      clearToken();
+      showGate();
+    }
+  })();
+
+  // ===================== SUBTIPO ONCOLÓGICO =====================
+  // Tudo daqui pra frente é dirigido pelo registro em /tumors.js: campos da
+  // revisão, motor de regra, tela de resultado, cards de programa e
+  // documentos de solicitação. Acrescentar um tumor lá acrescenta a
+  // especialidade inteira aqui, sem tocar nesta camada de renderização.
+  const H = TUMORS.helpers;
+
+  let currentSubtype = TUMORS.ORDER[0];
+  let lastResult = null;
+
+  function tumor() { return TUMORS.get(currentSubtype); }
+
+  // Popula o seletor uma única vez, na ordem de prevalência definida no registro.
+  // Chips de cobertura na tela 1, direto do registro: o médico vê de relance
+  // se o caso dele está no escopo, sem ler um parágrafo.
+  (function listarTumoresCobertos() {
+    const el = document.getElementById('tumores-cobertos');
+    if (!el) return;
+    // Eram sete pílulas cinza, que o olho lê como filtro clicável — e não
+    // são. A mesma informação numa linha de texto some como ruído e continua
+    // respondendo "meu caso está no escopo?". §50
+    const nomes = TUMORS.list().map((t) => t.short);
+    el.textContent = nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1] + '.';
+  })();
+
+  // ===================== BOAS-VINDAS =====================
+  // Mostrado uma vez por navegador. Reabrir é sempre possível pelo link
+  // "Como funciona" - a explicação não some para quem quiser consultar.
+  const BOAS_VINDAS_KEY = 'oncogenyx.boas-vindas.v1';
+  let focoAntesDoModal = null;
+
+  // ===================== ARMADILHA DE FOCO =====================
+  // Os dois modais declaravam `aria-modal="true"` e não prendiam o foco: um
+  // Tab a partir do botão do rodapé já saía para a página de trás, e
+  // Shift+Tab a partir do botão de fechar caía direto num controle da tela 1.
+  // Para leitor de tela e para teclado, a promessa de modalidade era falsa —
+  // o usuário continuava navegando por um conteúdo que estava visualmente
+  // bloqueado, sem nenhuma pista de que havia saído do diálogo.
+  const FOCAVEIS = [
+    'a[href]', 'button:not([disabled])', 'input:not([disabled])',
+    'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
+
+  function focaveisDe(container) {
+    return Array.from(container.querySelectorAll(FOCAVEIS))
+      .filter((el) => el.offsetParent !== null || el === document.activeElement);
+  }
+
+  function prenderFoco(container, evento) {
+    if (evento.key !== 'Tab') return;
+    const itens = focaveisDe(container);
+    if (!itens.length) {
+      evento.preventDefault();
+      return;
+    }
+    const primeiro = itens[0];
+    const ultimo = itens[itens.length - 1];
+    const atual = document.activeElement;
+
+    // Recicla nas duas pontas. O `!container.contains(atual)` cobre o caso de
+    // o foco já ter escapado por outro caminho (clique no fundo, por exemplo).
+    if (evento.shiftKey && (atual === primeiro || !container.contains(atual))) {
+      evento.preventDefault();
+      ultimo.focus();
+    } else if (!evento.shiftKey && (atual === ultimo || !container.contains(atual))) {
+      evento.preventDefault();
+      primeiro.focus();
+    }
+  }
+
+  function ligarArmadilha(idDoModal) {
+    const el = document.getElementById(idDoModal);
+    el.addEventListener('keydown', (e) => {
+      if (el.classList.contains('aberto')) prenderFoco(el, e);
+    });
+  }
+  ligarArmadilha('boas-vindas');
+  ligarArmadilha('privacidade');
+
+  function abrirBoasVindas() {
+    focoAntesDoModal = document.activeElement;
+    document.getElementById('boas-vindas').classList.add('aberto');
+    setTimeout(() => document.getElementById('bv-comecar').focus(), 60);
+  }
+
+  function fecharBoasVindas() {
+    document.getElementById('boas-vindas').classList.remove('aberto');
+    try { localStorage.setItem(BOAS_VINDAS_KEY, '1'); } catch (e) { /* modo privado */ }
+    if (focoAntesDoModal && focoAntesDoModal.focus) focoAntesDoModal.focus();
+  }
+
+  // Clique no fundo e Esc fecham - um modal sem saída óbvia irrita mais do
+  // que a informação que ele carrega.
+  document.getElementById('boas-vindas').addEventListener('click', (e) => {
+    if (e.target.id === 'boas-vindas') fecharBoasVindas();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('boas-vindas').classList.contains('aberto')) {
+      fecharBoasVindas();
+    }
+  });
+
+  // Privacidade: aberto pelo link do passo 1 e pelo modal de boas-vindas.
+  // Sempre disponível — não é aviso que aparece uma vez e some.
+  let focoAntesDaPrivacidade = null;
+
+  function abrirPrivacidade() {
+    focoAntesDaPrivacidade = document.activeElement;
+    document.getElementById('privacidade').classList.add('aberto');
+    setTimeout(() => document.getElementById('pv-fechar').focus(), 60);
+  }
+
+  function fecharPrivacidade() {
+    document.getElementById('privacidade').classList.remove('aberto');
+    if (focoAntesDaPrivacidade && focoAntesDaPrivacidade.focus) focoAntesDaPrivacidade.focus();
+  }
+
+  document.getElementById('privacidade').addEventListener('click', (e) => {
+    if (e.target.id === 'privacidade') fecharPrivacidade();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('privacidade').classList.contains('aberto')) {
+      fecharPrivacidade();
+    }
+  });
+
+  function talvezMostrarBoasVindas() {
+    let visto = false;
+    try { visto = localStorage.getItem(BOAS_VINDAS_KEY) === '1'; } catch (e) { visto = false; }
+    if (!visto) abrirBoasVindas();
+  }
+
+  (function fillSubtypeSelect() {
+    const select = document.getElementById('field-subtipo');
+    select.innerHTML = TUMORS.list()
+      .map((t) => `<option value="${t.id}">${t.label}</option>`)
+      .join('');
+  })();
+
+  // Troca a especialidade ativa. `manual: true` significa que o médico
+  // corrigiu a identificação automática - nesse caso a justificativa da IA
+  // deixa de valer e os campos são remontados vazios para o novo subtipo.
+  function setSubtype(id, { manual = false } = {}) {
+    if (!TUMORS.get(id)) return;
+    currentSubtype = id;
+    document.getElementById('field-subtipo').value = id;
+
+    const t = tumor();
+    document.getElementById('fields-hint').textContent = t.hint || '';
+    [1, 2, 3].forEach((i) => {
+      const el = document.getElementById('eyebrow-' + i);
+      // A barra de passos, logo acima, já diz em que passo o médico está.
+      // Repetir "passo 2 de 4" aqui é ruído; o que o sobretítulo acrescenta
+      // é o tumor identificado.
+      if (el) el.textContent = t.short;
+    });
+
+    if (manual) {
+      document.getElementById('tipo-tumor-justificativa').style.display = 'none';
+      // Idade, histórico familiar e testes prévios são os mesmos nos sete
+      // tumores: apagá-los ao corrigir o subtipo fazia a triagem seguinte cair
+      // em "dados insuficientes" logo depois do médico ter CORRIGIDO o app.
+      // O que não sobrevive é o que pertence ao tumor antigo. Ver §46.3
+      const preservados = {};
+      TUMORS.CHAVES_COMUNS.forEach((chave) => {
+        const campo = document.getElementById('f-' + chave);
+        if (campo && String(campo.value || '').trim()) preservados[chave] = campo.value;
+      });
+      renderFields(preservados);
+    }
+  }
+
+  // Monta os campos da revisão a partir da definição do tumor ativo.
+  // Campo com lista fechada vira <select>; campo livre vira <input>.
+  // Campo com `justify` ganha embaixo a linha explicando a inferência da IA.
+  function renderFields(values) {
+    const grid = document.getElementById('fields-dynamic');
+    const t = tumor();
+    grid.innerHTML = '';
+
+    t.fields.forEach((field) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'field' + (field.full ? ' full' : '');
+
+      const label = document.createElement('label');
+      label.textContent = field.label;
+      label.setAttribute('for', 'f-' + field.key);
+      wrap.appendChild(label);
+
+      const value = (values && values[field.key]) || '';
+      let input;
+      if (field.options) {
+        input = document.createElement('select');
+        input.innerHTML = ['<option value="">Não informado</option>']
+          .concat(field.options.map((o) => `<option value="${o}">${o}</option>`))
+          .join('');
+        // Valor extraído que não bate exatamente com a lista vira opção
+        // própria em vez de sumir - melhor mostrar o que a IA leu.
+        if (value && !field.options.includes(value)) {
+          // API de DOM em vez de HTML: o valor vem da saída do modelo e
+          // interpolado cru permitia injetar atributo no <option>.
+          const extra = document.createElement('option');
+          extra.value = value;
+          extra.textContent = value;
+          input.appendChild(extra);
+        }
+      } else {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = field.placeholder || '';
+      }
+      input.className = 'value editable';
+      input.id = 'f-' + field.key;
+      input.value = value;
+      // Amarelo só em campo que muda o resultado. Pintar todo campo vazio de
+      // alerta transforma "opcional" em "erro" e treina o médico a ignorar
+      // o aviso - inclusive quando ele importa.
+      input.classList.toggle('missing', Boolean(field.decisivo) && !value);
+      input.addEventListener('input', onFieldInput);
+      input.addEventListener('change', onFieldInput);
+      wrap.appendChild(input);
+
+      if (field.justify) {
+        const hint = document.createElement('p');
+        hint.className = 'hint';
+        hint.id = 'j-' + field.key;
+        hint.style.marginTop = '6px';
+        const justification = (values && values[field.justify]) || '';
+        hint.textContent = justification ? 'Inferido pela leitura: ' + justification : '';
+        hint.style.display = justification ? '' : 'none';
+        wrap.appendChild(hint);
+      }
+
+      grid.appendChild(wrap);
+    });
+
+    applyRelevance();
+  }
+
+  function onFieldInput(event) {
+    const field = tumor().fields.find((f) => 'f-' + f.key === event.target.id);
+    event.target.classList.toggle('missing', Boolean(field && field.decisivo) && !event.target.value.trim());
+    applyRelevance();
+  }
+
+  // Lê o estado atual do formulário como o objeto que o motor de regra espera.
+  function readFields() {
+    const values = {};
+    tumor().fields.forEach((field) => {
+      const el = document.getElementById('f-' + field.key);
+      values[field.key] = el ? el.value.trim() : '';
+    });
+    return values;
+  }
+
+  // Alguns tumores só precisam de certos campos dependendo do que já foi
+  // preenchido (em ovário, grau e estágio só mudam o resultado para
+  // histologia serosa/endometrioide). Marcar de amarelo um campo que não
+  // muda a resposta seria pedir dado à toa.
+  function applyRelevance() {
+    const t = tumor();
+    if (typeof t.relevance !== 'function') return;
+    const relevance = t.relevance(readFields()) || {};
+    t.fields.forEach((field) => {
+      if (!(field.key in relevance)) return;
+      const el = document.getElementById('f-' + field.key);
+      if (!el) return;
+      const relevante = relevance[field.key];
+      el.classList.toggle('missing', relevante && !el.value.trim());
+      if (el.tagName === 'INPUT') {
+        el.placeholder = relevante ? (field.placeholder || '') : 'Não se aplica a este perfil';
+      }
+    });
+  }
+
+  // Código do caso: identificador de sessão, não é o nome do paciente.
+  // Prefixo neutro (não mais "GYN-") - o subtipo só é conhecido depois da
+  // extração, então o código do caso não pode presumir qual é.
+  const caseCode = 'CASO-' + String(Math.floor(1000 + Math.random() * 9000));
+  document.querySelectorAll('#case-code-1, #case-code-2, #case-code-3').forEach((el) => { el.textContent = caseCode; });
+
+  // Extração real: envia texto + arquivos (PDF/foto) para o backend, que usa a
+  // API da Anthropic com saída estruturada (Camada 3 real, não regex). A
+  // própria extração identifica o subtipo oncológico (tipo_tumor no
+  // retorno) - não é mais escolhido manualmente antes de enviar.
+  async function extractCase(text) {
+    const formData = new FormData();
+    formData.append('text', text || '');
+    pdfFiles.forEach((f) => formData.append('files', f));
+    photoFiles.forEach((f) => formData.append('files', f));
+
+    const body = await api('/api/extract', { method: 'POST', body: formData, isForm: true });
+    return { extracted: body.extracted, avisos: body.avisos || [] };
+  }
+
+  function currentSources() {
+    const sources = [];
+    pdfFiles.forEach((f) => sources.push('Laudo em PDF - ' + f.name));
+    photoFiles.forEach((f) => sources.push('Foto do laudo - ' + f.name));
+    if (document.getElementById('case-text').value.trim()) sources.push('Texto ou transcrição colada');
+    if (recSeconds > 0) sources.push('Ditado por voz (' + document.getElementById('voice-time').textContent + ')');
+    return sources;
+  }
+
+  function renderSources() {
+    const sourcesGrid = document.getElementById('sources-grid');
+    const sources = currentSources();
+    // esc() obrigatório: `title` carrega o NOME DO ARQUIVO anexado, escolhido
+    // por quem enviou o laudo ao médico. Sem escape, um nome como
+    // laudo<img src=x onerror=...> executa script na origem do app e lê o
+    // token de sessão do localStorage.
+    sourcesGrid.innerHTML = (sources.length ? sources : ['Nenhuma fonte informada ainda'])
+      .map((title) => `<div class="field"><label>Origem</label><div class="value">${esc(title)}</div></div>`)
+      .join('');
+  }
+
+  // Nome do paciente extraído do material anexado (PDF/foto), se identificável.
+  // Nunca é mostrado nas telas de revisão/triagem - só pré-preenche o campo
+  // isolado da tela final de solicitação (ver renderDocs()).
+  let extractedPatientName = '';
+
+  async function runExtraction() {
+    const text = document.getElementById('case-text').value.trim();
+    const errorBox = document.getElementById('extract-error');
+    const btn = document.getElementById('btn-extract');
+
+    if (!text && !pdfFiles.length && !photoFiles.length) {
+      errorBox.textContent = 'Descreva o caso em texto ou anexe ao menos um arquivo antes de estruturar.';
+      errorBox.style.display = '';
+      return;
+    }
+
+    errorBox.style.display = 'none';
+    btn.disabled = true;
+    const originalLabel = btn.textContent;
+    btn.textContent = 'Lendo caso com IA...';
+
+    try {
+      const { extracted, avisos } = await extractCase(text);
+      mostrarAvisos(avisos);
+      extractedPatientName = (extracted.nome_paciente || '').trim();
+
+      // O subtipo vem da própria leitura do material. Se não deu para
+      // determinar, não adianta abrir a revisão: os campos seriam de um
+      // tumor arbitrário e a triagem sairia errada.
+      const detected = TUMORS.list().find((t) => t.label === extracted.tipo_tumor);
+      if (!detected) {
+        errorBox.textContent = 'Não consegui identificar o subtipo oncológico a partir do que foi descrito ou anexado. Descreva de forma mais específica (o órgão de origem, a histologia, o estadiamento ou um marcador do laudo) e tente de novo.';
+        errorBox.style.display = '';
+        return;
+      }
+
+      setSubtype(detected.id);
+
+      // A justificativa não é enfeite: é o indicador de confiança da leitura.
+      // Medido contra a API real, em toda extração CORRETA o modelo explicou
+      // por que identificou aquele subtipo; em TODA falha — tanto o abandono
+      // (tudo vazio) quanto a troca de ovário por endométrio — ela veio
+      // vazia. É um sinal que cobre os dois modos de falha, custa zero
+      // chamada extra, e o único jeito de errar para o lado seguro é pedir
+      // confirmação. Ver ARQUITETURA.md §33.5.
+      const tipoJustEl = document.getElementById('tipo-tumor-justificativa');
+      const campoSubtipo = document.getElementById('field-subtipo');
+      const semJustificativa = !String(extracted.tipo_tumor_justificativa || '').trim();
+
+      // Conflito de sítio conferido pelo servidor no texto do material: é a
+      // suspeita mais forte que existe, porque não veio de palpite nenhum —
+      // veio de o material nomear um sítio e a leitura ter escolhido o outro.
+      if (extracted.subtipo_corrigido_de) {
+        tipoJustEl.textContent = `A leitura havia classificado como ${extracted.subtipo_corrigido_de}, e foi corrigido para ${extracted.tipo_tumor} porque é o sítio nomeado no material. Confirme antes de seguir — a triagem inteira depende disto.`;
+        tipoJustEl.className = 'hint confirmar-subtipo';
+        tipoJustEl.style.display = '';
+        campoSubtipo.classList.add('confirmar');
+      } else if (!semJustificativa) {
+        tipoJustEl.textContent = 'Identificado automaticamente: ' + extracted.tipo_tumor_justificativa;
+        tipoJustEl.className = 'hint';
+        tipoJustEl.style.display = '';
+        campoSubtipo.classList.remove('confirmar');
+      } else {
+        tipoJustEl.textContent = 'A leitura não explicou por que escolheu este subtipo — nos casos em que isso acontece a identificação erra com mais frequência. Confirme o subtipo antes de seguir; trocar aqui remonta os campos e as regras.';
+        tipoJustEl.className = 'hint confirmar-subtipo';
+        tipoJustEl.style.display = '';
+        campoSubtipo.classList.add('confirmar');
+      }
+
+      // Um único caminho de preenchimento para os sete tumores: a definição
+      // do subtipo já diz quais campos existem e de onde vem cada valor.
+      renderFields(extracted);
+
+      renderSources();
+      liberarPasso(1);
+      goTo(1);
+    } catch (err) {
+      errorBox.textContent = (err.message || 'Não foi possível extrair o caso. Tente novamente.');
+      errorBox.style.display = '';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  }
+
+  // ===================== GENA =====================
+  /* O que o médico JÁ preencheu na tela, para a Gena não perguntar de novo.
+   *
+   * O prompt dela proíbe explicitamente "perguntar o que a pessoa acabou de
+   * dizer com outras palavras — o erro que mais faz uma conversa parecer
+   * robô". Mas ela não tinha como saber: cada conversa começava do zero,
+   * mesmo com o caso já estruturado na tela atrás do painel. O médico
+   * preenchia histologia, grau e estágio no passo 2, abria a Gena, e ela
+   * pedia histologia. Ver §51.
+   *
+   * O nome do paciente NUNCA entra aqui. É a única informação identificável
+   * que o app toca, e ela não sobe para o modelo de conversa. */
+  function contextoDaTela() {
+    if (!currentSubtype) return null;
+    const t = TUMORS.get(currentSubtype);
+    if (!t) return null;
+    const campos = {};
+    t.fields.forEach((f) => {
+      const el = document.getElementById('f-' + f.key);
+      const v = el && String(el.value || '').trim();
+      if (v) campos[f.label] = v.slice(0, 200);
+    });
+    if (!Object.keys(campos).length) return null;
+    return { tumor: t.label, campos };
+  }
+
+  // Conversa real com o modelo (/api/chat), não roteiro fixo: a Gena entende
+  // resposta em linguagem natural e sinaliza sozinha quando o caso está
+  // completo o bastante para ir para a triagem estruturada.
+  const GENA_GREETING = 'Oi! Sou a Gena. Me conte o caso do seu jeito — histologia, estágio, o que tiver em mãos — que eu organizo e levo para a triagem.';
+  let genaMessages = [];
+  let genaReadySummary = '';
+  let genaBusy = false;
+
+  function genaOpen() { return document.getElementById('gena').classList.contains('open'); }
+
+  let focoAntesDaGena = null;
+
+  function toggleGena(force) {
+    const root = document.getElementById('gena');
+    const open = typeof force === 'boolean' ? force : !genaOpen();
+    root.classList.toggle('open', open);
+    document.getElementById('gena-fab').setAttribute('aria-expanded', String(open));
+    if (open) {
+      focoAntesDaGena = document.activeElement;
+      document.getElementById('gena-badge').classList.remove('on');
+      if (!genaMessages.length) genaPush('assistant', GENA_GREETING);
+      setTimeout(() => document.getElementById('gena-input').focus(), 60);
+    } else if (focoAntesDaGena && focoAntesDaGena.focus) {
+      // O botão flutuante some quando o painel abre. Sem devolver o foco, quem
+      // fecha por teclado é largado num ponto arbitrário do DOM e não tem como
+      // reabrir a Gena por Tab.
+      const alvo = document.getElementById('gena-fab') || focoAntesDaGena;
+      setTimeout(() => alvo.focus(), 60);
+    }
+  }
+
+  // Esc fecha a Gena, como fecha os dois modais. Era o único painel do produto
+  // que ignorava a tecla.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && genaOpen()) toggleGena(false);
+  });
+
+  // Em tela estreita o painel cobre a viewport inteira: nesse caso ele é um
+  // diálogo de fato e precisa prender o foco, senão o leitor de tela continua
+  // percorrendo o conteúdo que está visualmente coberto.
+  document.getElementById('gena').addEventListener('keydown', (e) => {
+    const painel = document.getElementById('gena');
+    if (!genaOpen()) return;
+    const cobreTudo = painel.getBoundingClientRect().width >= window.innerWidth - 8;
+    if (cobreTudo) prenderFoco(painel, e);
+  });
+
+  /* ============ A GENA FALA E OUVE ============
+   *
+   * O médico usa isto entre consultas, muitas vezes com as mãos ocupadas e o
+   * laudo na outra. Digitar é o gargalo. O navegador já traz reconhecimento
+   * de fala e síntese de voz nativos: nenhuma dependência nova, nenhum custo
+   * por minuto, e o áudio não sai do aparelho — o que importa num app que
+   * promete que o material do paciente não circula. Ver §51.
+   *
+   * Regras de comportamento:
+   * A Gena NÃO fala de volta: foi decisão do dono do produto, e é a decisão
+   * certa — um app que fala sozinho numa sala de consulta é um problema, não
+   * um recurso. O microfone serve para ditar PARA o campo de texto: continua
+   * sendo conversa digitada, só sem ocupar as mãos.
+   */
+  let genaEscutando = false;
+  let genaReconhecimento = null;
+
+  function genaAlternarEscuta() {
+    if (!SpeechRecognitionAPI) return;
+    if (genaEscutando) { genaReconhecimento && genaReconhecimento.stop(); return; }
+
+    genaReconhecimento = new SpeechRecognitionAPI();
+    genaReconhecimento.lang = 'pt-BR';
+    genaReconhecimento.interimResults = true;
+    genaReconhecimento.continuous = false;
+
+    const botao = document.getElementById('gena-mic');
+    const campo = document.getElementById('gena-input');
+    let ditado = '';
+
+    genaReconhecimento.onstart = () => {
+      genaEscutando = true;
+      botao.classList.add('ouvindo');
+      botao.setAttribute('aria-label', 'Parar de falar');
+    };
+    genaReconhecimento.onresult = (e) => {
+      let texto = '';
+      for (let i = 0; i < e.results.length; i++) texto += e.results[i][0].transcript;
+      ditado = texto.trim();
+      campo.value = ditado;
+    };
+    genaReconhecimento.onerror = () => { /* sem permissão ou sem rede: o campo continua digitável */ };
+    genaReconhecimento.onend = () => {
+      genaEscutando = false;
+      botao.classList.remove('ouvindo');
+      botao.setAttribute('aria-label', 'Falar com a Gena');
+      // Falou e parou: envia sozinho. Pedir para apertar enviar depois de
+      // falar desfaz o ganho de não precisar das mãos.
+      if (ditado) genaEnviar(ditado);
+    };
+
+    try { genaReconhecimento.start(); } catch { /* já estava ouvindo */ }
+  }
+
+  function genaPush(role, text) {
+    genaMessages.push({ role, content: text });
+    genaRender(role, text);
+  }
+
+  function genaRender(role, text) {
+    const log = document.getElementById('gena-log');
+    const msg = document.createElement('div');
+    msg.className = 'gena-msg ' + (role === 'assistant' ? 'from-gena' : 'from-doc');
+    const bubble = document.createElement('div');
+    bubble.className = 'gena-bubble';
+    bubble.textContent = text;
+    msg.appendChild(bubble);
+    log.appendChild(msg);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function genaTyping(on) {
+    const log = document.getElementById('gena-log');
+    const existing = document.getElementById('gena-typing');
+    if (!on) { if (existing) existing.remove(); return; }
+    if (existing) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'gena-msg from-gena';
+    wrap.id = 'gena-typing';
+    wrap.innerHTML = '<div class="gena-bubble gena-typing"><i></i><i></i><i></i></div>';
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function genaSubmit(event) {
+    event.preventDefault();
+    const input = document.getElementById('gena-input');
+    const text = input.value.trim();
+    genaEnviar(text);
+    return false;
+  }
+
+  async function genaEnviar(text) {
+    if (!text || genaBusy) return false;
+
+    const input = document.getElementById('gena-input');
+    input.value = '';
+    genaPush('user', text);
+
+    genaBusy = true;
+    document.getElementById('gena-send').disabled = true;
+    genaTyping(true);
+
+    try {
+      const out = await api('/api/chat', { method: 'POST', body: { messages: genaMessages, contexto: contextoDaTela() } });
+      genaTyping(false);
+      if (out.reply) genaPush('assistant', out.reply);
+
+      if (out.caseReady) {
+        genaReadySummary = out.caseReady;
+        document.getElementById('gena-cta').style.display = '';
+      }
+    } catch (err) {
+      genaTyping(false);
+      genaRender('assistant', err.message || 'Tive um problema para responder. Tente de novo.');
+    } finally {
+      genaBusy = false;
+      document.getElementById('gena-send').disabled = false;
+      input.focus();
+    }
+    return false;
+  }
+
+  // Passa o caso reunido para o mesmo motor de extração do modo formulário.
+  async function genaSendToTriage() {
+    if (!genaReadySummary) return;
+    const textarea = document.getElementById('case-text');
+    textarea.value = genaReadySummary;
+    textarea.dispatchEvent(new Event('input'));
+    document.getElementById('gena-cta').style.display = 'none';
+    toggleGena(false);
+    goTo(0);
+    await runExtraction();
+  }
+
+  function genaReset() {
+    genaMessages = [];
+    genaReadySummary = '';
+    document.getElementById('gena-log').innerHTML = '';
+    document.getElementById('gena-cta').style.display = 'none';
+  }
+
+  let pdfFiles = [];
+  let photoFiles = [];
+
+  // Alguns navegadores/SO não preenchem file.type de forma confiável para
+  // todo PDF (fica vazio em vez de "application/pdf") - cair pra extensão
+  // evita que o arquivo seja silenciosamente ignorado no drag-and-drop.
+  function isPdfFile(f) {
+    return f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+  }
+  // Só os formatos que a leitura automática abre. HEIC/HEIF (padrão do iPhone),
+  // BMP e TIFF são reconhecidos como imagem para dar uma mensagem útil, mas o
+  // servidor os barra antes de gastar chamada.
+  const IMAGENS_SUPORTADAS = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+  function isImageFile(f) {
+    return IMAGENS_SUPORTADAS.includes(f.type)
+      || /\.(png|jpe?g|gif|webp|heic|heif|bmp|tiff?)$/i.test(f.name);
+  }
+
+  function formatoNaoSuportado(f) {
+    const ehHeic = /heic|heif/i.test(f.type) || /\.(heic|heif)$/i.test(f.name);
+    if (ehHeic) {
+      return `"${f.name}" está em HEIC, o formato padrão de foto do iPhone, que a leitura automática não abre. Abra a foto, toque em Compartilhar e escolha "Copiar foto" — a cópia sai em JPEG. Ou anexe um print da tela.`;
+    }
+    if (/\.(bmp|tiff?)$/i.test(f.name)) {
+      return `"${f.name}" está num formato que a leitura automática não abre. Converta para JPEG ou PNG, ou anexe um print da tela.`;
+    }
+    return null;
+  }
+
+  const LIMITE_ARQUIVO = 20 * 1024 * 1024;
+
+  // Checa o arquivo no próprio navegador, antes de subir. Um PDF de 0 byte
+  // (típico de arquivo que ainda está no iCloud e não foi baixado) só daria
+  // erro depois da chamada paga - e com uma mensagem que não ajuda em nada.
+  function problemaNoArquivo(f) {
+    const formato = formatoNaoSuportado(f);
+    if (formato) return formato;
+    if (f.size === 0) {
+      return `"${f.name}" está vazio (0 bytes). Costuma ser arquivo que ainda está no iCloud/Drive: abra-o uma vez no aparelho para baixar e anexe de novo.`;
+    }
+    if (f.size > LIMITE_ARQUIVO) {
+      return `"${f.name}" tem ${(f.size / 1024 / 1024).toFixed(1)} MB, acima do limite de 20 MB. Anexe só as páginas que interessam, ou uma foto da página.`;
+    }
+    return null;
+  }
+
+  function addFiles(kind, fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+
+    const problemas = [];
+    const bons = files.filter((f) => {
+      const p = problemaNoArquivo(f);
+      if (p) { problemas.push(p); return false; }
+      return true;
+    });
+
+    if (problemas.length) mostrarAvisos(problemas.map((texto) => ({ motivo: texto })));
+    if (!bons.length) return;
+
+    if (kind === 'pdf') pdfFiles = pdfFiles.concat(bons);
+    else photoFiles = photoFiles.concat(bons);
+    refreshFileTiles();
+  }
+
+  function removeFile(kind, idx) {
+    if (kind === 'pdf') pdfFiles.splice(idx, 1);
+    else photoFiles.splice(idx, 1);
+    refreshFileTiles();
+  }
+
+  // Redesenha os dois tiles (nome/contagem, miniaturas) e a lista de chips
+  // removíveis a partir do estado atual de pdfFiles/photoFiles - chamado
+  // sempre que um arquivo é adicionado ou removido, pra nunca dessincronizar.
+  function refreshFileTiles() {
+    document.getElementById('file-name-pdf').textContent = pdfFiles.length
+      ? (pdfFiles.length === 1 ? pdfFiles[0].name : `${pdfFiles.length} arquivos anexados`)
+      : '';
+    document.getElementById('tile-pdf').classList.toggle('selected', pdfFiles.length > 0);
+
+    document.getElementById('file-name-photo').textContent = photoFiles.length
+      ? (photoFiles.length === 1 ? photoFiles[0].name : `${photoFiles.length} arquivos anexados`)
+      : '';
+    document.getElementById('tile-photo').classList.toggle('selected', photoFiles.length > 0);
+
+    const thumbRow = document.getElementById('thumb-row');
+    thumbRow.innerHTML = '';
+    photoFiles.forEach((f) => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      img.alt = f.name;
+      thumbRow.appendChild(img);
+    });
+
+    document.getElementById('ocr-disclaimer').style.display = (pdfFiles.length || photoFiles.length) ? '' : 'none';
+    renderAttachedFiles();
+  }
+
+  function renderAttachedFiles() {
+    const list = document.getElementById('attached-files-list');
+    const all = [
+      ...pdfFiles.map((f, idx) => ({ f, kind: 'pdf', idx })),
+      ...photoFiles.map((f, idx) => ({ f, kind: 'photo', idx })),
+    ];
+    list.style.display = all.length ? 'flex' : 'none';
+    list.innerHTML = '';
+    all.forEach(({ f, kind, idx }) => {
+      const chip = document.createElement('span');
+      chip.className = 'file-chip';
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'name';
+      nameSpan.textContent = f.name;
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = '×';
+      removeBtn.setAttribute('aria-label', 'Remover ' + f.name);
+      removeBtn.onclick = () => removeFile(kind, idx);
+      chip.appendChild(nameSpan);
+      chip.appendChild(removeBtn);
+      list.appendChild(chip);
+    });
+  }
+
+  // Reseta a tela de ingestão inteira: arquivos, texto, ditado por voz e
+  // conversa com o OncoBot - pra começar um caso do zero sem recarregar a página.
+  function clearIntake() {
+    pdfFiles = [];
+    photoFiles = [];
+    document.getElementById('case-text').value = '';
+    document.getElementById('tile-text').classList.remove('selected');
+    document.getElementById('extract-error').style.display = 'none';
+    limparAvisos();
+
+    if (recording) toggleRecording();
+    recSeconds = 0;
+    document.getElementById('voice-time').textContent = '00:00';
+    document.getElementById('tile-voice').classList.remove('selected');
+    document.getElementById('voice-panel').classList.remove('open');
+
+    // O nome do paciente é a única informação identificável que o app toca.
+    // Ele sobrevivia ao "Iniciar novo caso" e reaparecia no documento da
+    // paciente seguinte — com o diagnóstico correto dela. Ver §46.1
+    const campoNome = document.getElementById('patient-name');
+    if (campoNome) campoNome.value = '';
+    extractedPatientName = '';
+
+    genaReset();
+    refreshFileTiles();
+    // O caso anterior deixou de existir: os passos seguintes voltam a ficar
+    // fora de alcance até uma nova extração.
+    reiniciarPassos();
+  }
+
+  // Rotea arquivo solto por tipo: PDF vira "Laudo em PDF", imagem vira "Foto do laudo".
+  // Arquivo não reconhecido como nenhum dos dois avisa em vez de sumir sem explicação.
+  function routeDroppedFiles(fileList) {
+    const files = Array.from(fileList || []);
+    const pdfs = files.filter(isPdfFile);
+    const images = files.filter((f) => !isPdfFile(f) && isImageFile(f));
+    const unknown = files.filter((f) => !isPdfFile(f) && !isImageFile(f));
+    if (pdfs.length) addFiles('pdf', pdfs);
+    if (images.length) addFiles('photo', images);
+    if (unknown.length) {
+      const errorBox = document.getElementById('extract-error');
+      const names = unknown.map((f) => f.name).join(', ');
+      errorBox.textContent = `Não reconheci "${names}" como PDF ou imagem - anexe pelos tiles "Laudo em PDF" ou "Foto do laudo", ou confira o formato do arquivo.`;
+      errorBox.style.display = '';
+    }
+  }
+
+  function setupDropzone() {
+    const zone = document.getElementById('dropzone');
+    let dragDepth = 0;
+    zone.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragDepth++;
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragover', (e) => e.preventDefault());
+    zone.addEventListener('dragleave', () => {
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragDepth = 0;
+      zone.classList.remove('drag-over');
+      routeDroppedFiles(e.dataTransfer.files);
+    });
+  }
+
+  // ===================== MOTOR DE TRIAGEM E RENDERIZAÇÃO =====================
+  // Nenhuma regra clínica vive aqui: esta camada só lê o veredito devolvido
+  // por TUMORS.get(id).classify(valores) e o transforma em tela. As regras,
+  // com a diretriz que as sustenta, ficam em /tumors.js e em
+  // docs/ARQUITETURA.md.
+
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function todayBR() {
+    const d = new Date();
+    return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  }
+
+  // Selo "N testes indicados" no topo do resultado - resposta imediata de
+  // "quantos e quais", em vez de exigir ler o parágrafo inteiro do veredito.
+  function setCountPill(count) {
+    const pill = document.getElementById('verdict-count-pill');
+    if (count === null) { pill.style.display = 'none'; return; }
+    pill.textContent = count === 0 ? '0 testes indicados' : count === 1 ? '1 teste indicado' : `${count} testes indicados`;
+    pill.classList.toggle('zero', count === 0);
+    pill.style.display = '';
+  }
+
+  const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
+  function runTriage() {
+    const t = tumor();
+    const values = readFields();
+    const result = t.classify(values);
+    lastResult = { result, values, tumor: t };
+
+    const tests = result.tests || [];
+    const blocked = result.state === 'insuficiente' || result.state === 'nao-reconhecida';
+
+    const box = document.getElementById('verdict-box');
+    const nextBtn = document.getElementById('verdict-next-btn');
+    box.classList.toggle('negative', blocked);
+    document.getElementById('verdict-glyph').textContent = blocked ? '!' : '✓';
+    document.getElementById('verdict-title').textContent = blocked
+      ? (result.state === 'insuficiente' ? 'Dados insuficientes para triagem' : 'Perfil não reconhecido por esta regra')
+      : result.title;
+    document.getElementById('verdict-text').textContent = blocked ? result.message : result.summary;
+    setCountPill(blocked ? null : tests.length);
+
+    renderTestSteps(tests, result);
+    renderNotes(blocked ? [] : (result.notes || []));
+
+    // Sem teste indicado não existe programa de acesso para mostrar - o
+    // botão volta para a revisão em vez de levar a uma tela vazia.
+    liberarPasso(2);
+    if (tests.length) {
+      liberarPasso(3);
+      nextBtn.textContent = 'Ver programas de acesso →';
+      nextBtn.onclick = () => goTo(3);
+    } else {
+      nextBtn.textContent = blocked ? '← Completar dados' : '← Revisar dados do caso';
+      nextBtn.onclick = () => goTo(1);
+    }
+
+    renderPrograms();
+    goTo(2);
+  }
+
+  function renderTestSteps(tests, result) {
+    const wrap = document.getElementById('test-steps');
+    const provisorio = result.state === 'provisorio';
+    wrap.innerHTML = tests.map((test, i) => {
+      // A descrição chega a 315 caracteres e ficava toda aberta em cada card.
+      // A primeira frase diz o que é o teste; o resto é o porquê, e abre sob
+      // demanda. Ver §45.
+      const desc = String(test.description || '');
+      const corte = desc.indexOf('. ');
+      const cabeca = corte > 0 ? desc.slice(0, corte + 1) : desc;
+      const cauda = corte > 0 ? desc.slice(corte + 2) : '';
+      return `
+      <div class="test-step${test.primary ? ' primary' : ''}">
+        <span class="step-num">${i + 1}</span>
+        <div class="step-body">
+          <div class="order">${esc(test.order || '')}</div>
+          <h4>${esc(test.name)}${provisorio && test.primary ? ' <span class="pill warn">confirmar critério</span>' : ''}</h4>
+          <p>${esc(cabeca)}</p>
+          ${cauda ? `<details class="detalhe-teste"><summary>Por que este teste</summary><p>${esc(cauda)}</p></details>` : ''}
+          ${test.stat ? `<span class="stat-badge">${esc(test.stat)}</span>` : ''}
+          <div class="src">Amostra: ${esc(test.sample || '-')}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderNotes(notes) {
+    const wrap = document.getElementById('verdict-notes');
+    wrap.innerHTML = notes.map((note) => `
+      <details class="note-card${note.warn ? ' warn' : ''}">
+        <summary>
+          <span class="summary-text">
+            <span class="tag">${esc(note.tag)}</span>
+            <h4>${esc(note.title)}</h4>
+          </span>
+          <span class="chevron">${CHEVRON}</span>
+        </summary>
+        <div class="card-body"><p>${esc(note.body)}</p></div>
+      </details>`).join('');
+  }
+
+  /* ---------------- Programas de acesso e documentos ---------------- */
+
+  const ICONE_LAB = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg>';
+  const ICONE_DNA = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 16 1.5 1.5"/><path d="m14 8-1.5-1.5"/><path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993"/><path d="m16.5 10.5 1 1"/><path d="m17 6-2.891-2.891"/><path d="M2 15c6.667-6 13.333 0 20-6"/><path d="m20 9 .891.891"/><path d="M3.109 14.109 4 15"/><path d="m6.5 12.5 1 1"/><path d="m7 18 2.891 2.891"/><path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993"/></svg>';
+
+  // Monta um card por teste efetivamente indicado - nunca um teste que a
+  // triagem não indicou, para não oferecer ao médico uma opção que não se
+  // aplica ao caso que ele acabou de rodar.
+  function renderPrograms() {
+    const container = document.getElementById('programs-dynamic');
+    const note = document.getElementById('programs-note');
+    if (!lastResult) { container.innerHTML = ''; return; }
+
+    const { result, values, tumor: t } = lastResult;
+    const tests = result.tests || [];
+
+    if (!tests.length) {
+      container.innerHTML = '';
+      note.textContent = 'Esta triagem não indicou nenhum teste genético para o caso informado - por isso nenhum programa de acesso é mostrado.';
+      note.style.display = '';
+      return;
+    }
+    note.style.display = 'none';
+
+    const diagnostico = t.diagnosis(values);
+    // "Nenhum relatado" / "Não relatado" são negativas explícitas, não
+    // conteúdo - entrariam no documento como "Caso com diagnóstico acima
+    // descrito, nenhum relatado." se fossem tratadas como texto.
+    const testesPrevios = H.filled(values.testes_previos) ? values.testes_previos.trim() : '';
+    const historico = H.filled(values.historico_familiar) ? values.historico_familiar.trim() : '';
+    const date = todayBR();
+    const provisorio = result.state === 'provisorio';
+    const doctor = `${doctorName} - CRM ${doctorCRM}`;
+
+    container.innerHTML = tests.map((test) => {
+      const provisional = provisorio && test.primary;
+      // O toLowerCase() servia para emendar a frase, e destruía nome de gene e
+      // de laboratório no documento ASSINADO: "Painel BRCA1/2 (Invitae)" saía
+      // "painel brca1/2 (invitae)". Só a primeira letra desce. §47.6
+      const previosNaFrase = testesPrevios
+        ? testesPrevios.charAt(0).toLowerCase() + testesPrevios.slice(1)
+        : 'sem teste molecular prévio relatado';
+      const justificativa = `Caso com diagnóstico acima descrito, ${previosNaFrase}. ${test.justify}` +
+        (test.kind === 'germinativo' && historico ? ` Histórico familiar relatado: ${historico}, reforça encaminhamento para aconselhamento genético.` : '');
+      const icon = test.kind === 'germinativo' ? ICONE_DNA : ICONE_LAB;
+
+      // O selo diz, antes de qualquer leitura, o que aquela linha é: via sem
+      // custo da indústria, laboratório parceiro, ou nenhuma via verificada.
+      // E quando não há endereço, a linha precisa dizer POR ONDE se solicita —
+      // uma linha sem botão e sem explicação parece produto quebrado. Ver §44.
+      const SELO = {
+        patrocinado: { txt: 'Sem custo', cls: 'ok' },
+        laboratorio: { txt: 'Laboratório parceiro', cls: 'neutro' },
+        'sem-via': { txt: 'Sem via verificada', cls: 'warn' },
+      };
+      const programas = (test.programs || []).map((p) => {
+        const selo = SELO[p.tipo] || null;
+        const acao = p.url
+          ? `<a class="link" href="${esc(p.url)}" target="_blank" rel="noopener">Abrir portal ↗</a>`
+          : (p.tipo === 'sem-via' ? '' : '<span class="link-ausente">Solicite pelo representante</span>');
+        return `
+        <div class="program-row">
+          <div class="who">
+            <span class="logo">${icon}</span>
+            <div>
+              <div class="name">${esc(p.name)}${selo ? ` <span class="selo ${selo.cls}">${selo.txt}</span>` : ''}</div>
+              ${p.note && p.note.length > 120
+                ? `<details class="prog-nota"><summary>${esc(p.note.slice(0, p.note.indexOf(' ', 78) > 0 ? p.note.indexOf(' ', 78) : 100))}…</summary><div class="test">${esc(p.note)}</div></details>`
+                : `<div class="test">${esc(p.note)}</div>`}
+            </div>
+          </div>
+          ${acao}
+        </div>`;
+      }).join('');
+
+      return `
+      <div class="card program-card">
+        <h3>${esc(test.name)} <span class="pill ${provisional ? 'warn' : 'ok'}">${provisional ? 'indicação provável - confirmar' : 'indicado neste caso'}</span></h3>
+        ${programas}
+
+        <details class="doc-preview-wrap" id="doc-${esc(test.id)}">
+          <summary><span>Solicitação pronta para assinar</span></summary>
+          <div class="doc-preview">
+            <div class="doc-head"><span class="doc-type">Formulário de solicitação</span></div>
+            <div class="doc-row"><span class="k">Paciente</span><span class="v doc-name">-</span></div>
+            <div class="doc-row"><span class="k">Médico solicitante</span><span class="v">${esc(doctor)}</span></div>
+            <div class="doc-row"><span class="k">Diagnóstico</span><span class="v">${esc(diagnostico)}</span></div>
+            <div class="doc-row"><span class="k">Amostra</span><span class="v">${esc(test.sample || '-')}</span></div>
+            <div class="doc-row"><span class="k">Teste solicitado</span><span class="v">${esc(test.name)}</span></div>
+            <div class="doc-row"><span class="k">Data</span><span class="v">${esc(date)}</span></div>
+            <div class="doc-justif">
+              <div class="label">Justificativa clínica</div>
+              <span>${esc(justificativa)}</span>
+            </div>
+            <div class="doc-sign">
+              <span>Assinatura e carimbo do médico</span>
+              <span>CRM ${esc(doctorCRM)}</span>
+            </div>
+          </div>
+        </details>
+        <div class="doc-actions">
+          <button class="primary" type="button" onclick="downloadDoc('doc-${esc(test.id)}')">Baixar PDF preenchido ↓</button>
+          <button class="ghost" type="button" onclick="toggleEditDoc('doc-${esc(test.id)}', this)">Editar campos</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Nome identificado no material anexado pré-preenche o campo, mas nunca
+    // sobrescreve o que o médico já digitou à mão.
+    const nameInput = document.getElementById('patient-name');
+    if (!nameInput.value.trim() && extractedPatientName) nameInput.value = extractedPatientName;
+    updateDocs();
+  }
+
+  function updateDocs() {
+    const name = document.getElementById('patient-name').value.trim() || '- (preencha o nome do paciente)';
+    document.querySelectorAll('#programs-dynamic .doc-name').forEach((el) => { el.textContent = name; });
+  }
+
+  function downloadDoc(wrapId) {
+    document.querySelectorAll('.doc-preview-wrap').forEach((el) => el.classList.remove('print-target'));
+    const alvo = document.getElementById(wrapId);
+    // Um <details> fechado não entra na impressão: sem esta linha o médico
+    // baixaria um PDF em branco.
+    alvo.open = true;
+    alvo.classList.add('print-target');
+    entrarNoModoImpressao();
+    window.print();
+  }
+  function sairDoModoImpressao() {
+    document.body.classList.remove('printing');
+    document.querySelectorAll('.doc-preview-wrap').forEach((el) => el.classList.remove('print-target'));
+  }
+  window.addEventListener('afterprint', sairDoModoImpressao);
+  // O afterprint não é confiável: em Chromium headless ele nunca dispara, e no
+  // Safari do iPhone é irregular. Sem uma segunda saída, a tela fica presa no
+  // modo impressão — sem topbar, sem passos, sem botões — e só volta com F5.
+  // Duas redes: um tempo de segurança e a própria navegação entre passos.
+  let saidaDeImpressao = null;
+  function entrarNoModoImpressao() {
+    document.body.classList.add('printing');
+    clearTimeout(saidaDeImpressao);
+    saidaDeImpressao = setTimeout(sairDoModoImpressao, 1500);
+  }
+
+  function toggleEditDoc(wrapId, btn) {
+    const wrap = document.getElementById(wrapId);
+    // O botão agora vive fora do painel: editar com o painel fechado não
+    // mostraria nada ao médico.
+    wrap.open = true;
+    const editing = btn.dataset.editing === 'true';
+    const fields = wrap.querySelectorAll('.doc-row .v, .doc-justif span');
+    fields.forEach((el) => { el.contentEditable = String(!editing); });
+    wrap.querySelector('.doc-preview').classList.toggle('editing', !editing);
+    btn.textContent = editing ? 'Editar campos' : 'Concluir edição';
+    btn.dataset.editing = String(!editing);
+  }
+
+  let recording = false;
+  let recTimer = null;
+  let recSeconds = 0;
+  let speechRecognition = null;
+  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function toggleVoicePanel() {
+    document.getElementById('voice-panel').classList.toggle('open');
+  }
+
+  // Ditado por voz real via reconhecimento de fala nativo do navegador
+  // (Web Speech API) - roda só no dispositivo do médico, sem enviar áudio
+  // a nenhum servidor. Funciona em Chrome/Edge; navegadores sem suporte
+  // (ex.: Firefox) recebem um aviso em vez de um botão que não faz nada.
+  function toggleRecording() {
+    if (!SpeechRecognitionAPI) {
+      document.getElementById('voice-unsupported').style.display = '';
+      return;
+    }
+
+    recording = !recording;
+    const wave = document.getElementById('voice-wave');
+    const btn = document.getElementById('rec-btn');
+    wave.classList.toggle('recording', recording);
+    btn.textContent = recording ? '■' : '●';
+
+    if (recording) {
+      recSeconds = 0;
+      recTimer = setInterval(() => {
+        recSeconds++;
+        const m = String(Math.floor(recSeconds / 60)).padStart(2, '0');
+        const s = String(recSeconds % 60).padStart(2, '0');
+        document.getElementById('voice-time').textContent = `${m}:${s}`;
+      }, 1000);
+
+      const textarea = document.getElementById('case-text');
+      const baseText = textarea.value.trim();
+      let finalTranscript = '';
+
+      speechRecognition = new SpeechRecognitionAPI();
+      speechRecognition.lang = 'pt-BR';
+      speechRecognition.continuous = true;
+      speechRecognition.interimResults = false;
+      speechRecognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' ';
+          }
+        }
+        textarea.value = (baseText ? baseText + ' ' : '') + finalTranscript.trim();
+        textarea.dispatchEvent(new Event('input'));
+      };
+      speechRecognition.onerror = (event) => {
+        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+          document.getElementById('voice-unsupported').textContent = 'Permissão de microfone negada - autorize o acesso ao microfone no navegador e tente de novo.';
+          document.getElementById('voice-unsupported').style.display = '';
+        }
+      };
+      speechRecognition.start();
+    } else {
+      clearInterval(recTimer);
+      document.getElementById('tile-voice').classList.toggle('selected', recSeconds > 0);
+      if (speechRecognition) { speechRecognition.stop(); speechRecognition = null; }
+    }
+  }
+
+  // Passo mais adiantado já alcançado de verdade. Existe porque os quatro
+  // botões da barra eram clicáveis desde o início: entrar e clicar em
+  // "3 Resultado da triagem" mostrava o card do veredito com o glifo ✓ VERDE
+  // de sucesso, título "Resultado da triagem", texto "-" e zero testes
+  // listados. Para um oncologista, um card verde com check e sem teste nenhum
+  // lê exatamente como "nenhum teste indicado" — que é um veredito clínico,
+  // não uma tela vazia. É o pior modo de falha que esta interface tinha.
+  let passoMaximo = 0;
+
+  function liberarPasso(i) {
+    if (i > passoMaximo) passoMaximo = i;
+    sincronizarPassos();
+  }
+
+  function reiniciarPassos() {
+    passoMaximo = 0;
+    sincronizarPassos();
+  }
+
+  function sincronizarPassos() {
+    document.querySelectorAll('.step-btn').forEach((el, idx) => {
+      const bloqueado = idx > passoMaximo;
+      el.disabled = bloqueado;
+      el.setAttribute('aria-disabled', bloqueado ? 'true' : 'false');
+      el.title = bloqueado ? 'Disponível depois de estruturar o caso' : '';
+    });
+  }
+
+  function goTo(i) {
+    // Nunca avança além do que foi realmente calculado, nem por clique na
+    // barra, nem por chamada direta.
+    const alvo = Math.min(i, passoMaximo);
+    document.querySelectorAll('.screen').forEach((el, idx) => el.classList.toggle('active', idx === alvo));
+    document.querySelectorAll('.step-btn').forEach((el, idx) => {
+      el.classList.toggle('active', idx === alvo);
+      el.classList.toggle('done', idx < alvo);
+      if (idx === alvo) el.setAttribute('aria-current', 'step');
+      else el.removeAttribute('aria-current');
+      // Se a barra de passos estiver rolando (telas estreitas), traz o passo
+      // atual para a área visível - senão o médico avança e o indicador de
+      // onde ele está fica fora da tela.
+      if (idx === alvo && el.scrollIntoView) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    anunciarTela(alvo);
+  }
+
+  // Troca de tela era completamente silenciosa: o foco ficava no <body> e nada
+  // era falado. Quem usa leitor de tela acionava "Estruturar caso", a tela
+  // mudava, e a única pista era o Tab seguinte retomar de um ponto arbitrário
+  // do DOM. Mover o foco para o título resolve as duas coisas de uma vez — o
+  // anúncio e o ponto de partida da navegação.
+  function anunciarTela(i) {
+    const tela = document.getElementById('screen-' + i);
+    if (!tela) return;
+    const titulo = tela.querySelector('h1');
+    const vivo = document.getElementById('anuncio-tela');
+    if (vivo) vivo.textContent = `Passo ${i + 1} de 4: ${titulo ? titulo.textContent.trim() : ''}`;
+    if (titulo) {
+      titulo.setAttribute('tabindex', '-1');
+      // Sem o atraso o foco compete com a animação de entrada da tela.
+      setTimeout(() => titulo.focus({ preventScroll: true }), 80);
+    }
+  }
+
+  document.querySelectorAll('.step-btn').forEach((btn, idx) => {
+    btn.addEventListener('click', () => goTo(idx));
+  });
+  sincronizarPassos();
+  document.getElementById('case-text').addEventListener('input', function () {
+    document.getElementById('tile-text').classList.toggle('selected', this.value.trim().length > 0);
+  });
+  setupDropzone();
+
+  // Estado inicial da revisão: o primeiro tumor da ordem de prevalência,
+  // já com seus campos montados, para a tela nunca aparecer vazia caso o
+  // médico navegue direto para o passo 2 antes de estruturar um caso.
+  setSubtype(TUMORS.ORDER[0]);
+  renderFields({});
+
+  // ===================== PLAUD =====================
+  // Três estados possíveis, todos honestos - nunca simulamos uma transcrição:
+  //   indisponível  -> credenciais ainda não liberadas para esta instalação
+  //   desconectado  -> disponível, o médico precisa autorizar via OAuth
+  //   conectado     -> lista as gravações reais e importa a transcrição
+  let plaudState = { configured: false, connected: false };
+
+  async function refreshPlaudStatus() {
+    const sub = document.getElementById('plaud-sub');
+    const dot = document.getElementById('plaud-dot');
+    const action = document.getElementById('plaud-action');
+    const list = document.getElementById('plaud-list');
+
+    try {
+      plaudState = await api('/api/plaud/status');
+    } catch (err) {
+      // Falha ao verificar: a linha não aparece. Uma mensagem de erro sobre
+      // uma integração que o médico nem sabe que existe não ajuda ninguém.
+      document.getElementById('plaud-row').style.display = 'none';
+      return;
+    }
+
+    dot.classList.toggle('on', plaudState.connected);
+    list.style.display = 'none';
+    list.innerHTML = '';
+
+    if (!plaudState.configured) {
+      // Indisponível: a linha inteira fica fora da tela.
+      document.getElementById('plaud-row').style.display = 'none';
+      action.style.display = 'none';
+      return;
+    }
+    // Disponível de verdade: aparece, e o selo "em breve" deixa de fazer sentido.
+    document.getElementById('plaud-row').style.display = '';
+    document.getElementById('plaud-soon').style.display = 'none';
+
+    action.style.display = '';
+    if (plaudState.connected) {
+      sub.textContent = 'Conectado. Importe a transcrição de uma gravação direto para o caso.';
+      action.textContent = 'Ver gravações';
+    } else {
+      sub.textContent = 'Conecte sua conta Plaud para importar transcrições de consulta sem digitar.';
+      action.textContent = 'Conectar';
+    }
+  }
+
+  async function plaudAction() {
+    if (!plaudState.connected) {
+      try {
+        const out = await api('/api/plaud/connect');
+        window.location.href = out.url;
+      } catch (err) {
+        showExtractError(err.message);
+      }
+      return;
+    }
+    await loadPlaudRecordings();
+  }
+
+  async function loadPlaudRecordings() {
+    const list = document.getElementById('plaud-list');
+    list.style.display = '';
+    list.innerHTML = '<div class="plaud-item"><span class="d">Carregando gravações...</span></div>';
+
+    try {
+      const out = await api('/api/plaud/recordings');
+      list.innerHTML = '';
+
+      if (!out.recordings.length) {
+        list.innerHTML = '<div class="plaud-item"><span class="d">Nenhuma gravação encontrada na sua conta Plaud.</span></div>';
+        return;
+      }
+
+      out.recordings.forEach((rec) => {
+        const row = document.createElement('div');
+        row.className = 'plaud-item';
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const title = document.createElement('div');
+        title.className = 't';
+        title.textContent = rec.title;
+        const date = document.createElement('div');
+        date.className = 'd';
+        date.textContent = rec.createdAt ? new Date(rec.createdAt).toLocaleString('pt-BR') : 'Data não informada';
+        meta.appendChild(title);
+        meta.appendChild(date);
+
+        const btn = document.createElement('button');
+        btn.className = 'ghost';
+        btn.type = 'button';
+        btn.textContent = 'Importar';
+        btn.onclick = () => importPlaudTranscript(rec.id, btn);
+
+        row.appendChild(meta);
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+    } catch (err) {
+      list.innerHTML = '';
+      const row = document.createElement('div');
+      row.className = 'plaud-item';
+      const span = document.createElement('span');
+      span.className = 'd';
+      span.textContent = err.message;
+      row.appendChild(span);
+      list.appendChild(row);
+      if (/expirou/i.test(err.message)) refreshPlaudStatus();
+    }
+  }
+
+  async function importPlaudTranscript(recordingId, btn) {
+    const original = btn.textContent;
+    btn.textContent = 'Importando...';
+    btn.disabled = true;
+    try {
+      const out = await api(`/api/plaud/transcript/${encodeURIComponent(recordingId)}`);
+      const textarea = document.getElementById('case-text');
+      textarea.value = (textarea.value.trim() ? textarea.value.trim() + '\n\n' : '') + out.text;
+      textarea.dispatchEvent(new Event('input'));
+      document.getElementById('plaud-list').style.display = 'none';
+      btn.textContent = original;
+    } catch (err) {
+      showExtractError(err.message);
+      btn.textContent = original;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function showExtractError(message) {
+    const box = document.getElementById('extract-error');
+    box.textContent = message;
+    box.style.display = '';
+    limparAvisos();
+  }
+
+  // Avisos por arquivo: o que houve com aquele anexo e o que fazer a respeito.
+  // Ficam separados do erro geral porque a extração pode ter dado certo com
+  // as outras fontes e mesmo assim ter algo a comunicar.
+  function limparAvisos() {
+    document.querySelectorAll('.aviso-arquivo').forEach((el) => el.remove());
+  }
+
+  function montaAviso(a) {
+    const div = document.createElement('div');
+    div.className = 'ocr-disclaimer aviso-arquivo';
+    // Sem isto o médico que usa leitor de tela anexa um HEIC, o aviso
+    // aparece na tela e ele não ouve absolutamente nada.
+    div.setAttribute('role', 'alert');
+    const motivo = document.createElement('span');
+    motivo.textContent = a.motivo || '';
+    div.appendChild(motivo);
+    if (a.comoResolver) {
+      const como = document.createElement('span');
+      como.className = 'resolver';
+      como.textContent = a.comoResolver;
+      div.appendChild(como);
+    }
+    return div;
+  }
+
+  function mostrarAvisos(avisos) {
+    limparAvisos();
+    if (!avisos || !avisos.length) return;
+    const ancora = document.getElementById('extract-error');
+
+    // O MESMO aviso vai para as duas telas. Quando a extração falha o médico
+    // fica na tela 1 e lê ali; quando dá certo ele avança para a revisão e lê
+    // lá. Renderizar só na tela 1 era um aviso que ninguém via — inclusive o
+    // de PDF com assinatura digital, que existia desde a v1.5.
+    const naRevisao = document.getElementById('avisos-revisao');
+    if (naRevisao) {
+      avisos.forEach((a) => naRevisao.appendChild(montaAviso(a)));
+    }
+
+    avisos.forEach((a) => {
+      const div = montaAviso(a);
+      ancora.parentNode.insertBefore(div, ancora.nextSibling);
+    });
+  }
+
+  function reportPlaudReturn(status) {
+    const messages = {
+      conectado: 'Conta Plaud conectada. Suas gravações já podem ser importadas.',
+      negado: 'Você cancelou a conexão com o Plaud.',
+      falha: 'Não foi possível concluir a conexão com o Plaud. Tente novamente.',
+      'estado-invalido': 'O link de retorno do Plaud expirou. Inicie a conexão novamente.',
+      'sem-codigo': 'O Plaud não retornou o código de autorização. Tente novamente.',
+    };
+    showExtractError(messages[status] || 'Retorno inesperado do Plaud.');
+    refreshPlaudStatus();
+  }

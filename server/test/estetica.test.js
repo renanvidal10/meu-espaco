@@ -10,7 +10,11 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 
-const HTML = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
+// O estilo saiu do index.html para app.css (§52). A trava acompanha o arquivo,
+// e continua lendo o HTML para o caso de alguém reintroduzir estilo inline.
+const CSS = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.css'), 'utf8');
+const MARCACAO = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
+const HTML = CSS + '\n' + MARCACAO;
 
 test('nenhum tamanho de fonte solto: tudo passa pela escala', () => {
   const soltos = HTML.match(/font-size:\s*[0-9.]+(px|rem|em)/g) || [];
