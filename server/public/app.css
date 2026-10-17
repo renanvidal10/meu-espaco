@@ -501,6 +501,115 @@
   .screen.active > #programs-dynamic > .card:nth-child(n+4) { animation-delay: 130ms; }
   @keyframes sobe { from { opacity: 0; transform: translate3d(0, 10px, 0); } to { opacity: 1; transform: none; } }
 
+  /* ===================== §67. MOVIMENTO QUE DIZ ALGO =====================
+   *
+   * Regra que vale para todas as animações abaixo, e que nasceu de dois
+   * defeitos encontrados ao prototipá-las: O ESTADO DE REPOUSO É O VISÍVEL.
+   * Nenhum elemento nasce escondido esperando a animação revelá-lo — é o
+   * `from` do keyframe que esconde, por um instante. Animação que não roda
+   * (aparelho com "reduzir movimento", aba em segundo plano, impressão) não
+   * pode apagar conteúdo clínico da tela. É a mesma lição do PDF em branco.
+   */
+
+  /* --- 2. O selo da contagem entra com peso -----------------------------
+     NÃO é contagem de 0 até N. Durante 700ms de contagem o painel mostraria
+     "0 testes indicados" e "1 teste indicado" — números errados na resposta
+     central do produto, bem onde o médico olha primeiro. O selo surge com o
+     valor certo desde o primeiro quadro; o que se move é ele, não o número. */
+  .verdict-count-pill { animation: selo-entra 420ms var(--ease) 120ms both; }
+  @keyframes selo-entra {
+    from { opacity: 0; transform: scale(.82) translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* --- 3. Uma luz atravessa o veredito, uma vez ------------------------- */
+  .verdict::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.18) 50%, transparent 65%);
+    transform: translateX(120%);
+    pointer-events: none;
+    animation: varrer 1100ms var(--ease) 200ms both;
+  }
+  @keyframes varrer { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
+
+  /* --- 4. Esqueleto enquanto a leitura acontece -------------------------
+     No lugar de um rótulo "Lendo caso...", a forma do que vem. A espera
+     parece menor porque o olho já sabe o que esperar. */
+  .esqueleto { display: none; margin-top: 14px; }
+  body.lendo-caso .esqueleto { display: block; }
+  .esqueleto .osso {
+    height: 12px; border-radius: var(--r-full);
+    background: var(--border);
+    margin-bottom: 9px;
+    background-image: linear-gradient(90deg, var(--border) 25%, var(--surface-2) 37%, var(--border) 63%);
+    background-size: 400% 100%;
+    animation: brilhar 1400ms ease-in-out infinite;
+  }
+  .esqueleto .osso.curto { width: 55%; }
+  .esqueleto .osso.medio { width: 78%; }
+  @keyframes brilhar { from { background-position: 100% 50%; } to { background-position: 0 50%; } }
+
+  /* --- 5. O trilho se desenha -------------------------------------------
+     O nó 1 aparece, a linha desce até o 2, o 2 aparece. A ordem entre os
+     testes é clínica; aqui o movimento DIZ a ordem, não só a mostra. */
+  .screen.active .test-step .step-num { animation: no-entra 320ms var(--ease) both; }
+  .screen.active .test-step:nth-child(2) .step-num { animation-delay: 420ms; }
+  .screen.active .test-step:nth-child(3) .step-num { animation-delay: 840ms; }
+  @keyframes no-entra { from { transform: scale(0); } to { transform: scale(1); } }
+
+  .test-step .trilho::after { transform-origin: top; }
+  .screen.active .test-step:not(:last-child) .trilho::after {
+    animation: trilho-desce 420ms var(--ease) 120ms both;
+  }
+  .screen.active .test-step:nth-child(2) .trilho::after { animation-delay: 540ms; }
+  @keyframes trilho-desce { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+  /* --- 6. Marca-texto no critério que EXCLUI ----------------------------
+     O traço é fundo do próprio texto, não um bloco atrás dele: bloco com
+     z-index negativo escorrega para trás do fundo do cartão e some. */
+  /* O traço é FUNDO SÓLIDO, não gradiente. Duas razões, e as duas vieram de
+     erro medido: gradiente tem background-color transparente, então a bateria
+     de contraste se recusa a medir (§57.2) — e ela está certa, porque sobre
+     gradiente não existe "o" fundo do texto. Com cor sólida, o contraste do
+     trecho mais importante do card passa a ser um número conferido.
+     A revelação vira RECORTE (clip-path), que anima sem tocar no fundo. */
+  mark.marca-criterio {
+    color: var(--ink); font-weight: 650;
+    background-color: var(--warn-soft);
+    border-radius: var(--r-xs);
+    padding: 1px 3px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  /* O traço ACENDE, não é desenhado.
+   *
+   * A primeira versão revelava por recorte (clip-path), imitando um marcador
+   * passando sobre o papel. Media numa captura: o recorte corta O TEXTO, não
+   * só o fundo — "EM PRIMEIRA LINHA" ficava ilegível por quase um segundo,
+   * justamente o critério que a animação existe para apontar. Num app
+   * clínico, animação que esconde o que ela quer destacar é defeito, não
+   * estilo. O fundo acende por baixo de um texto que nunca sai da tela. */
+  .screen.active mark.marca-criterio { animation: pintar 420ms var(--ease) 320ms both; }
+  .screen.active mark.marca-criterio:nth-of-type(2) { animation-delay: 560ms; }
+  @keyframes pintar {
+    from { background-color: transparent; }
+    to { background-color: var(--warn-soft); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .verdict::after { display: none; }
+    .esqueleto .osso { animation: none; background-image: none; }
+    .verdict-count-pill,
+    .test-step .step-num,
+    .test-step .trilho::after,
+    mark.marca-criterio { animation: none; }
+  }
+  @media print {
+    .verdict::after { display: none !important; }
+    .esqueleto { display: none !important; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .screen.active,
     .screen.active > .card,

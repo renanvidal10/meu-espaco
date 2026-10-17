@@ -729,6 +729,8 @@
     btn.disabled = true;
     const originalLabel = btn.textContent;
     btn.textContent = 'Lendo caso com IA...';
+    // §67. O esqueleto entra junto com o rótulo e sai junto com ele.
+    document.body.classList.add('lendo-caso');
 
     try {
       const { extracted, avisos } = await extractCase(text);
@@ -791,6 +793,9 @@
     } finally {
       btn.disabled = false;
       btn.textContent = originalLabel;
+      // No `finally`: o esqueleto precisa sair mesmo quando a leitura falha,
+      // senão a tela fica pulsando para sempre sobre uma mensagem de erro.
+      document.body.classList.remove('lendo-caso');
     }
   }
 
@@ -1459,6 +1464,21 @@
       // A ordem mora no registro clínico (§56), não aqui.
       const listaProgramas = TUMORS.ordenarProgramas(test.programs || []);
 
+      /* §67. Marca-texto nos trechos que o registro declarou como excludentes.
+       * Aplicado DEPOIS do escape de HTML, sobre o texto já seguro, e só nas
+       * ocorrências exatas que o registro listou — nunca por padrão de letra
+       * maiúscula, que confundiria nome de gene com critério. */
+      const marcarDestaques = (textoEscapado, destaques) => {
+        if (!destaques || !destaques.length) return textoEscapado;
+        let saida = textoEscapado;
+        for (const trecho of destaques) {
+          const alvo = esc(trecho);
+          if (!saida.includes(alvo)) continue;
+          saida = saida.split(alvo).join(`<mark class="marca-criterio">${alvo}</mark>`);
+        }
+        return saida;
+      };
+
       const programas = listaProgramas.map((p) => {
         const selo = SELO[p.tipo] || null;
         const nota = cortarNota(p.note);
@@ -1472,8 +1492,8 @@
             <div>
               <div class="name">${esc(p.name)}${selo ? ` <span class="selo ${selo.cls}">${selo.txt}</span>` : ''}</div>
               ${nota.cauda
-                ? `<details class="prog-nota"><summary>${esc(nota.cabeca)}</summary><div class="test">${esc(nota.cauda)}</div></details>`
-                : `<div class="test">${esc(nota.cabeca)}</div>`}
+                ? `<details class="prog-nota"><summary>${marcarDestaques(esc(nota.cabeca), p.destaques)}</summary><div class="test">${marcarDestaques(esc(nota.cauda), p.destaques)}</div></details>`
+                : `<div class="test">${marcarDestaques(esc(nota.cabeca), p.destaques)}</div>`}
               ${p.verificadoEm ? `<div class="prog-verif">Via conferida em ${esc(p.verificadoEm.split('-').reverse().join('/'))}</div>` : ''}
             </div>
           </div>

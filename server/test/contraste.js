@@ -57,6 +57,9 @@ const ALVOS = [
   // não. Medido nas duas telas onde ele aparece.
   { seletor: '.test-step.primary .step-num', minimo: 4.5, nota: 'no da sequencia (resultado)' },
   { seletor: '.prog-cabeca .step-num', minimo: 4.5, nota: 'no da sequencia (programas)' },
+  // §67. O marca-texto no critério que EXCLUI: texto sobre fundo de alerta.
+  // É o trecho do card que o médico MAIS precisa conseguir ler.
+  { seletor: 'mark.marca-criterio', minimo: 4.5, nota: 'criterio de exclusao marcado' },
 ];
 
 function paraRgb(css) {
@@ -284,6 +287,35 @@ if (require.main === module) {
     const avisoPresente = await pagina.locator('#patient-name-aviso:visible').count();
     if (avisoPresente === 0) {
       console.error('FALHA: o aviso do campo obrigatório não apareceu — o alvo de --warn não foi medido.');
+      process.exitCode = 1;
+    }
+    for (const tema of ['light', 'dark']) todos.push(...await medirTema(pagina, tema));
+
+    /* §67. Terceiro caso: ovário em primeira linha é o único que renderiza o
+     * marca-texto, porque é o programa da GSK que declara `destaques`. Sem
+     * rodar este caso o alvo seria pulado em silêncio — a armadilha do
+     * §54.4, que já custou um alvo "aprovado" sem nunca ter sido medido. */
+    stub.responderCom({
+      tipo: 'ok',
+      extracao: {
+        tipo_tumor: 'Ginecológico - Ovário',
+        histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61',
+      },
+    }, 1);
+    await pagina.click('.step-btn[data-step="0"]');
+    await pagina.waitForTimeout(300);
+    await pagina.fill('#case-text', 'Mulher 61 anos, carcinoma seroso de alto grau de ovario, FIGO IIIC.');
+    await pagina.click('#btn-extract');
+    await pagina.waitForSelector('#screen-1.active');
+    await pagina.click('button:has-text("Rodar triagem")');
+    await pagina.waitForSelector('#screen-2.active');
+    await pagina.click('#verdict-next-btn');
+    await pagina.waitForSelector('#screen-3.active');
+    await pagina.waitForTimeout(400);
+
+    const marcados = await pagina.locator('mark.marca-criterio').count();
+    if (marcados === 0) {
+      console.error('FALHA: o marca-texto do criterio nao apareceu — o alvo nao foi medido.');
       process.exitCode = 1;
     }
     for (const tema of ['light', 'dark']) todos.push(...await medirTema(pagina, tema));

@@ -359,6 +359,12 @@
     tipo: 'patrocinado',
     name: 'Teste HRD myChoice CDx (GSK)',
     industria: 'GSK',
+    /* §67. Os trechos do critério que NEGAM o encaminhamento. Ficam
+     * declarados aqui, no registro clínico, e não deduzidos da tela por
+     * heurística: "está em CAIXA ALTA" acertaria "ALTO GRAU" e erraria
+     * "KRAS G12C", "PD-L1" e "EGFR", que são nomes de gene, não critérios.
+     * Quem sabe o que exclui um paciente é a curadoria, não o CSS. */
+    destaques: ['de ALTO GRAU', 'EM PRIMEIRA LINHA'],
     note: 'Elegível: carcinoma seroso ou endometrioide de ALTO GRAU de ovário, tuba uterina ou peritônio, EM PRIMEIRA LINHA de tratamento. A solicitação não é feita por portal — o médico pede ao laboratório parceiro (Lâmina), que inscreve o paciente, seleciona os blocos e encaminha para o teste.',
     url: 'https://laminalab.com.br/teste-deficiencia-de-recombinacao-homologa-hrd-em-cancer-de-ovario/',
     cobertura: ['ovario'],
@@ -401,6 +407,8 @@
     tipo: 'patrocinado',
     name: 'RAStrear (Amgen)',
     industria: 'Amgen',
+    // O painel fechado é o que recusa o pedido de um gene isolado. §67
+    destaques: ['O painel é fechado'],
     note: 'Perfil de RAS (KRAS e NRAS, incluindo KRAS G12C) e BRAF em colorretal metastático. O painel é fechado — não dá para pedir um gene isolado. Exige cadastro do médico com CRM e voucher liberado por consultor da Amgen.',
     url: 'https://www.programarastrear.com.br/',
     cobertura: ['colorretal'],

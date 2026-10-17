@@ -3731,3 +3731,83 @@ clique.
 O card por teste continua: cada teste tem programas e documento próprios, e
 essa repetição é estrutural, não redundância. O que saiu foi o que repetia
 **conteúdo idêntico**.
+
+## 67. As animações entraram no app (v1.29)
+
+Cinco movimentos da vitrine, aplicados ao produto. A regra que vale para todos,
+e que nasceu de defeitos medidos ao prototipá-los:
+
+> **O estado de repouso é o visível.** Nenhum elemento nasce escondido
+> esperando a animação revelá-lo. É o `from` do keyframe que esconde, por um
+> instante. Animação que não roda — "reduzir movimento", aba em segundo plano,
+> impressão — não pode apagar conteúdo clínico da tela.
+
+É a mesma lição do PDF em branco (§57.4), agora escrita como regra.
+
+### 67.1 A contagem NÃO conta
+
+O candidato era o número de testes subindo de 0 até N. Rejeitado: durante
+700ms o painel mostraria **"0 testes indicados"** e **"1 teste indicado"** —
+números errados na resposta central do produto, exatamente onde o médico olha
+primeiro. Um relance no meio da animação lê o número errado.
+
+O selo entra com o valor certo desde o primeiro quadro; o que se move é ele,
+não o número. A intenção (puxar o olho para a contagem) se cumpre sem que a
+tela minta por um segundo.
+
+### 67.2 O destaque que escondia o que destacava
+
+O marca-texto nos critérios de exclusão foi escrito primeiro com `clip-path`,
+imitando um marcador passando sobre o papel. Medido numa captura: **o recorte
+corta o TEXTO, não só o fundo.** "EM PRIMEIRA LINHA" ficava ilegível por quase
+um segundo — o mesmo critério que o corte de 78 caracteres do §53 já tinha
+escondido uma vez.
+
+O traço passou a **acender** (`background-color` de transparente a
+`--warn-soft`) sob um texto que nunca sai da tela.
+
+A trava mede **no meio da animação**, em três instantes, e exige que cada
+trecho marcado esteja com largura cheia, opacidade cheia e sem recorte.
+**Provada**: devolvendo o `clip-path`, ela reprova.
+
+### 67.3 Os destaques são decisão do registro, não da tela
+
+`destaques` é um campo do programa em `tumors.js`, com os trechos exatos que
+**negam** o encaminhamento.
+
+A alternativa tentadora era marcar o que está em CAIXA ALTA. Acertaria "ALTO
+GRAU" e erraria "KRAS G12C", "PD-L1" e "EGFR" — nomes de gene, não critérios.
+Destacar um gene como se fosse condição de recusa é pior que não destacar nada.
+Quem sabe o que exclui um paciente é a curadoria, não o CSS.
+
+Três travas: todo destaque declarado existe de fato no texto do programa; o
+programa de ovário mantém os dois critérios (grau e linha); e nenhum destaque é
+nome de gene.
+
+### 67.4 A cor sólida que o medidor exigiu
+
+O traço começou como gradiente e a bateria de contraste **se recusou a medir**
+(§57.2) — corretamente: sobre gradiente não existe "o" fundo do texto. Com cor
+sólida, o trecho mais importante do card passou a ter contraste conferido:
+**13,73:1** no claro, **11,70:1** no escuro. 34 medições.
+
+O guarda do §57.2 foi escrito para pegar um erro meu de meses atrás e pegou
+outro meu hoje.
+
+### 67.5 O esqueleto sai sempre
+
+O esqueleto pulsa enquanto o laudo é lido, no lugar de um rótulo "Lendo
+caso...". A remoção mora no `finally`: se ficasse só no caminho de sucesso, uma
+falha de leitura deixaria a tela pulsando para sempre por cima da mensagem de
+erro — pior que não ter indicador nenhum. Teste simula a falha e exige que o
+esqueleto saia.
+
+### 67.6 Uma trava que precisou aprender a esperar
+
+A trava "nada fica invisível no modo impressão" passou a reprovar com
+`opacity: 0.982`: ela media enquanto a entrada escalonada dos cards ainda
+corria. Medição no meio do voo acusa ruído, e ruído ensina a ignorar o teste.
+
+Agora ela espera as animações assentarem (`document.getAnimations()`), deixando
+de fora as infinitas — o esqueleto pulsa para sempre, e esperar por ele nunca
+terminaria.

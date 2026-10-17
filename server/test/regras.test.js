@@ -1247,3 +1247,48 @@ test('indústria não declarada na ordem não some nem fura a fila', () => {
   ], `ordenação inesperada: ${saida.join(' → ')}`);
   assert.strictEqual(saida.length, entrada.length, 'a ordenação perdeu um programa');
 });
+
+/* §67. O marca-texto nos critérios que EXCLUEM.
+ *
+ * Os trechos vêm declarados no registro (`destaques`), não deduzidos da tela.
+ * A alternativa tentadora era marcar o que está em CAIXA ALTA — acertaria
+ * "ALTO GRAU" e erraria "KRAS G12C", "PD-L1" e "EGFR", que são nomes de gene,
+ * não critérios de elegibilidade. Destacar um gene como se fosse condição de
+ * recusa é pior que não destacar nada. */
+test('todo destaque declarado existe de fato no texto do programa', () => {
+  const vistos = programasDeIndustria();
+  let comDestaque = 0;
+  for (const [nome, p] of vistos) {
+    if (!p.destaques) continue;
+    comDestaque++;
+    assert.ok(Array.isArray(p.destaques), `${nome}: destaques precisa ser lista`);
+    for (const trecho of p.destaques) {
+      assert.ok(String(p.note || '').includes(trecho),
+        `${nome}: destaque "${trecho}" não aparece na descrição — marcaria nada, ou o trecho errado`);
+    }
+  }
+  assert.ok(comDestaque >= 1, 'nenhum programa declarou destaques — o teste não mediu nada');
+});
+
+test('o destaque do programa de ovário cobre os dois critérios de exclusão', () => {
+  // Mesmos dois trechos que o corte de 78 caracteres escondia (§53): o grau e
+  // a linha de tratamento. São eles que NEGAM o encaminhamento.
+  const { resultado } = triar('ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' });
+  const gsk = resultado.tests.flatMap((t) => t.programs || []).find((p) => /GSK/.test(p.name));
+  assert.ok(gsk, 'o programa da GSK sumiu do card de ovário');
+  assert.ok(gsk.destaques && gsk.destaques.length >= 2, 'o programa de ovário perdeu os destaques');
+  assert.match(gsk.destaques.join(' | '), /ALTO GRAU/, 'o grau deixou de ser destacado');
+  assert.match(gsk.destaques.join(' | '), /PRIMEIRA LINHA/, 'a linha de tratamento deixou de ser destacada');
+});
+
+test('nenhum destaque marca nome de gene', () => {
+  // Lista curta e explícita: se um destaque for só um gene, é sinal de que
+  // alguém trocou "critério que exclui" por "palavra que chama atenção".
+  const GENES = /^(BRCA1|BRCA2|BRCA1\/2|KRAS|NRAS|BRAF|EGFR|ALK|PD-L1|HER2|MLH1|MSH2|MSH6|PMS2|EPCAM|PALB2|ATM|RAD51C|RAD51D|BRIP1|NTRK|PIK3CA|AKT1|PTEN|ESR1|HOXB13|STK11|CDKN2A|APC|MUTYH)$/i;
+  for (const [nome, p] of programasDeIndustria()) {
+    for (const trecho of p.destaques || []) {
+      assert.ok(!GENES.test(trecho.trim()),
+        `${nome}: "${trecho}" é nome de gene, não critério de exclusão`);
+    }
+  }
+});

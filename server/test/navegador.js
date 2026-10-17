@@ -636,6 +636,20 @@ async function rodar(nome, dispositivo) {
      * impressão isso vira folha em branco. A regra de @media print zera
      * animação e opacidade de TUDO dentro da tela — este teste mede o
      * resultado, elemento por elemento, em vez de confiar na regra. */
+    /* §67. Esperar as animações assentarem antes de medir opacidade. A
+     * entrada escalonada dos cards passa por opacidades intermediárias, e
+     * medir no meio do voo acusa 0,98 como se fosse elemento apagado — ruído
+     * que ensina a ignorar o teste. Animação infinita (o esqueleto pulsando)
+     * fica de fora, senão a espera nunca termina. */
+    await p.evaluate(() => Promise.all(
+      document.getAnimations()
+        .filter((a) => {
+          const d = a.effect && a.effect.getTiming ? a.effect.getTiming() : {};
+          return d.iterations !== Infinity;
+        })
+        .map((a) => a.finished.catch(() => {})),
+    ));
+
     const invisiveis = await p.evaluate(() => {
       const tela = document.querySelector('.screen.active');
       if (!tela) return ['sem tela ativa'];
@@ -794,6 +808,135 @@ async function rodar(nome, dispositivo) {
     await p.waitForTimeout(120);
     linha(ok((await p.locator('#instalar-btn').isVisible()) === false, 'o botão continua oferecendo instalar num app já instalado'),
       'já instalado → botão some');
+    await p.close();
+  }
+
+  /* ---------- 13c. animações não podem apagar conteúdo ---------- */
+  {
+    /* §67. A regra das animações do app: O ESTADO DE REPOUSO É O VISÍVEL.
+     * Nenhum elemento nasce escondido esperando a animação revelá-lo. Se a
+     * animação não roda — "reduzir movimento", aba em segundo plano,
+     * impressão —, conteúdo clínico não pode sumir.
+     *
+     * O teste DESLIGA as animações e exige que tudo continue visível, em vez
+     * de confiar que cada keyframe foi escrito certo. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('animacao: ' + e.message));
+    await p.emulateMedia({ reducedMotion: 'reduce' });
+    await mockExtracao(p, { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61' });
+    await entrar(p);
+    await p.fill('#case-text', 'caso de ovário');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('button:has-text("Rodar triagem")');
+    await p.waitForSelector('#screen-2.active');
+    await p.waitForTimeout(250);
+
+    const apagados = await p.evaluate(() => {
+      const fora = [];
+      const checar = (sel, nome) => {
+        document.querySelectorAll(sel).forEach((el) => {
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          if (r.width < 1 || r.height < 1) { fora.push(`${nome}: sem área`); return; }
+          if (parseFloat(cs.opacity) < 0.99) fora.push(`${nome}: opacity ${cs.opacity}`);
+          // scale(0) some sem mexer em opacidade — é o modo como o nó
+          // numerado e o trilho desapareciam no protótipo.
+          if (/matrix\(0|scale\(0/.test(cs.transform)) fora.push(`${nome}: transform ${cs.transform}`);
+        });
+      };
+      checar('#test-steps .step-num', 'nó da sequência');
+      checar('#verdict-title', 'título do veredito');
+      checar('#verdict-text', 'texto do veredito');
+      return fora;
+    });
+    linha(ok(apagados.length === 0, `invisível com movimento reduzido: ${apagados.slice(0, 3).join(' | ')}`),
+      'com movimento reduzido, nada de clínico some da tela');
+
+    // O trilho (pseudo-elemento) também não pode ficar em escala zero.
+    const trilho = await p.evaluate(() => {
+      const el = document.querySelector('#test-steps .test-step:not(:last-child) .trilho');
+      if (!el) return 'ausente';
+      return getComputedStyle(el, '::after').transform;
+    });
+    linha(ok(!/matrix\(1, 0, 0, 0|scaleY\(0/.test(String(trilho)), `trilho: ${trilho}`),
+      'o trilho continua desenhado sem animação');
+    await p.close();
+  }
+
+  /* ---------- 13c-bis. o destaque não pode esconder o que destaca ---------- */
+  {
+    /* §67. A primeira versão do marca-texto revelava por recorte
+     * (clip-path), imitando um marcador passando sobre o papel. O recorte
+     * corta O TEXTO, não só o fundo: "EM PRIMEIRA LINHA" ficava ilegível por
+     * quase um segundo — justamente o critério que a animação existe para
+     * apontar, e justamente o que o corte de 78 caracteres do §53 já tinha
+     * escondido uma vez.
+     *
+     * O teste mede NO MEIO da animação: o texto marcado precisa estar
+     * inteiro, do primeiro quadro ao último. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('destaque: ' + e.message));
+    await mockExtracao(p, { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61' });
+    await entrar(p);
+    await p.fill('#case-text', 'caso de ovário');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('button:has-text("Rodar triagem")');
+    await p.waitForSelector('#screen-2.active');
+    await p.click('#verdict-next-btn');
+    await p.waitForSelector('#screen-3.active');
+
+    // Amostra em três instantes, cobrindo os atrasos dos dois destaques.
+    const amostras = [];
+    for (const espera of [120, 420, 700]) {
+      await p.waitForTimeout(espera === 120 ? 120 : 300);
+      amostras.push(await p.evaluate(() => Array.from(document.querySelectorAll('mark.marca-criterio')).map((m) => {
+        const r = m.getBoundingClientRect();
+        const cs = getComputedStyle(m);
+        return {
+          texto: (m.textContent || '').trim(),
+          largura: Math.round(r.width),
+          recortado: cs.clipPath !== 'none' && cs.clipPath !== 'inset(0px)',
+          opacidade: parseFloat(cs.opacity),
+        };
+      })));
+    }
+
+    const quantos = amostras[amostras.length - 1].length;
+    const falhas2 = [];
+    amostras.forEach((amostra, i) => {
+      if (amostra.length !== quantos) falhas2.push(`instante ${i}: ${amostra.length} de ${quantos} marcas no DOM`);
+      amostra.forEach((m) => {
+        if (m.largura < 10) falhas2.push(`instante ${i}: "${m.texto}" com ${m.largura}px de largura`);
+        if (m.recortado) falhas2.push(`instante ${i}: "${m.texto}" recortado (${m.recortado})`);
+        if (m.opacidade < 0.99) falhas2.push(`instante ${i}: "${m.texto}" com opacidade ${m.opacidade}`);
+      });
+    });
+
+    linha(ok(quantos >= 2, `só ${quantos} trecho(s) marcado(s) — o teste não mediria nada`),
+      'o critério de exclusão aparece marcado');
+    linha(ok(falhas2.length === 0, falhas2.slice(0, 3).join(' | ')),
+      'o texto marcado fica legível durante toda a animação');
+    await p.close();
+  }
+
+  /* ---------- 13d. o esqueleto da leitura sai sempre ---------- */
+  {
+    /* §67. O esqueleto pulsa enquanto o laudo é lido. Se ele ficar preso
+     * depois de uma falha, a tela pulsa para sempre por cima de uma mensagem
+     * de erro — pior que não ter indicador nenhum. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('esqueleto: ' + e.message));
+    await entrar(p);
+    await p.route('**/api/extract', (r) => r.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"falha simulada"}' }));
+    await p.fill('#case-text', 'caso que vai falhar');
+    await p.click('#btn-extract');
+    await p.waitForTimeout(900);
+    const preso = await p.evaluate(() => document.body.classList.contains('lendo-caso'));
+    const esqueletoVisivel = await p.locator('#esqueleto-leitura:visible').count();
+    linha(ok(preso === false && esqueletoVisivel === 0, `classe=${preso} visível=${esqueletoVisivel}`),
+      'leitura falhou → o esqueleto sai da tela');
     await p.close();
   }
 
