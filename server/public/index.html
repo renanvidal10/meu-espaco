@@ -1465,6 +1465,24 @@
     transition: filter .15s ease;
   }
   .gena-send:hover { filter: brightness(1.08); }
+  .gena-mic {
+    flex-shrink: 0;
+    width: var(--toque); height: var(--toque);
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: var(--r-full);
+    background: var(--surface-2); color: var(--ink-muted);
+    cursor: pointer;
+  }
+  .gena-mic:hover { background: var(--accent-soft); color: var(--accent); }
+  .gena-mic:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  /* Ouvindo: o anel pulsa para o médico saber que pode falar sem olhar. */
+  .gena-mic.ouvindo { background: var(--accent); color: var(--accent-ink); animation: pulso-mic 1.6s ease-in-out infinite; }
+  @keyframes pulso-mic {
+    0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft-border); }
+    50% { box-shadow: 0 0 0 7px transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) { .gena-mic.ouvindo { animation: none; } }
+  .gena-mic[hidden] { display: none; }
   .gena-send:disabled { opacity: .5; cursor: not-allowed; }
   .gena-send:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
@@ -2413,6 +2431,9 @@
     </div>
 
     <form class="gena-compose" onsubmit="return genaSubmit(event)">
+      <button class="gena-mic" type="button" id="gena-mic" onclick="genaAlternarEscuta()" aria-label="Falar com a Gena" title="Falar com a Gena">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+      </button>
       <input id="gena-input" type="text" autocomplete="off" placeholder="Descreva o caso ou responda a Gena..." aria-label="Mensagem para a Gena" />
       <button class="gena-send" type="submit" id="gena-send" aria-label="Enviar mensagem">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
@@ -3199,6 +3220,60 @@
     if (cobreTudo) prenderFoco(painel, e);
   });
 
+  /* ============ A GENA FALA E OUVE ============
+   *
+   * O médico usa isto entre consultas, muitas vezes com as mãos ocupadas e o
+   * laudo na outra. Digitar é o gargalo. O navegador já traz reconhecimento
+   * de fala e síntese de voz nativos: nenhuma dependência nova, nenhum custo
+   * por minuto, e o áudio não sai do aparelho — o que importa num app que
+   * promete que o material do paciente não circula. Ver §51.
+   *
+   * Regras de comportamento:
+   * A Gena NÃO fala de volta: foi decisão do dono do produto, e é a decisão
+   * certa — um app que fala sozinho numa sala de consulta é um problema, não
+   * um recurso. O microfone serve para ditar PARA o campo de texto: continua
+   * sendo conversa digitada, só sem ocupar as mãos.
+   */
+  let genaEscutando = false;
+  let genaReconhecimento = null;
+
+  function genaAlternarEscuta() {
+    if (!SpeechRecognitionAPI) return;
+    if (genaEscutando) { genaReconhecimento && genaReconhecimento.stop(); return; }
+
+    genaReconhecimento = new SpeechRecognitionAPI();
+    genaReconhecimento.lang = 'pt-BR';
+    genaReconhecimento.interimResults = true;
+    genaReconhecimento.continuous = false;
+
+    const botao = document.getElementById('gena-mic');
+    const campo = document.getElementById('gena-input');
+    let ditado = '';
+
+    genaReconhecimento.onstart = () => {
+      genaEscutando = true;
+      botao.classList.add('ouvindo');
+      botao.setAttribute('aria-label', 'Parar de falar');
+    };
+    genaReconhecimento.onresult = (e) => {
+      let texto = '';
+      for (let i = 0; i < e.results.length; i++) texto += e.results[i][0].transcript;
+      ditado = texto.trim();
+      campo.value = ditado;
+    };
+    genaReconhecimento.onerror = () => { /* sem permissão ou sem rede: o campo continua digitável */ };
+    genaReconhecimento.onend = () => {
+      genaEscutando = false;
+      botao.classList.remove('ouvindo');
+      botao.setAttribute('aria-label', 'Falar com a Gena');
+      // Falou e parou: envia sozinho. Pedir para apertar enviar depois de
+      // falar desfaz o ganho de não precisar das mãos.
+      if (ditado) genaEnviar(ditado);
+    };
+
+    try { genaReconhecimento.start(); } catch { /* já estava ouvindo */ }
+  }
+
   function genaPush(role, text) {
     genaMessages.push({ role, content: text });
     genaRender(role, text);
@@ -3229,12 +3304,18 @@
     log.scrollTop = log.scrollHeight;
   }
 
-  async function genaSubmit(event) {
+  function genaSubmit(event) {
     event.preventDefault();
     const input = document.getElementById('gena-input');
     const text = input.value.trim();
+    genaEnviar(text);
+    return false;
+  }
+
+  async function genaEnviar(text) {
     if (!text || genaBusy) return false;
 
+    const input = document.getElementById('gena-input');
     input.value = '';
     genaPush('user', text);
 
