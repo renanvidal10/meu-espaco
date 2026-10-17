@@ -966,13 +966,25 @@
 
   async function genaEnviar(text) {
     if (!text || genaBusy) return false;
-
     const input = document.getElementById('gena-input');
     input.value = '';
     genaPush('user', text);
+    await genaChamar();
+    return false;
+  }
 
+  /* §69. A chamada ficou separada do envio para poder ser REFEITA.
+   *
+   * Antes, uma falha de rede renderizava "Tive um problema" e acabava ali: a
+   * mensagem do médico já estava no histórico, sem resposta e sem caminho de
+   * volta. Para tentar de novo ele teria que digitar tudo outra vez — num
+   * aparelho em corredor de hospital, com sinal oscilando, é onde a conversa
+   * morre. Agora o erro vem com um botão que reenvia a mesma mensagem. */
+  async function genaChamar() {
+    if (genaBusy) return;
     genaBusy = true;
     document.getElementById('gena-send').disabled = true;
+    genaRemoverErro();
     genaTyping(true);
 
     try {
@@ -986,13 +998,39 @@
       }
     } catch (err) {
       genaTyping(false);
-      genaRender('assistant', err.message || 'Tive um problema para responder. Tente de novo.');
+      genaMostrarErro(err.message || 'Não consegui responder agora.');
     } finally {
       genaBusy = false;
       document.getElementById('gena-send').disabled = false;
-      input.focus();
+      document.getElementById('gena-input').focus();
     }
-    return false;
+  }
+
+  function genaRemoverErro() {
+    const velho = document.getElementById('gena-erro');
+    if (velho) velho.remove();
+  }
+
+  function genaMostrarErro(texto) {
+    const log = document.getElementById('gena-log');
+    genaRemoverErro();
+    const wrap = document.createElement('div');
+    wrap.className = 'gena-msg from-gena';
+    wrap.id = 'gena-erro';
+    const bolha = document.createElement('div');
+    bolha.className = 'gena-bubble gena-falha';
+    const frase = document.createElement('span');
+    frase.textContent = texto;
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.className = 'gena-retentar';
+    botao.textContent = 'Tentar de novo';
+    botao.onclick = () => genaChamar();
+    bolha.appendChild(frase);
+    bolha.appendChild(botao);
+    wrap.appendChild(bolha);
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
   }
 
   // Passa o caso reunido para o mesmo motor de extração do modo formulário.

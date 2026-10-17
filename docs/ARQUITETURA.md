@@ -3853,3 +3853,60 @@ acabamento visual.
 Fica registrado como o próximo candidato, se ele quiser: não encurtando o que
 dizem, mas tornando-os visualmente subordinados ou recolhíveis, como o §45 já
 fez com as notas que não mudam conduta.
+
+## 69. A Gena ganhou caminho de volta (v1.31)
+
+A conversa digitada já existia e o prompt de sistema já conduz como colega, não
+como formulário. O que faltava era o comportamento de chat de verdade nos
+momentos em que ele é mais necessário.
+
+### 69.1 Falha de rede não pode matar a conversa
+
+O caminho de erro era:
+
+```js
+genaRender('assistant', err.message || 'Tive um problema para responder.');
+```
+
+E acabava ali. A mensagem do médico **já estava no histórico**, sem resposta e
+sem botão. Para tentar de novo ele teria que digitar tudo outra vez — num
+aparelho em corredor de hospital, com sinal oscilando, é exatamente onde a
+conversa morre.
+
+A chamada foi separada do envio (`genaChamar`) para poder ser **refeita**. O
+erro agora vem num balão com "Tentar de novo", que reenvia **a mesma
+mensagem**, sem redigitar e sem duplicar nada no histórico.
+
+Quatro asserções: a falha oferece o botão; o botão refaz a chamada e limpa o
+erro; a mensagem reenviada é a mesma; e o histórico continua com **uma** fala
+do médico, não duas.
+
+### 69.2 O estilo que não aplicava, e a medição que aprovava mesmo assim
+
+O balão de falha foi pintado com `.gena-bubble.gena-falha` — duas classes.
+`.gena-msg.from-gena .gena-bubble` são **três**, e vencia. O balão saía
+idêntico a uma bolha comum: **sem nenhuma cor de alerta**.
+
+E a bateria de contraste **passou**. Ela mediu a bolha comum, achou 14,53:1 e
+aprovou. O número estava certo; o elemento é que era outro.
+
+Só pegou porque a medição não batia com a conta à mão (5,48:1 esperado para
+`--warn` sobre `--warn-soft`). **Medição que diverge da aritmética é medição
+errada, não boa notícia.**
+
+Duas correções:
+- a regra ganhou força igual (`.gena-msg.from-gena .gena-bubble.gena-falha`);
+- um teste compara o balão de falha com a bolha vizinha e reprova se fundo e
+  cor forem iguais. Contraste mede a cor que está lá; só a comparação denuncia
+  que a cor pretendida nunca chegou.
+
+Medido depois da correção: **5,48:1** no claro, **6,89:1** no escuro. 38
+medições.
+
+### 69.3 O texto do campo cabia pela metade
+
+*"Descreva o caso ou responda a Gena..."* chegava cortado no meio da palavra no
+celular: o campo divide a largura com o microfone e o botão de enviar. Virou
+**"Conte o caso..."** — curto o bastante para caber inteiro é melhor que
+completo e truncado. O campo também passou a pedir a tecla "enviar" no teclado
+do celular (`enterkeyhint`).

@@ -60,6 +60,11 @@ const ALVOS = [
   // §67. O marca-texto no critério que EXCLUI: texto sobre fundo de alerta.
   // É o trecho do card que o médico MAIS precisa conseguir ler.
   { seletor: 'mark.marca-criterio', minimo: 4.5, nota: 'criterio de exclusao marcado' },
+  // §69. O balão de falha da Gena: --warn sobre --warn-soft, par que nenhum
+  // outro alvo media. É a mensagem que aparece quando a rede cai — justamente
+  // quando o médico precisa ler depressa.
+  { seletor: '.gena-bubble.gena-falha', minimo: 4.5, nota: 'balao de falha da Gena' },
+  { seletor: '.gena-retentar', minimo: 4.5, nota: 'botao tentar de novo' },
 ];
 
 function paraRgb(css) {
@@ -316,6 +321,19 @@ if (require.main === module) {
     const marcados = await pagina.locator('mark.marca-criterio').count();
     if (marcados === 0) {
       console.error('FALHA: o marca-texto do criterio nao apareceu — o alvo nao foi medido.');
+      process.exitCode = 1;
+    }
+    /* §69. O balão de falha só existe quando a rede cai. Em vez de derrubar a
+     * chamada, a própria função que o desenha é invocada — é o mesmo elemento
+     * que o médico veria, e a bateria mede cor, não o caminho até ela. */
+    await pagina.evaluate(() => {
+      toggleGena(true);
+      genaMostrarErro('Não consegui responder agora.');
+    });
+    await pagina.waitForTimeout(300);
+    const falhaNaTela = await pagina.locator('.gena-bubble.gena-falha').count();
+    if (falhaNaTela === 0) {
+      console.error('FALHA: o balao de erro da Gena nao foi desenhado — o alvo nao foi medido.');
       process.exitCode = 1;
     }
     for (const tema of ['light', 'dark']) todos.push(...await medirTema(pagina, tema));

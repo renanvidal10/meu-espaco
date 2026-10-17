@@ -1946,6 +1946,27 @@
     background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 5px;
   }
 
+  /* §69. Falha com caminho de volta. A bolha diz o que houve e traz o botão
+     que reenvia a MESMA mensagem — sem obrigar o médico a digitar de novo. */
+  /* Especificidade: `.gena-msg.from-gena .gena-bubble` são três classes e
+     vencia `.gena-bubble.gena-falha`, que são duas — o balão de falha saía
+     pintado como bolha comum, sem nenhuma cor de alerta, e a bateria de
+     contraste media a bolha comum e aprovava. Regra certa com força igual. */
+  .gena-msg.from-gena .gena-bubble.gena-falha {
+    background: var(--warn-soft); color: var(--warn);
+    border: 1px solid var(--warn);
+    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  }
+  .gena-retentar {
+    min-height: var(--toque); padding: 0 14px;
+    border: 1px solid currentColor; border-radius: var(--r-sm);
+    background: transparent; color: inherit;
+    font-family: inherit; font-size: var(--fs-2xs); font-weight: 700;
+    cursor: pointer;
+  }
+  .gena-retentar:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+  .gena-retentar:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
   .gena-typing { display: flex; gap: 4px; padding: 11px 13px; }
   .gena-typing i {
     width: 6px; height: 6px; border-radius: 50%;

@@ -712,7 +712,11 @@
       <button class="gena-mic" type="button" id="gena-mic" onclick="genaAlternarEscuta()" aria-label="Falar com a Gena" title="Falar com a Gena">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
       </button>
-      <input id="gena-input" type="text" autocomplete="off" placeholder="Descreva o caso ou responda a Gena..." aria-label="Mensagem para a Gena" />
+      <!-- §69. O texto de exemplo era "Descreva o caso ou responda a Gena..."
+           e chegava cortado no meio da palavra no celular, porque o campo
+           divide a largura com o microfone e o enviar. Curto o bastante para
+           caber inteiro é melhor que completo e truncado. -->
+      <input id="gena-input" type="text" autocomplete="off" placeholder="Conte o caso..." aria-label="Mensagem para a Gena" enterkeyhint="send" />
       <button class="gena-send" type="submit" id="gena-send" aria-label="Enviar mensagem">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
       </button>

@@ -423,6 +423,77 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- 8b. Gena: falha de rede tem caminho de volta ---------- */
+  {
+    /* §69. O médico está em corredor de hospital, com sinal oscilando. Antes
+     * disto, uma falha renderizava "Tive um problema" e acabava ali: a
+     * mensagem dele já estava no histórico, sem resposta e sem botão. Para
+     * tentar de novo teria que digitar tudo outra vez — é onde a conversa
+     * morre. O teste derruba a primeira chamada e exige que a segunda,
+     * disparada pelo botão, reenvie A MESMA mensagem. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('gena-falha: ' + e.message));
+    let tentativas = 0;
+    let ultimoCorpo = null;
+    await p.route('**/api/chat', (r) => {
+      tentativas++;
+      try { ultimoCorpo = JSON.parse(r.request().postData() || '{}'); } catch (e) { ultimoCorpo = null; }
+      if (tentativas === 1) return r.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Serviço indisponível."}' });
+      return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ reply: 'Voltei. Me conta a histologia.', caseReady: null }) });
+    });
+    await entrar(p);
+    await p.click('#gena-fab');
+    await p.waitForSelector('#gena-panel', { state: 'visible' });
+
+    await p.fill('#gena-input', 'paciente com CA de ovário');
+    await p.press('#gena-input', 'Enter');
+    await p.waitForSelector('#gena-erro', { timeout: 5000 });
+    const temBotao = await p.locator('#gena-erro .gena-retentar').count();
+    linha(ok(temBotao === 1, 'a falha não ofereceu reenvio'), 'falha da Gena → oferece tentar de novo');
+
+    /* §69.2. O balão de falha tem de PARECER falha. A regra que o pinta
+     * perdia por especificidade para `.gena-msg.from-gena .gena-bubble`, e
+     * ele saía idêntico a uma bolha comum — sem nenhuma cor de alerta. A
+     * bateria de contraste não pegou: ela media a bolha comum e aprovava o
+     * número dela. Comparar com a bolha vizinha é o que denuncia. */
+    const cores = await p.evaluate(() => {
+      const falha = document.querySelector('.gena-bubble.gena-falha');
+      const comum = document.querySelector('.gena-msg.from-gena .gena-bubble:not(.gena-falha)');
+      const ler = (el) => (el ? getComputedStyle(el) : null);
+      const a = ler(falha);
+      const b = ler(comum);
+      return a && b ? { falhaFundo: a.backgroundColor, comumFundo: b.backgroundColor, falhaCor: a.color, comumCor: b.color } : null;
+    });
+    linha(
+      ok(!!cores && cores.falhaFundo !== cores.comumFundo && cores.falhaCor !== cores.comumCor,
+        `falha=${cores && cores.falhaFundo}/${cores && cores.falhaCor} comum=${cores && cores.comumFundo}/${cores && cores.comumCor}`),
+      'o balão de falha não se parece com uma bolha comum',
+    );
+
+    await p.click('#gena-erro .gena-retentar');
+    await p.waitForTimeout(500);
+    const sumiu = await p.locator('#gena-erro').count();
+    const respondeu = await p.locator('#gena-log').innerText();
+    const ultimaDoMedico = ultimoCorpo && ultimoCorpo.messages
+      ? ultimoCorpo.messages[ultimoCorpo.messages.length - 1]
+      : null;
+    linha(
+      ok(tentativas === 2 && sumiu === 0 && /Voltei/.test(respondeu), `tentativas=${tentativas} erroNaTela=${sumiu}`),
+      'tentar de novo refaz a chamada e limpa o erro',
+    );
+    linha(
+      ok(!!ultimaDoMedico && ultimaDoMedico.role === 'user' && /CA de ovário/.test(ultimaDoMedico.content),
+        `última mensagem reenviada: ${JSON.stringify(ultimaDoMedico)}`),
+      'o reenvio manda a MESMA mensagem, sem redigitar',
+    );
+
+    // E a mensagem do médico não pode ter sido duplicada no histórico.
+    const quantasDoMedico = (ultimoCorpo.messages || []).filter((m) => m.role === 'user').length;
+    linha(ok(quantasDoMedico === 1, `${quantasDoMedico} mensagens do médico no histórico`),
+      'o reenvio não duplica a mensagem');
+    await p.close();
+  }
+
   /* ---------- 9. subtipo não identificado ---------- */
   {
     const p = await ctx.newPage();
