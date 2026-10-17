@@ -3127,3 +3127,193 @@ tela, `downloadDoc` recusando a impressão, e o download liberado ao preencher.
 Pela mesma regra do §54.4, o alvo entrou na bateria de contraste com falha
 explícita se ele não aparecer. `--warn` como texto de 12px: **8,62:1**. 26
 medições.
+
+## 56. Nome, custo e ordem dos programas de indústria (v1.23)
+
+Decisão do dono do produto, registrada aqui porque muda o que o médico vê.
+
+### 56.1 O custo sai do nome e do selo
+
+O card da GSK se chamava **"Teste HRD sem custo (GSK · myChoice CDx)"** e cada
+programa de indústria carregava um selo verde escrito **"Sem custo"**.
+
+O problema não é a informação, é a assimetria. **Todos** os programas de
+indústria do registro são sem custo para o paciente — o patrocínio existe
+porque um resultado positivo abre caminho para o medicamento daquela indústria.
+Logo, "sem custo" no nome de **um** deles não distingue nada: distingue só quem
+escreveu a frase mais atraente. E o médico clica no que parece gratuito.
+
+Agora:
+- o custo não aparece no nome nem na descrição de nenhum programa;
+- o selo diz o que o programa **é** ("Programa da indústria");
+- a informação de custo é dita **uma vez**, acima da lista, valendo para todos:
+  *"Programas de indústria: sem custo para o paciente. O que muda entre eles é o
+  critério de elegibilidade, descrito em cada um."*
+
+O médico continua sabendo que existe via gratuita. O que ele deixa de ter é um
+empurrão para uma plataforma específica.
+
+### 56.2 Padrão de nome
+
+**"Nome do programa (Indústria patrocinadora)"**, para todos, sem exceção:
+ProgramAID (AstraZeneca), Teste HRD myChoice CDx (GSK), PD-Point (MSD),
+RAStrear (Amgen). Teste na suíte exige o padrão e o campo `industria` declarado.
+
+### 56.3 Ordem
+
+`ORDEM_INDUSTRIA` em `tumors.js` declara a sequência, e `ordenarProgramas()`
+aplica a mesma ordem em todo tumor. Três faixas: indústria, laboratório
+parceiro, ausência de via verificada.
+
+**Isto não é ranking clínico.** Não há programa melhor que outro para o
+paciente — o que difere entre eles é o critério de elegibilidade, e ele está
+escrito em cada card. É uma ordem comercial, escolhida pelo dono do produto,
+e mora em lista nomeada no registro justamente para ser auditável: quem abre o
+arquivo vê a ordem e vê que ela é uma escolha, não um acaso de implementação.
+Numa venda ou apresentação a terceiros, é informação a declarar.
+
+Indústria não listada na ordem entra depois das listadas, em ordem alfabética
+— nunca some e nunca fura a fila. Teste cobre esse caso.
+
+### 56.4 O teste que media texto
+
+A trava "o teste HRD de ovário oferece a via gratuita" procurava as palavras
+`sem custo|gratuito` **no texto** do programa. Ao tirar essas palavras, a trava
+quebrou — corretamente: ela estava medindo redação, não estrutura. Passou a
+reconhecer a via pelo que ela é, `tipo === 'patrocinado'`. Sinal estrutural não
+se perde numa reescrita de texto.
+
+Dois testes novos meus nasceram **vacuosos**: rodavam `triar(id, {})`, que não
+produz programa nenhum, e passavam sobre lista vazia. Corrigidos com casos
+reais e uma asserção de que ao menos dois programas apareceram. Mesma lição do
+§54.4: teste que não mede nada é pior que teste ausente, porque dá garantia.
+
+## 57. Passada de identidade visual (v1.23)
+
+### 57.1 Paleta
+
+O verde-escuro saiu. A plataforma passou a azul-petróleo (`--accent: #0e6180`
+no claro, `#4fc3e8` no escuro). O ganho não é de gosto: o verde do produto era
+o **mesmo** verde do estado "ok", então marca e semântica se confundiam. Com a
+marca em azul, o verde volta a significar só uma coisa — resultado positivo.
+
+Botões e veredito ganharam gradiente de **dois tons do mesmo azul** (7% de
+luminosidade entre eles), filete de luz no topo e sombra tingida da própria cor
+em vez de cinza. Nada de duas matizes: é ferramenta clínica, não aplicativo de
+meditação.
+
+### 57.2 O ponto cego do medidor de contraste
+
+Elemento com `background: linear-gradient(...)` tem `backgroundColor`
+**transparente**. A bateria de contraste subia a árvore procurando fundo opaco,
+atravessava o gradiente como se não existisse e media o texto contra o fundo da
+**página**: texto branco sobre painel azul-escuro foi medido em **1,09:1**.
+
+A reprovação era inventada — mas o inverso é o perigo real: texto escuro sobre
+gradiente escuro mediria contra a página clara e **passaria**.
+
+Duas correções:
+- toda superfície com gradiente declara também a cor sólida equivalente
+  (`background-color` + `background-image`). Serve de medida e de pintura de
+  reserva se o gradiente não renderizar;
+- a bateria **recusa medir** um elemento com gradiente sem cor sólida e reprova
+  o alvo nomeando o elemento.
+
+O guarda foi **provado**: removendo a cor sólida do veredito de propósito, os
+três alvos reprovam com 0,00:1. Restaurada, 26 medições passam.
+
+### 57.3 A contagem dita três vezes
+
+O painel do veredito dizia o número de testes no selo, no título e no resumo.
+Repetir um número não o esclarece — enche o painel e faz reler. O título é
+texto clínico, vem do registro; o selo é decisão de tela. Então o selo é que
+sai quando o título já traz o número.
+
+### 57.4 Movimento com direção
+
+Três durações (`--mov-toque` 90ms, `--mov-rapido` 160ms, `--mov-painel` 260ms)
+e uma curva só. Regra: quanto menor o elemento, mais rápido se move; e a
+resposta ao toque é assimétrica — afunda em 90ms, volta em 260ms.
+
+A tela entra **do lado para onde o fluxo vai**: avançar traz da direita, voltar
+da esquerda. Movimento sem direção não informa nada.
+
+Duas armadilhas fechadas junto:
+- `prefers-reduced-motion` não zerava `animation-delay`. Com a duração zerada e
+  o atraso de pé, quem pediu menos movimento receberia a tela piscando em
+  pedaços — pior que a animação original. E `behavior: 'smooth'` nas rolagens
+  em JS não é alcançado por regra de CSS: agora passa por uma função que
+  consulta `matchMedia`.
+- A entrada escalonada usa `animation: ... both`, que prende o elemento em
+  `opacity: 0` enquanto o atraso corre. Na impressão isso é **folha em branco**
+  — o mesmo defeito que a animação da tela já tivera. A regra de `@media print`
+  agora zera animação e opacidade da tela **e de tudo dentro dela**, e um teste
+  de navegador percorre todos os elementos no modo impressão exigindo opacidade
+  cheia, em vez de confiar na regra.
+
+### 57.5 O card que o dono chamou de "tudo um em cima do outro"
+
+A pílula de status ficava **inline no fim do `<h3>`**. Com nome longo — o painel
+germinativo multigênico tem 88 caracteres — o título quebrava em duas linhas e
+a pílula pousava no meio da segunda, colada na última palavra.
+
+Como status, ela pertence **acima** do nome. E a linha do programa virou grade
+de três colunas (ícone · conteúdo · ação) alinhada ao topo, em vez de um flex
+com `space-between` onde o texto empurrava o botão para cima e para baixo. No
+celular a ação desce para a linha de baixo em vez de espremer o texto.
+
+O "mais" era texto colorido colado na última palavra da frase; virou rótulo
+próprio, em linha de baixo, dizendo o que abre: **"Ver critério completo"**.
+
+## 58. A tela de programas era gigante, e o documento não parecia documento (v1.23)
+
+### 58.1 Três blocos de ação por programa
+
+Cada card tinha a faixa "Solicitação pronta para assinar" e, abaixo, dois
+botões grandes quase da largura do card. Com dois programas na tela, **seis
+blocos** só de ação — e os botões, por tamanho, viravam o elemento mais pesado
+de uma tela cujo assunto são os critérios de elegibilidade.
+
+As ações passaram a ser compactas, alinhadas à direita, na altura mínima de
+toque. São o último passo, não o assunto. No celular elas voltam a ocupar a
+largura, onde isso é alvo e não ênfase.
+
+### 58.2 O documento ganhou a identidade da plataforma
+
+O formulário de solicitação era uma folha branca de ponta a ponta do card, sem
+margem e sem moldura: na tela não parecia um documento, parecia o fundo do card
+tendo ficado branco.
+
+Virou **papel**: largura de leitura (62ch), centralizado, com sombra, faixa de
+marca em gradiente no topo, "OncoGenYX" no cabeçalho ao lado do tipo do
+documento, justificativa clínica destacada em bloco com filete azul, e linha de
+assinatura fechando o pé. É o documento que o médico assina e manda ao
+laboratório — ele carrega a marca para fora do aplicativo.
+
+## 59. Auditoria dos programas, gerada pelo código (v1.23)
+
+`test/auditoria-programas.js` percorre **todas as combinações de campos** de
+cada tumor, executa `classify` e coleta todo teste que o app pode indicar com
+os programas associados. `test/gerar-auditoria-pdf.js` transforma isso em PDF
+com a identidade da plataforma, com caixa de conferência e campo de observação
+por teste — o documento existe para ser validado no papel.
+
+Nada ali é digitado à mão. Documento de validação escrito à mão diverge do
+motor na primeira alteração, e aí o médico valida um papel e o app faz outra
+coisa.
+
+Medido na primeira execução: **18 testes indicáveis em 7 tumores, 6 com
+programa de indústria e 12 sem**, percorrendo 22.428 combinações.
+
+### 59.1 A auditoria que reportava zero
+
+A primeira versão só enumerava campos com `options`. Ovário e endométrio têm
+histologia, grau e estadiamento como **texto livre** — e a auditoria imprimiu
+"0 testes" para os dois, como se fosse a verdade.
+
+O vocabulário dos campos livres passou a ser declarado, e `auditar()` **lança
+erro** se um tumor não produzir nenhum teste: toda regra do registro indica ao
+menos um teste em algum cenário, então zero significa vocabulário incompleto,
+nunca ausência de indicação. O teto de combinações também passou a ser
+reportado — mama e próstata estavam sendo **truncadas** em 4.000 casos, e
+número truncado em auditoria é número errado.

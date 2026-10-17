@@ -90,8 +90,26 @@ function coletar(sel) {
   const camadas = [];
   let no = el;
   while (no) {
-    const bg = getComputedStyle(no).backgroundColor;
-    const m = String(bg).match(/rgba?\(([^)]+)\)/);
+    const estilo = getComputedStyle(no);
+    /* §57.2. PONTO CEGO FECHADO. Um elemento com `background: linear-gradient(...)`
+     * tem backgroundColor transparente: esta subida de árvore atravessava o
+     * gradiente como se ele não existisse e media o texto contra o fundo da
+     * PÁGINA. Texto branco sobre um painel azul-escuro foi medido em 1,09:1 —
+     * reprovação inventada. O inverso é o perigo real: texto escuro sobre um
+     * gradiente escuro mediria contra a página clara e PASSARIA.
+     *
+     * A regra agora é dura: toda superfície com gradiente precisa declarar
+     * também a cor sólida equivalente. Ela serve de medida aqui e de pintura
+     * de reserva no navegador que não renderizar o gradiente. */
+    const temGradiente = /gradient\(/.test(String(estilo.backgroundImage || ''));
+    const bg = estilo.backgroundColor;
+    const corDeFundo = String(bg).match(/rgba?\(([^)]+)\)/);
+    const opaca = corDeFundo
+      && (corDeFundo[1].split(',').length < 4 || parseFloat(corDeFundo[1].split(',')[3]) === 1);
+    if (temGradiente && !opaca) {
+      return { erroGradiente: no.id || no.className || no.tagName };
+    }
+    const m = corDeFundo;
     if (m) {
       const p = m[1].split(',').map((v) => parseFloat(v.trim()));
       const a = p.length > 3 ? p[3] : 1;
@@ -112,6 +130,14 @@ async function medirTema(pagina, tema, entrar) {
   for (const alvo of ALVOS) {
     const dados = await pagina.evaluate(coletar, alvo.seletor);
     if (!dados) continue;
+    if (dados.erroGradiente) {
+      resultados.push({
+        seletor: alvo.seletor, nota: alvo.nota, tema,
+        razao: 0, minimo: alvo.minimo, passou: false,
+        motivo: `gradiente sem background-color sólido em "${dados.erroGradiente}" — impossível medir`,
+      });
+      continue;
+    }
 
     let fundo = { r: 255, g: 255, b: 255, a: 1 };
     for (let i = dados.camadas.length - 1; i >= 0; i--) {

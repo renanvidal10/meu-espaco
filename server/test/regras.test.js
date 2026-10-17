@@ -874,7 +874,11 @@ test('o teste HRD de ovário oferece a via gratuita, que existe e tem o mesmo cr
     const { resultado } = triar('ovario', { histologia, grau: 'Alto grau', estadiamento: 'IIIC' });
     const hrd = (resultado.tests || []).find((t) => t.id === 'hrd');
     assert.ok(hrd, `ovario/${histologia}: HRD não foi indicado`);
-    const gratuitos = (hrd.programs || []).filter((p) => /sem custo|gratuito/i.test(p.note || ''));
+    // §56: o custo saiu do texto de cada programa (dizer "sem custo" em um e
+    // não nos outros induz o clique). A via gratuita passou a ser reconhecida
+    // pelo que ela É — tipo 'patrocinado' —, não por uma palavra na descrição.
+    // Sinal estrutural não se perde numa reescrita de texto.
+    const gratuitos = (hrd.programs || []).filter((p) => p.tipo === 'patrocinado');
     assert.ok(gratuitos.length >= 1,
       `ovario/${histologia}: HRD indicado sem nenhuma via GRATUITA, e ela existe`);
     for (const p of gratuitos) {
@@ -1156,4 +1160,90 @@ test('o resumo da nota de programa nunca corta um critério no meio (§53)', () 
     assert.match(String(p.verificadoEm || ''), /^\d{4}-\d{2}-\d{2}$/,
       `${p.name}: sem data de verificação para mostrar ao médico`);
   });
+});
+
+/* §56. Nome, selo e ordem dos programas de indústria.
+ *
+ * O motivo é de conduta, não de estética: quando um programa escreve "sem
+ * custo" no próprio nome e os outros não, ele ganha o clique por redação, não
+ * por elegibilidade. Como TODOS os programas de indústria do registro são sem
+ * custo, a frase não informa nada — só desequilibra. */
+// Casos reais que fazem o registro devolver programa de indústria. Um teste
+// que roda `triar(id, {})` não produz programa nenhum e passa por vacuidade —
+// foi o que aconteceu na primeira escrita destes testes.
+const CASOS_COM_PROGRAMA = [
+  ['ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' }],
+  ['pulmao', { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático' }],
+  ['colorretal', { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático' }],
+  ['prostata', { extensao_doenca: 'Metastático resistente à castração (mCRPC)' }],
+  ['mama', { subtipo_molecular: 'Triplo-negativo', extensao_doenca: 'Metastático', idade: '44' }],
+];
+
+function programasDeIndustria() {
+  const vistos = new Map();
+  for (const [id, valores] of CASOS_COM_PROGRAMA) {
+    const { resultado } = triar(id, valores);
+    (resultado.tests || []).flatMap((t) => t.programs || []).forEach((p) => {
+      if (p.tipo === 'patrocinado') vistos.set(p.name, p);
+    });
+  }
+  assert.ok(vistos.size >= 2, `só ${vistos.size} programa(s) de indústria apareceram — o teste não mediria nada`);
+  return vistos;
+}
+
+test('nenhum programa anuncia custo no nome ou no selo', () => {
+  const vistos = programasDeIndustria().values();
+  for (const p of vistos) {
+    if (p.tipo !== 'patrocinado') continue;
+    assert.ok(!/sem custo|gratuit|grátis/i.test(p.name),
+      `${p.name}: custo no NOME do programa induz o clique naquela plataforma`);
+    assert.ok(!/sem custo|gratuit|grátis/i.test(p.note || ''),
+      `${p.name}: custo na descrição do programa induz o clique naquela plataforma`);
+  }
+});
+
+test('todo programa de indústria segue o padrão Nome (Indústria)', () => {
+  for (const [nome, p] of programasDeIndustria()) {
+    assert.match(nome, /\([^)]+\)\s*$/, `${nome}: falta a indústria entre parênteses no fim do nome`);
+    assert.ok(p.industria, `${nome}: sem o campo "industria" declarado no registro`);
+    assert.ok(nome.includes(`(${p.industria})`),
+      `${nome}: o nome não traz "(${p.industria})" — o padrão precisa valer para todos`);
+  }
+});
+
+test('em ovário, os dois programas de indústria aparecem e a ordem é a declarada', () => {
+  const { resultado } = triar('ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' });
+  const comHrd = (resultado.tests || []).find((t) => (t.programs || []).some((p) => /GSK/.test(p.name)));
+  assert.ok(comHrd, 'o teste de HRD perdeu o programa da GSK');
+
+  const ordenados = TUMORS.ordenarProgramas(comHrd.programs).map((p) => p.industria || p.tipo);
+  const industrias = ordenados.filter((x) => x === 'AstraZeneca' || x === 'GSK');
+  assert.deepStrictEqual(industrias, ['AstraZeneca', 'GSK'],
+    `ordem declarada não respeitada: ${ordenados.join(' → ')}`);
+  // E o laboratório/ausência de via nunca sobe acima de um programa real.
+  const faixas = TUMORS.ordenarProgramas(comHrd.programs).map((p) => p.tipo);
+  const primeiroNaoPatrocinado = faixas.indexOf('laboratorio');
+  const ultimoPatrocinado = faixas.lastIndexOf('patrocinado');
+  if (primeiroNaoPatrocinado >= 0 && ultimoPatrocinado >= 0) {
+    assert.ok(primeiroNaoPatrocinado > ultimoPatrocinado, `faixas fora de ordem: ${faixas.join(' → ')}`);
+  }
+});
+
+test('indústria não declarada na ordem não some nem fura a fila', () => {
+  const entrada = [
+    { tipo: 'laboratorio', name: 'Lab' },
+    { tipo: 'patrocinado', name: 'Z (Zeta)', industria: 'Zeta' },
+    { tipo: 'sem-via', name: 'Sem via' },
+    { tipo: 'patrocinado', name: 'PD-Point (MSD)', industria: 'MSD' },
+    { tipo: 'patrocinado', name: 'ProgramAID (AstraZeneca)', industria: 'AstraZeneca' },
+    { tipo: 'patrocinado', name: 'A (Alfa)', industria: 'Alfa' },
+  ];
+  const saida = TUMORS.ordenarProgramas(entrada).map((p) => p.name);
+  assert.deepStrictEqual(saida, [
+    'ProgramAID (AstraZeneca)', 'PD-Point (MSD)', // ordem declarada
+    'A (Alfa)', 'Z (Zeta)',                       // não declaradas, alfabética
+    'Lab',                                        // laboratório
+    'Sem via',                                    // ausência de via, por último
+  ], `ordenação inesperada: ${saida.join(' → ')}`);
+  assert.strictEqual(saida.length, entrada.length, 'a ordenação perdeu um programa');
 });

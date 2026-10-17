@@ -598,6 +598,25 @@ async function rodar(nome, dispositivo) {
       downloadDoc(d.id);
     });
     const entrou = await p.evaluate(() => document.body.classList.contains('printing'));
+
+    /* §57.4. A entrada escalonada dos cards usa `animation: ... both`, que
+     * segura o elemento em opacity:0 enquanto o atraso corre. No modo
+     * impressão isso vira folha em branco. A regra de @media print zera
+     * animação e opacidade de TUDO dentro da tela — este teste mede o
+     * resultado, elemento por elemento, em vez de confiar na regra. */
+    const invisiveis = await p.evaluate(() => {
+      const tela = document.querySelector('.screen.active');
+      if (!tela) return ['sem tela ativa'];
+      const fora = [];
+      tela.querySelectorAll('*').forEach((el) => {
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden') return;
+        if (parseFloat(cs.opacity) < 0.99) fora.push((el.id || el.className || el.tagName) + ' opacity=' + cs.opacity);
+      });
+      return fora;
+    });
+    linha(ok(invisiveis.length === 0, `elementos invisíveis no papel: ${invisiveis.slice(0, 3).join(' | ')}`),
+      'nada fica invisível no modo impressão (PDF em branco)');
     await p.waitForTimeout(1900);
     const saiu = !(await p.evaluate(() => document.body.classList.contains('printing')));
     linha(ok(entrou && saiu, `entrou=${entrou} saiu=${saiu}`), 'a tela sai do modo impressão sem depender do afterprint');

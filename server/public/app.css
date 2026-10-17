@@ -1,21 +1,21 @@
 :root {
-    --bg: #f5f7f6;
+    --bg: #f2f6fa;
     --surface: #ffffff;
-    --surface-2: #eef2f0;
-    --border: #e2e8e5;
+    --surface-2: #eaf1f7;
+    --border: #e0e8f0;
     --borda-card: transparent;
-    --ink: #1b2420;
-    --ink-muted: #56645d;
-    --ink-faint: #5a675f;
-    --accent: #0f6b5c;
+    --ink: #10202e;
+    --ink-muted: #4c6276;
+    --ink-faint: #53697d;
+    --accent: #0e6180;
     --accent-ink: #ffffff;
     /* Texto secundário sobre --accent. Era rgba(255,255,255,.82/.9/.75) fixo,
        o que no tema escuro pintava branco sobre menta clara. Ver §31. */
-    --accent-ink-2: #dbe9e7;
+    --accent-ink-2: #cfe6ef;
     --accent-veil: rgba(255, 255, 255, 0.18);
     --accent-veil-strong: rgba(255, 255, 255, 0.4);
-    --accent-soft: #dcebe6;
-    --accent-soft-border: #b9d6cc;
+    --accent-soft: #dceef5;
+    --accent-soft-border: #b2d6e5;
     --warm: #8f4c33;
     --warm-soft: #f3e4dc;
     --warm-soft-border: #ddbca8;
@@ -23,7 +23,7 @@
     --ok-soft: #dcebe6;
     --warn: #7d5509;
     --warn-soft: #f3e9d3;
-    --neutral-soft: #e4e7e5;
+    --neutral-soft: #e5ebf1;
     --focus: #1b6de0;
     /* Contorno de foco sobre superfícies pintadas com --accent: o azul do
        --focus só tem 2,24:1 contra a menta do tema escuro. */
@@ -60,24 +60,54 @@
        para dedo em tela — abaixo disso o erro de toque cresce, e é pior
        quando o botão encerra a sessão. */
     --toque: 44px;
+
+    /* --- movimento -------------------------------------------------------
+       Três durações, não quinze. A regra que as separa: quanto MENOR o
+       elemento que se move, mais rápido ele se move. Um chevron girando em
+       320ms parece travado; um painel inteiro entrando em 90ms parece um
+       corte de vídeo. E a saída é sempre mais rápida que a entrada — o olho
+       perdoa um elemento que some depressa, não um que demora a aparecer. */
+    --mov-toque: 90ms;    /* resposta ao dedo: pressionar, soltar */
+    --mov-rapido: 160ms;  /* estado: hover, foco, cor */
+    --mov-painel: 260ms;  /* superfície: painel, tela, card entrando */
+    /* Curva única. Começa rápido e desacelera no fim, que é como um objeto
+       com massa se comporta. Sem "bounce": isto é uma ferramenta clínica. */
+    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --ease-saida: cubic-bezier(0.4, 0, 1, 1);
+
+    /* --- profundidade ----------------------------------------------------
+       Quatro níveis em vez de sombras escritas à mão em cada componente. A
+       sombra cresce com a distância do elemento à página: o card descansa,
+       o botão ativo levanta, o painel flutua. */
+    --elev-0: none;
+    --elev-1: 0 1px 2px rgba(12, 28, 42, 0.05), 0 2px 6px -2px rgba(12, 28, 42, 0.07);
+    --elev-2: 0 1px 2px rgba(12, 28, 42, 0.06), 0 8px 18px -8px rgba(12, 28, 42, 0.13), 0 22px 40px -26px rgba(12, 28, 42, 0.16);
+    --elev-3: 0 2px 6px rgba(12, 28, 42, 0.08), 0 18px 36px -12px rgba(12, 28, 42, 0.18), 0 40px 70px -40px rgba(12, 28, 42, 0.22);
+
+    /* Gradiente da ação principal. Dois tons do MESMO azul-petróleo, com 7%
+       de diferença de luminosidade — o suficiente para a superfície não ser
+       chapada, pouco o bastante para não virar botão de aplicativo de
+       meditação. Nada de duas matizes diferentes. */
+    --acao: linear-gradient(170deg, #11768f 0%, var(--accent) 62%, #0b5570 100%);
+    --acao-hover: linear-gradient(170deg, #14839e 0%, #116d8d 62%, #0d6180 100%);
   }
 
   :root[data-theme="dark"] {
-    --bg: #0d1210;
-    --surface: #161d19;
-    --surface-2: #1f2822;
-    --border: #2b362f;
-    --borda-card: #222b26;
-    --ink: #e9efec;
-    --ink-muted: #a3b1a9;
-    --ink-faint: #909e97;
-    --accent: #55c2a8;
-    --accent-ink: #072019;
-    --accent-ink-2: #13382e;
-    --accent-veil: rgba(7, 32, 25, 0.18);
-    --accent-veil-strong: rgba(7, 32, 25, 0.4);
-    --accent-soft: #1a352e;
-    --accent-soft-border: #2b5148;
+    --bg: #0a1017;
+    --surface: #121b23;
+    --surface-2: #1a252f;
+    --border: #26333f;
+    --borda-card: #1f2a34;
+    --ink: #e6eef4;
+    --ink-muted: #9fb2c1;
+    --ink-faint: #8ea2b2;
+    --accent: #4fc3e8;
+    --accent-ink: #04202c;
+    --accent-ink-2: #10384a;
+    --accent-veil: rgba(4, 32, 44, 0.18);
+    --accent-veil-strong: rgba(4, 32, 44, 0.4);
+    --accent-soft: #16323f;
+    --accent-soft-border: #27566b;
     --warm: #e2a284;
     --warm-soft: #33241c;
     --warm-soft-border: #55392b;
@@ -85,30 +115,35 @@
     --ok-soft: #1a352e;
     --warn: #dcb256;
     --warn-soft: #362c17;
-    --neutral-soft: #232b26;
+    --neutral-soft: #1e2a33;
     --focus: #7ab0ff;
-    --focus-on-accent: #072019;
-    --border-control: #6a7c74;
+    --focus-on-accent: #04202c;
+    --border-control: #6b7f8d;
+    --elev-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+    --elev-2: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 26px -12px rgba(0, 0, 0, 0.6);
+    --elev-3: 0 2px 8px rgba(0, 0, 0, 0.45), 0 24px 48px -18px rgba(0, 0, 0, 0.7);
+    --acao: linear-gradient(170deg, #6fd3f2 0%, var(--accent) 62%, #3aa9cf 100%);
+    --acao-hover: linear-gradient(170deg, #84dcf7 0%, #5fcef0 62%, #47b6da 100%);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.55);
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0d1210;
-      --surface: #161d19;
-      --surface-2: #1f2822;
-      --border: #2b362f;
-      --borda-card: #222b26;
-      --ink: #e9efec;
-      --ink-muted: #a3b1a9;
-      --ink-faint: #909e97;
-      --accent: #55c2a8;
-      --accent-ink: #072019;
-      --accent-ink-2: #13382e;
-      --accent-veil: rgba(7, 32, 25, 0.18);
-      --accent-veil-strong: rgba(7, 32, 25, 0.4);
-      --accent-soft: #1a352e;
-      --accent-soft-border: #2b5148;
+      --bg: #0a1017;
+      --surface: #121b23;
+      --surface-2: #1a252f;
+      --border: #26333f;
+      --borda-card: #1f2a34;
+      --ink: #e6eef4;
+      --ink-muted: #9fb2c1;
+      --ink-faint: #8ea2b2;
+      --accent: #4fc3e8;
+      --accent-ink: #04202c;
+      --accent-ink-2: #10384a;
+      --accent-veil: rgba(4, 32, 44, 0.18);
+      --accent-veil-strong: rgba(4, 32, 44, 0.4);
+      --accent-soft: #16323f;
+      --accent-soft-border: #27566b;
       --warm: #e2a284;
       --warm-soft: #33241c;
       --warm-soft-border: #55392b;
@@ -116,10 +151,15 @@
       --ok-soft: #1a352e;
       --warn: #dcb256;
       --warn-soft: #362c17;
-      --neutral-soft: #232b26;
+      --neutral-soft: #1e2a33;
       --focus: #7ab0ff;
-      --focus-on-accent: #072019;
-      --border-control: #6a7c74;
+      --focus-on-accent: #04202c;
+      --border-control: #6b7f8d;
+    --elev-1: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+    --elev-2: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 26px -12px rgba(0, 0, 0, 0.6);
+    --elev-3: 0 2px 8px rgba(0, 0, 0, 0.45), 0 24px 48px -18px rgba(0, 0, 0, 0.7);
+    --acao: linear-gradient(170deg, #6fd3f2 0%, var(--accent) 62%, #3aa9cf 100%);
+    --acao-hover: linear-gradient(170deg, #84dcf7 0%, #5fcef0 62%, #47b6da 100%);
       --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -14px rgba(0, 0, 0, 0.55);
     }
   }
@@ -138,7 +178,18 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    /* animation-delay precisa entrar aqui. Sem ele, uma animação de entrada
+       escalonada (card 1 em 0ms, card 2 em 60ms, card 3 em 120ms) continua
+       SEGURANDO cada elemento invisível pelo tempo do atraso, mesmo com a
+       duração zerada — quem pediu menos movimento recebe a tela piscando em
+       pedaços, que é pior que a animação original. */
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   body {
@@ -412,10 +463,40 @@
     padding: 32px 24px 96px;
   }
 
+  /* §57.4. A tela entrava sempre do mesmo jeito, subindo 6px, fosse o médico
+     avançando ou voltando. Movimento sem direção não informa nada. Agora o
+     conteúdo entra DO LADO para onde o fluxo está indo: avançar traz a tela
+     da direita, voltar traz da esquerda. É a mesma pista que um aplicativo de
+     celular dá quando se navega entre abas — o médico sabe para que lado
+     andou sem ler a barra de passos. */
   .screen { display: none; }
-  .screen.active { display: block; animation: rise .28s ease both; }
-  @media (prefers-reduced-motion: reduce) { .screen.active { animation: none; } }
-  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .screen.active { display: block; animation: entra-frente var(--mov-painel) var(--ease) both; }
+  body[data-sentido="tras"] .screen.active { animation-name: entra-tras; }
+  @keyframes entra-frente { from { opacity: 0; transform: translate3d(16px, 0, 0); } to { opacity: 1; transform: none; } }
+  @keyframes entra-tras   { from { opacity: 0; transform: translate3d(-16px, 0, 0); } to { opacity: 1; transform: none; } }
+
+  /* Entrada escalonada dos cards da tela. O atraso é curto e TEM TETO: a
+     partir do quinto card todos entram juntos. Sem teto, uma tela com oito
+     programas faria o último aparecer meio segundo depois do primeiro, e o
+     médico esperaria a tela "terminar de carregar" — ela já estava pronta. */
+  .screen.active > .card,
+  .screen.active > .verdict-wrap,
+  .screen.active > #programs-dynamic > .card {
+    animation: sobe var(--mov-painel) var(--ease) both;
+  }
+  .screen.active > .card:nth-child(n+2),
+  .screen.active > #programs-dynamic > .card:nth-child(n+2) { animation-delay: 45ms; }
+  .screen.active > .card:nth-child(n+3),
+  .screen.active > #programs-dynamic > .card:nth-child(n+3) { animation-delay: 90ms; }
+  .screen.active > .card:nth-child(n+4),
+  .screen.active > #programs-dynamic > .card:nth-child(n+4) { animation-delay: 130ms; }
+  @keyframes sobe { from { opacity: 0; transform: translate3d(0, 10px, 0); } to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .screen.active,
+    .screen.active > .card,
+    .screen.active > #programs-dynamic > .card { animation: none; }
+  }
 
   .eyebrow {
     font-size: var(--fs-2xs);
@@ -705,24 +786,59 @@
     cursor: pointer;
     box-sizing: border-box;
   }
+  /* §57. A ação principal era um retângulo de cor chapada. Ganhou volume por
+     três meios que não custam legibilidade: um gradiente de DOIS TONS DO
+     MESMO azul (7% de luminosidade entre eles), um filete claro no topo que
+     imita luz vindo de cima, e uma sombra tingida da própria cor do botão em
+     vez de cinza — é o que separa um botão que parece colado na tela de um
+     que parece apoiado nela. */
   button.primary {
-    background: var(--accent);
+    /* A cor sólida acompanha o gradiente por dois motivos: é o que pinta se
+       o gradiente não renderizar, e é o que o medidor de contraste lê —
+       gradiente tem background-color transparente. Ver §57.2. */
+    background-color: var(--accent);
+    background-image: var(--acao);
     color: var(--accent-ink);
     border: 1px solid transparent;
     font-weight: 600;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 1px 2px rgba(12, 28, 42, 0.18),
+      0 6px 14px -8px color-mix(in srgb, var(--accent) 60%, transparent);
   }
   button.primary:hover {
+    background-image: var(--acao-hover);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      0 2px 4px rgba(12, 28, 42, 0.16),
+      0 12px 24px -10px color-mix(in srgb, var(--accent) 70%, transparent);
   }
-  button.primary:active { transform: translateY(0) scale(.985); }
+  /* Resposta assimétrica ao toque: afunda em 90ms (o dedo sente na hora) e
+     volta em 260ms (a volta é o eco do gesto, não o gesto). Simétrico, o
+     botão parece de borracha. */
+  button.primary:active, button.ghost:active {
+    transition-duration: var(--mov-toque);
+  }
+  button.primary:active {
+    transform: translateY(0) scale(.985);
+    box-shadow: inset 0 2px 5px rgba(12, 28, 42, 0.22);
+  }
   button.primary:focus-visible, button.ghost:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   button.ghost {
-    background: transparent;
+    background: var(--surface);
     color: var(--ink-muted);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-control);
+    box-shadow: var(--elev-1);
   }
-  button.ghost:hover { color: var(--ink); background: var(--surface-2); border-color: var(--border-control); }
+  button.ghost:hover {
+    color: var(--ink);
+    background: var(--surface-2);
+    border-color: var(--border-control);
+    transform: translateY(-1px);
+    box-shadow: var(--elev-2);
+  }
+  button.ghost:active { transform: translateY(0) scale(.985); box-shadow: none; }
   .btn-row .note { font-size: var(--fs-xs); color: var(--ink-faint); margin-left: auto; }
 
   /* A condição de elegibilidade da GSK tem 334 caracteres e ocupava cinco
@@ -734,7 +850,15 @@
   }
   .program-row .prog-nota > summary::-webkit-details-marker { display: none; }
   .program-row .prog-nota > summary::marker { content: ''; }
-  .program-row .prog-nota > summary::after { content: ' mais'; color: var(--accent); font-weight: 600; }
+  /* §57. O "mais" era texto na cor de destaque grudado na última palavra da
+     frase — lido como link quebrado no meio da oração. Vira rótulo próprio,
+     em linha de baixo, dizendo O QUE se abre. */
+  .program-row .prog-nota > summary::after {
+    content: 'Ver critério completo';
+    display: block; margin-top: 5px;
+    color: var(--accent); font-weight: 600;
+  }
+  .program-row .prog-nota > summary:hover::after { text-decoration: underline; }
   .program-row .prog-nota[open] > summary { display: none; }
   /* A data de verificação é o que separa "via de acesso" de "porta morta".
      O consórcio de pulmão viveu quatro anos no app com uma porta encerrada
@@ -792,8 +916,14 @@
 
   /* Movimento: só onde ele explica uma mudança de estado. Nada de entrada
      coreografada — em software clínico isso lê como enfeite. */
-  .card, .test-step, .program-row, .intake-tile, button.primary, button.ghost {
-    transition: box-shadow .18s ease, border-color .18s ease, background-color .18s ease, transform .18s ease;
+  .card, .test-step, .program-row, .intake-tile, button.primary, button.ghost, a.link {
+    transition:
+      box-shadow var(--mov-rapido) var(--ease),
+      border-color var(--mov-rapido) var(--ease),
+      background-color var(--mov-rapido) var(--ease),
+      background-image var(--mov-rapido) var(--ease),
+      color var(--mov-rapido) var(--ease),
+      transform var(--mov-painel) var(--ease);
   }
   button.primary:active, button.ghost:active, .intake-tile:active { transform: scale(0.985); }
 
@@ -915,20 +1045,46 @@
   .pill.warn { background: var(--warn-soft); color: var(--warn); }
 
   /* ---- result screen ---- */
+  /* §57. O veredito era um retângulo de cor chapada — grande, plano e sem
+     hierarquia interna, o tipo de bloco que faz uma tela parecer um aviso de
+     sistema. Ganha o mesmo tratamento da ação principal: gradiente de dois
+     tons do mesmo azul, filete de luz no topo e sombra tingida da própria
+     cor. E um brilho radial no canto superior esquerdo, onde o glifo está,
+     que faz a leitura começar por ele. */
   .verdict {
+    position: relative;
     display: flex;
-    gap: 16px;
+    gap: 18px;
     align-items: flex-start;
-    padding: 22px 24px;
-    border-radius: var(--r-md);
-    background: var(--accent);
+    padding: 26px 28px;
+    border-radius: var(--r-lg);
+    background-color: var(--accent);
+    background-image: var(--acao);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      var(--elev-2);
+    overflow: hidden;
   }
+  .verdict::before {
+    content: '';
+    position: absolute;
+    top: -40%; left: -8%;
+    width: 380px; height: 380px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0) 68%);
+    pointer-events: none;
+  }
+  .verdict > * { position: relative; }
   .verdict .glyph {
-    width: 30px; height: 30px; border-radius: var(--r-sm);
+    width: 38px; height: 38px; border-radius: var(--r-md);
+    /* Véu fraco, não forte: o véu forte clareava tanto o chip que o glifo
+       branco por cima caía para 2,85:1 — abaixo do mínimo de 3:1 para
+       elemento gráfico. O contorno é que dá a borda, não a opacidade. */
     background: var(--accent-veil);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     color: var(--accent-ink);
     display: flex; align-items: center; justify-content: center;
-    font-size: var(--fs-sm); font-weight: 700; flex-shrink: 0;
+    font-size: var(--fs-md); font-weight: 700; flex-shrink: 0;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
     /* O veredito clínico é a resposta que o médico veio buscar, e estava em
      16px — o mesmo tamanho do texto legal do rodapé — enquanto o rótulo
@@ -1184,27 +1340,53 @@
   }
   .validate-flag .ic { width: 15px; height: 15px; margin-top: 1px; }
   .validate-flag span { flex: 1; min-width: 0; }
+  /* §57. Cabeçalho do card de programa. O status vem antes do nome, numa
+     linha própria, e o nome ganha largura inteira para quebrar onde quiser. */
+  .prog-topo { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; margin-bottom: 18px; }
+  .prog-topo h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; letter-spacing: -0.015em; line-height: 1.3; }
+
+  /* Frase de custo, dita UMA vez e valendo para todos os programas da lista.
+     Ver §56: custo no nome de um programa só induz o clique naquele. */
+  .programas-custo {
+    font-size: var(--fs-2xs); color: var(--ink-faint);
+    margin: 0 0 12px; line-height: 1.45;
+  }
+
+  /* A linha era um flex com `justify-content: space-between`: o bloco de
+     texto crescia até encostar no botão, e o botão subia e descia conforme o
+     texto. Grade de três colunas fixa as posições — ícone, conteúdo, ação —
+     e o alinhamento ao TOPO faz as ações de várias linhas formarem coluna. */
   .program-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: 14px;
+    row-gap: 10px;
+    padding: 16px 18px;
     border: 1px solid var(--border);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-md);
     background: var(--surface);
   }
+  .program-row:hover { border-color: var(--accent-soft-border); box-shadow: var(--elev-1); }
   .program-row + .program-row { margin-top: 10px; }
-  .program-row .who { display: flex; align-items: center; gap: 12px; }
   .program-row .logo {
-    width: 36px; height: 36px; border-radius: var(--r-sm);
+    grid-column: 1; grid-row: 1;
+    width: 34px; height: 34px; border-radius: var(--r-sm);
     background: var(--accent-soft);
     border: 1px solid var(--accent-soft-border);
     display: flex; align-items: center; justify-content: center;
     font-size: var(--fs-sm); font-weight: 700; color: var(--accent);
+    margin-top: 1px;
   }
-  .program-row .name { font-size: var(--fs-xs); font-weight: 600; }
-  .program-row .test { font-size: var(--fs-2xs); color: var(--ink-faint); }
+  .program-row .who { display: contents; }
+  .program-row .who > div { grid-column: 2; grid-row: 1; min-width: 0; }
+  .program-row > a.link, .program-row > .link-ausente { grid-column: 3; grid-row: 1; }
+  .program-row .name {
+    font-size: var(--fs-xs); font-weight: 650; color: var(--ink);
+    line-height: 1.35; margin-bottom: 5px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .program-row .test { font-size: var(--fs-2xs); color: var(--ink-faint); line-height: 1.5; }
   .program-row a.link {
     font-size: var(--fs-xs);
     font-weight: 600;
@@ -1212,9 +1394,26 @@
     text-decoration: none;
     border: 1px solid var(--accent-soft-border);
     background: var(--accent-soft);
-    padding: 7px 12px;
+    padding: 0 14px;
+    min-height: var(--toque);
+    display: inline-flex; align-items: center;
     border-radius: var(--r-sm);
     white-space: nowrap;
+  }
+  .program-row a.link:hover {
+    background: var(--accent); color: var(--accent-ink);
+    border-color: transparent; transform: translateY(-1px);
+    box-shadow: 0 6px 14px -8px color-mix(in srgb, var(--accent) 65%, transparent);
+  }
+  .program-row a.link:active { transform: translateY(0); box-shadow: none; }
+
+  /* No celular a terceira coluna some: a ação passa para a linha de baixo,
+     alinhada ao conteúdo, em vez de espremer o texto contra a borda. */
+  @media (max-width: 560px) {
+    .program-row { grid-template-columns: auto minmax(0, 1fr); }
+    .program-row > a.link, .program-row > .link-ausente {
+      grid-column: 1 / -1; grid-row: 2; justify-self: stretch; justify-content: center;
+    }
   }
 
   .table-wrap { overflow-x: auto; margin-top: 8px; }
@@ -1279,45 +1478,96 @@
      ação principal ("Baixar PDF") mantida sempre visível do lado de fora.
      Nada foi apagado — o formulário inteiro está a um clique e idêntico no
      PDF. Ver §45. */
+  /* §57. Era uma faixa cinza chapada com "Ver documento" solto no canto
+     direito — a mesma cor do fundo da tela, sem relevo, parecendo um campo
+     desabilitado. Vira uma superfície com borda viva e um rótulo de ação
+     alinhado ao texto, não exilado na outra ponta. */
   details.doc-preview-wrap {
     margin-top: 18px;
     border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    background: var(--surface-2);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    overflow: hidden;
   }
+  details.doc-preview-wrap:hover { border-color: var(--accent-soft-border); }
   details.doc-preview-wrap > summary {
     list-style: none;
     cursor: pointer;
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    display: flex; align-items: center; gap: 10px;
     min-height: var(--toque);
-    padding: 0 14px;
+    padding: 0 16px;
     font-size: var(--fs-xs); font-weight: 600; color: var(--ink);
+    background: var(--surface-2);
   }
+  details.doc-preview-wrap > summary:hover { background: var(--accent-soft); }
   details.doc-preview-wrap > summary::-webkit-details-marker { display: none; }
   details.doc-preview-wrap > summary::marker { content: ''; }
   details.doc-preview-wrap > summary::after {
     content: 'Ver documento';
-    font-size: var(--fs-2xs); font-weight: 500; color: var(--ink-faint);
+    margin-left: auto;
+    font-size: var(--fs-2xs); font-weight: 600; color: var(--accent);
+    border: 1px solid var(--accent-soft-border);
+    background: var(--surface);
+    padding: 4px 10px;
+    border-radius: var(--r-full);
   }
   details.doc-preview-wrap[open] > summary::after { content: 'Ocultar'; }
+  details.doc-preview-wrap[open] > summary { border-bottom: 1px solid var(--border); }
   details.doc-preview-wrap > summary:focus-visible {
-    outline: 2px solid var(--focus); outline-offset: -2px; border-radius: var(--r-sm);
+    outline: 2px solid var(--focus); outline-offset: -2px; border-radius: var(--r-md);
   }
-  details.doc-preview-wrap .doc-preview { border-radius: 0 0 var(--r-sm) var(--r-sm); }
-  .doc-actions { margin-top: 12px; }
+  details.doc-preview-wrap .doc-preview { border-radius: 0; }
+  /* As duas ações do documento. Respiram mais do que respiravam: coladas na
+     moldura do documento, pareciam parte do papel. */
+  /* §58. As ações do documento alinham à DIREITA e encolhem: elas são o
+     último passo, não o assunto do card. Botão de largura quase total num
+     card de 900px transforma uma ação secundária no elemento mais pesado da
+     tela — foi o que deixou a tela de programas "gigante". */
+  .doc-actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  button.primary.compacto, button.ghost.compacto {
+    min-height: var(--toque);
+    padding: 0 18px;
+    font-size: var(--fs-xs);
+    border-radius: var(--r-sm);
+  }
+  @media (max-width: 560px) {
+    .doc-actions { justify-content: stretch; }
+    .doc-actions button { flex: 1; }
+  }
+  /* §58. O documento era uma folha branca de ponta a ponta do card, sem
+     margem e sem moldura: na tela ele não parecia um documento, parecia o
+     fundo do card tendo ficado branco. Agora é PAPEL — largura de leitura,
+     centralizado, com uma faixa de identidade no topo, a mesma do produto. */
   .doc-preview {
     background: #ffffff;
     color: #1c1c1c;
-    border-radius: var(--r-sm);
-    padding: 26px 28px;
+    border-radius: 0;
+    padding: 30px 34px 34px;
+    max-width: 62ch;
+    margin: 22px auto;
+    box-shadow: var(--elev-2);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    position: relative;
+  }
+  /* Faixa de marca no topo do papel: dois tons do azul do produto. É o que
+     faz o documento impresso ser reconhecível como saído desta plataforma. */
+  .doc-preview::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background-color: #0e6180;
+    background-image: linear-gradient(90deg, #11768f 0%, #0e6180 55%, #0b5570 100%);
   }
   .doc-preview .doc-head {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: baseline;
-    padding-bottom: 10px;
-    margin-bottom: 16px;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid #e4e9ee;
+  }
+  .doc-preview .doc-head::before {
+    content: 'OncoGenYX';
+    font-size: var(--fs-xs); font-weight: 700; letter-spacing: -0.02em; color: #0e6180;
   }
   .doc-preview .doc-head .doc-type { font-size: var(--fs-2xs); color: #6b6b6b; text-transform: uppercase; letter-spacing: 0.06em; }
   .doc-preview .doc-row {
@@ -1337,12 +1587,20 @@
   }
   .doc-preview .doc-justif .label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.06em; color: #6b6b6b; margin-bottom: 5px; }
   .doc-preview .doc-sign {
-    margin-top: 24px;
-    padding-top: 16px;
+    margin-top: 34px;
+    padding-top: 14px;
+    border-top: 1px solid #1c1c1c;
     display: flex;
     justify-content: space-between;
     font-size: var(--fs-2xs);
     color: #6b6b6b;
+  }
+  .doc-preview .doc-row + .doc-row { border-top: 1px solid #f0f3f6; }
+  .doc-preview .doc-justif {
+    background: #f6f9fb;
+    border-left: 3px solid #0e6180;
+    padding: 13px 15px;
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
   }
   /* ===================== GENA — assistente flutuante ===================== */
   .gena { position: fixed; right: 20px; bottom: 20px; z-index: 90; }
@@ -1704,7 +1962,13 @@
        impressão o Chromium reinicia essa animação e captura o quadro inicial,
        que é opacity:0 - resultado: folha em branco. Zerar a animação no papel
        é obrigatório, não cosmético. */
-    .screen.active {
+    /* §57.4: a entrada escalonada dos cards usa `both`, que PRENDE o elemento
+       no quadro inicial (opacity:0) enquanto o atraso corre. Na paginação da
+       impressão isso reinicia e sai folha em branco — o mesmo defeito que a
+       animação da tela já tinha. Por isso a regra vale para a tela E para
+       tudo dentro dela, sem exceção. */
+    .screen.active,
+    .screen.active * {
       animation: none !important;
       opacity: 1 !important;
       transform: none !important;

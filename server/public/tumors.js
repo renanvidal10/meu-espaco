@@ -296,10 +296,33 @@
    * Sem verificação documentada, o teste usa A_MAPEAR. Card honesto vale
    * mais que card errado.
    * ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------ *
+   * NOME E ORDEM DOS PROGRAMAS DA INDÚSTRIA — §56.
+   *
+   * Nome: "Nome do programa (Indústria patrocinadora)". Sempre, para todos.
+   * Um padrão único impede que um programa ganhe destaque por escrever o
+   * próprio nome de um jeito mais atraente que os outros.
+   *
+   * O custo NÃO entra no nome nem no selo de nenhum programa. Todos os
+   * programas de indústria listados aqui são sem custo para o paciente — ou
+   * seja, "sem custo" no nome de UM deles não informa, só induz o clique
+   * naquela plataforma. A informação continua na tela, dita uma vez e
+   * valendo para todos (ver `programas-custo` em app.js).
+   *
+   * ORDEM: declarada aqui, explicitamente, e aplicada igual em todo tumor.
+   * Não é ranking clínico — não existe programa melhor que outro para o
+   * paciente; os critérios de elegibilidade é que diferem, e eles estão
+   * escritos em cada card. É uma ordem comercial declarada pelo dono do
+   * produto. Fica neste arquivo, em lista nomeada, justamente para que seja
+   * auditável: quem abrir o registro vê a ordem e vê que ela é uma escolha.
+   * ------------------------------------------------------------------ */
+  const ORDEM_INDUSTRIA = ['AstraZeneca', 'GSK', 'MSD', 'Amgen'];
+
   const PROGRAMA_ID = {
     tipo: 'patrocinado',
     name: 'ProgramAID (AstraZeneca)',
-    note: 'Teste gratuito em tecido tumoral. Se o resultado vier inconclusivo, permite reteste por biópsia líquida sem custo.',
+    industria: 'AstraZeneca',
+    note: 'Teste em tecido tumoral. Se o resultado vier inconclusivo, permite reteste por biópsia líquida.',
     url: 'https://programaid.com.br/',
     cobertura: ['ovario', 'prostata', 'mama', 'pulmao'],
     // O programa processa TECIDO TUMORAL. Oferecê-lo num teste germinativo,
@@ -334,8 +357,9 @@
   // se a elegibilidade exige primeira linha de tratamento.
   const HRD_PATROCINADO = {
     tipo: 'patrocinado',
-    name: 'Teste HRD sem custo (GSK · myChoice CDx)',
-    note: 'Patrocinado pela GSK, sem custo para o paciente. Elegível: carcinoma seroso ou endometrioide de ALTO GRAU de ovário, tuba uterina ou peritônio, EM PRIMEIRA LINHA de tratamento. A solicitação não é feita por portal — o médico pede ao laboratório parceiro (Lâmina), que inscreve o paciente, seleciona os blocos e encaminha para o teste.',
+    name: 'Teste HRD myChoice CDx (GSK)',
+    industria: 'GSK',
+    note: 'Elegível: carcinoma seroso ou endometrioide de ALTO GRAU de ovário, tuba uterina ou peritônio, EM PRIMEIRA LINHA de tratamento. A solicitação não é feita por portal — o médico pede ao laboratório parceiro (Lâmina), que inscreve o paciente, seleciona os blocos e encaminha para o teste.',
     url: 'https://laminalab.com.br/teste-deficiencia-de-recombinacao-homologa-hrd-em-cancer-de-ovario/',
     cobertura: ['ovario'],
     amostra: 'tecido',
@@ -364,7 +388,8 @@
   const PD_POINT = {
     tipo: 'patrocinado',
     name: 'PD-Point (MSD)',
-    note: 'Testes de PD-L1, EGFR e ALK sem custo em câncer de pulmão não pequenas células, escamoso e não escamoso. Solicitação pelo oncologista ou pelo próprio patologista, em portal único.',
+    industria: 'MSD',
+    note: 'Testes de PD-L1, EGFR e ALK em câncer de pulmão não pequenas células, escamoso e não escamoso. Solicitação pelo oncologista ou pelo próprio patologista, em portal único.',
     url: 'https://www.pdpoint.com.br',
     cobertura: ['pulmao'],
     amostra: 'tecido',
@@ -375,7 +400,8 @@
   const RASTREAR = {
     tipo: 'patrocinado',
     name: 'RAStrear (Amgen)',
-    note: 'Perfil de RAS (KRAS e NRAS, incluindo KRAS G12C) e BRAF sem custo em colorretal metastático. O painel é fechado — não dá para pedir um gene isolado. Exige cadastro do médico com CRM e voucher liberado por consultor da Amgen.',
+    industria: 'Amgen',
+    note: 'Perfil de RAS (KRAS e NRAS, incluindo KRAS G12C) e BRAF em colorretal metastático. O painel é fechado — não dá para pedir um gene isolado. Exige cadastro do médico com CRM e voucher liberado por consultor da Amgen.',
     url: 'https://www.programarastrear.com.br/',
     cobertura: ['colorretal'],
     amostra: 'tecido',
@@ -1592,8 +1618,34 @@
     return out;
   }
 
+  /* §56. A ordem dos programas é decisão do registro, não da tela. A tela
+   * apenas chama esta função — assim existe UM lugar onde a ordem está
+   * escrita, e ele é o mesmo arquivo que a suíte de testes audita.
+   *
+   * Três faixas, nesta sequência: programa de indústria (na ordem declarada
+   * em ORDEM_INDUSTRIA), laboratório parceiro, e por último a ausência de via
+   * verificada. Indústria não listada em ORDEM_INDUSTRIA entra depois das
+   * listadas, em ordem alfabética — nunca some, nunca fura a fila. */
+  const FAIXA = { patrocinado: 0, laboratorio: 1, 'sem-via': 2 };
+
+  function ordenarProgramas(programas) {
+    const posicao = (p) => {
+      const faixa = FAIXA[p.tipo] === undefined ? 1 : FAIXA[p.tipo];
+      const i = ORDEM_INDUSTRIA.indexOf(p.industria);
+      return { faixa, i: i < 0 ? ORDEM_INDUSTRIA.length : i, nome: String(p.industria || p.name || '') };
+    };
+    return (programas || []).slice().sort((a, b) => {
+      const x = posicao(a);
+      const y = posicao(b);
+      if (x.faixa !== y.faixa) return x.faixa - y.faixa;
+      if (x.i !== y.i) return x.i - y.i;
+      return x.nome.localeCompare(y.nome, 'pt-BR');
+    });
+  }
+
   return {
     REGISTRY, ORDER, get, list, labels,
+    ORDEM_INDUSTRIA, ordenarProgramas,
     fieldsOf, schemaFields, normalizar, acharTumorPorLabel, encaixarValor, isComum, CHAVES_COMUNS,
     helpers: { norm, lower, has, ehDmmr, filled, num, estadioNumero, estadioAvancado, estadioInicial, grauAlto, grauBaixo },
   };

@@ -1124,9 +1124,16 @@
 
   // Selo "N testes indicados" no topo do resultado - resposta imediata de
   // "quantos e quais", em vez de exigir ler o parágrafo inteiro do veredito.
-  function setCountPill(count) {
+  function setCountPill(count, titulo) {
     const pill = document.getElementById('verdict-count-pill');
     if (count === null) { pill.style.display = 'none'; return; }
+    /* §57.3. A contagem aparecia TRÊS vezes no mesmo painel: no selo, no
+     * título ("Este caso tem indicação para 2 testes") e no resumo ("Solicite
+     * os 2 testes abaixo"). Repetir um número não o torna mais claro — enche
+     * o painel e faz o médico reler para conferir se são três informações ou
+     * a mesma. O título é texto clínico, vem do registro; o selo é decisão de
+     * tela. Então é o selo que sai quando o título já diz o número. */
+    if (titulo && new RegExp(`\\b${count}\\b`).test(titulo)) { pill.style.display = 'none'; return; }
     pill.textContent = count === 0 ? '0 testes indicados' : count === 1 ? '1 teste indicado' : `${count} testes indicados`;
     pill.classList.toggle('zero', count === 0);
     pill.style.display = '';
@@ -1151,7 +1158,7 @@
       ? (result.state === 'insuficiente' ? 'Dados insuficientes para triagem' : 'Perfil não reconhecido por esta regra')
       : result.title;
     document.getElementById('verdict-text').textContent = blocked ? result.message : result.summary;
-    setCountPill(blocked ? null : tests.length);
+    setCountPill(blocked ? null : tests.length, blocked ? '' : result.title);
 
     renderTestSteps(tests, result);
     renderNotes(blocked ? [] : (result.notes || []));
@@ -1280,8 +1287,13 @@
       // custo da indústria, laboratório parceiro, ou nenhuma via verificada.
       // E quando não há endereço, a linha precisa dizer POR ONDE se solicita —
       // uma linha sem botão e sem explicação parece produto quebrado. Ver §44.
+      /* §56. O selo dizia "Sem custo" em cada programa de indústria. Como
+       * TODOS os programas de indústria listados são sem custo, o selo não
+       * distinguia nada — só empurrava o clique para quem o exibia primeiro.
+       * O selo passou a dizer o que o programa É; o custo é dito uma vez, na
+       * linha acima da lista, valendo para todos. */
       const SELO = {
-        patrocinado: { txt: 'Sem custo', cls: 'ok' },
+        patrocinado: { txt: 'Programa da indústria', cls: 'ok' },
         laboratorio: { txt: 'Laboratório parceiro', cls: 'neutro' },
         'sem-via': { txt: 'Sem via verificada', cls: 'warn' },
       };
@@ -1307,7 +1319,11 @@
         return { cabeca: t.slice(0, fim + 1), cauda: t.slice(fim + 2) };
       };
 
-      const programas = (test.programs || []).map((p) => {
+      // A ordem mora no registro clínico (§56), não aqui.
+      const listaProgramas = TUMORS.ordenarProgramas(test.programs || []);
+      const temIndustria = listaProgramas.some((p) => p.tipo === 'patrocinado');
+
+      const programas = listaProgramas.map((p) => {
         const selo = SELO[p.tipo] || null;
         const nota = cortarNota(p.note);
         const acao = p.url
@@ -1331,11 +1347,22 @@
 
       return `
       <div class="card program-card">
-        <h3>${esc(test.name)} <span class="pill ${provisional ? 'warn' : 'ok'}">${provisional ? 'indicação provável - confirmar' : 'indicado neste caso'}</span></h3>
+        <!-- §57. A pílula ficava INLINE no fim do h3. Com um nome longo —
+             "Painel germinativo multigênico (BRCA1/2, RAD51C, RAD51D, BRIP1,
+             PALB2 e genes de Lynch)" tem 88 caracteres — o título quebrava em
+             duas linhas e a pílula pousava no meio da segunda, colada na
+             última palavra. Era a origem do "tudo um em cima do outro". Como
+             status, ela pertence ACIMA do nome: diz em que pé está o item que
+             vem a seguir, e nunca mais depende de onde o texto quebrou. -->
+        <div class="prog-topo">
+          <span class="pill ${provisional ? 'warn' : 'ok'}">${provisional ? 'indicação provável - confirmar' : 'indicado neste caso'}</span>
+          <h3>${esc(test.name)}</h3>
+        </div>
+        ${temIndustria ? '<p class="programas-custo">Programas de indústria: sem custo para o paciente. O que muda entre eles é o critério de elegibilidade, descrito em cada um.</p>' : ''}
         ${programas}
 
         <details class="doc-preview-wrap" id="doc-${esc(test.id)}">
-          <summary><span>Solicitação pronta para assinar</span></summary>
+          <summary><span class="doc-rotulo">Solicitação pronta para assinar</span></summary>
           <div class="doc-preview">
             <div class="doc-head"><span class="doc-type">Formulário de solicitação</span></div>
             <div class="doc-row"><span class="k">Paciente</span><span class="v doc-name">-</span></div>
@@ -1354,9 +1381,15 @@
             </div>
           </div>
         </details>
+        <!-- §58. Eram TRÊS blocos empilhados por programa: a barra
+             "Solicitação pronta para assinar", e logo abaixo dois botões
+             grandes de largura quase total. Com dois programas na tela, seis
+             blocos só de ação. Agora a barra do documento E as ações moram na
+             mesma linha: o rótulo explica, o botão age, e o card encolhe em
+             mais de uma centena de pixels por programa. -->
         <div class="doc-actions">
-          <button class="primary" type="button" onclick="downloadDoc('doc-${esc(test.id)}')">Baixar PDF preenchido ↓</button>
-          <button class="ghost" type="button" onclick="toggleEditDoc('doc-${esc(test.id)}', this)">Editar campos</button>
+          <button class="ghost compacto" type="button" onclick="toggleEditDoc('doc-${esc(test.id)}', this)">Editar campos</button>
+          <button class="primary compacto" type="button" onclick="downloadDoc('doc-${esc(test.id)}')">Baixar PDF ↓</button>
         </div>
       </div>`;
     }).join('');
@@ -1527,10 +1560,23 @@
     });
   }
 
+  // §57.4. Quem pediu menos movimento ao sistema operacional não pode receber
+  // rolagem suave: `behavior: 'smooth'` é movimento, e é decidido em JS, onde
+  // a regra de CSS não alcança. Uma função só, usada em todos os pontos.
+  const QUER_MENOS_MOVIMENTO = () =>
+    typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const comportamentoDeRolagem = () => (QUER_MENOS_MOVIMENTO() ? 'auto' : 'smooth');
+
   function goTo(i) {
     // Nunca avança além do que foi realmente calculado, nem por clique na
     // barra, nem por chamada direta.
     const alvo = Math.min(i, passoMaximo);
+    // Direção do movimento: avançar traz a tela da direita, voltar da
+    // esquerda. Ver §57.4.
+    const telas = Array.from(document.querySelectorAll('.screen'));
+    const atual = telas.findIndex((el) => el.classList.contains('active'));
+    document.body.dataset.sentido = (atual >= 0 && alvo < atual) ? 'tras' : 'frente';
     document.querySelectorAll('.screen').forEach((el, idx) => el.classList.toggle('active', idx === alvo));
     document.querySelectorAll('.step-btn').forEach((el, idx) => {
       el.classList.toggle('active', idx === alvo);
@@ -1541,10 +1587,10 @@
       // atual para a área visível - senão o médico avança e o indicador de
       // onde ele está fica fora da tela.
       if (idx === alvo && el.scrollIntoView) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        el.scrollIntoView({ behavior: comportamentoDeRolagem(), block: 'nearest', inline: 'center' });
       }
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: comportamentoDeRolagem() });
     anunciarTela(alvo);
   }
 
