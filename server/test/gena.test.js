@@ -97,14 +97,14 @@ test.after(async () => {
   if (stub) await stub.fechar();
 });
 
-async function conversar(messages, { autenticado = true } = {}) {
+async function conversar(messages, { autenticado = true, contexto } = {}) {
   const r = await fetch(base + '/api/chat', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       ...(autenticado ? { Authorization: 'Bearer ' + token } : {}),
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify(contexto ? { messages, contexto } : { messages }),
   });
   return { status: r.status, corpo: await r.json() };
 }
@@ -414,4 +414,62 @@ test('as instruções nunca citam sociedade de diretriz por nome', async () => {
     assert.ok(!new RegExp('\\b' + sigla + '\\b').test(prompt),
       `a Gena cita "${sigla}" — a interface fala em diretrizes nacionais e internacionais`);
   });
+});
+
+/* ====================================================================== *
+ * CONTEXTO DA TELA (§51)
+ *
+ * A Gena não sabia o que o médico já tinha preenchido: cada conversa
+ * começava do zero, mesmo com o caso estruturado na tela atrás do painel.
+ * Ela pedia histologia logo depois de o médico ter digitado histologia — o
+ * erro que o próprio prompt dela proíbe.
+ * ====================================================================== */
+
+test('o que já está na tela sobe para a Gena, e ela é instruída a não repetir', async () => {
+  stub.limpar();
+  await conversar([doc('preciso do grau?')], {
+    contexto: {
+      tumor: 'Ginecológico - Ovário',
+      campos: { Histologia: 'Seroso', 'Grau (laudo patológico)': 'Alto grau' },
+    },
+  });
+  const sistema = stub.estado.requisicoes[0].system;
+  assert.match(sistema, /J[ÁA] EST[ÁA] PREENCHIDO NA TELA/i, 'o contexto da tela não subiu');
+  assert.match(sistema, /Seroso/, 'o valor preenchido não chegou ao modelo');
+  assert.match(sistema, /N[ÃA]O pergunte nada que j[áa] esteja/i, 'faltou a instrução de não repetir');
+});
+
+test('o nome do paciente NUNCA sobe, mesmo se o cliente mandar', async () => {
+  // A garantia mora no servidor, não na confiança de que o cliente se comportou.
+  stub.limpar();
+  await conversar([doc('oi')], {
+    contexto: {
+      tumor: 'Ginecológico - Ovário',
+      campos: {
+        Histologia: 'Seroso',
+        'Nome do paciente': 'ANA PAULA MOREIRA',
+        CPF: '000.000.000-00',
+        'Prontuário': '99887',
+      },
+    },
+  });
+  const sistema = stub.estado.requisicoes[0].system;
+  assert.ok(!/ANA PAULA/i.test(sistema), 'o nome do paciente subiu para o modelo de conversa');
+  assert.ok(!/000\.000\.000/.test(sistema), 'o CPF subiu para o modelo de conversa');
+  assert.ok(!/99887/.test(sistema), 'o prontuário subiu para o modelo de conversa');
+  assert.match(sistema, /Seroso/, 'o campo clínico legítimo foi descartado junto');
+});
+
+test('sem contexto, o prompt continua exatamente como era', async () => {
+  stub.limpar();
+  await conversar([doc('oi')]);
+  const sistema = stub.estado.requisicoes[0].system;
+  assert.ok(!/PREENCHIDO NA TELA/i.test(sistema), 'bloco de contexto apareceu sem contexto');
+});
+
+test('contexto com tumor inexistente é descartado', async () => {
+  stub.limpar();
+  await conversar([doc('oi')], { contexto: { tumor: 'Tumor Inventado', campos: { X: 'y' } } });
+  const sistema = stub.estado.requisicoes[0].system;
+  assert.ok(!/PREENCHIDO NA TELA/i.test(sistema), 'aceitou tumor fora do registro');
 });

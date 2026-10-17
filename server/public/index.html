@@ -27,10 +27,11 @@
 <link rel="icon" href="/icone-192.png" />
 <style>
   :root {
-    --bg: #eef2f0;
+    --bg: #f5f7f6;
     --surface: #ffffff;
-    --surface-2: #e4eae7;
-    --border: #cdd7d2;
+    --surface-2: #eef2f0;
+    --border: #e2e8e5;
+    --borda-card: transparent;
     --ink: #1b2420;
     --ink-muted: #56645d;
     --ink-faint: #5a675f;
@@ -59,7 +60,7 @@
        Input, select, textarea e botão são componentes de UI e a WCAG 1.4.11
        exige 3:1 no limite visual deles — daí um token separado. */
     --border-control: #7b827e;
-    --shadow: 0 1px 2px rgba(20, 30, 26, 0.06), 0 8px 24px -12px rgba(20, 30, 26, 0.18);
+    --shadow: 0 1px 2px rgba(16, 28, 23, 0.04), 0 6px 16px -8px rgba(16, 28, 23, 0.10), 0 20px 40px -24px rgba(16, 28, 23, 0.14);
 
     /* --- escala tipográfica ---------------------------------------------
        Havia 20 tamanhos de fonte diferentes no arquivo (9,5 a 26px), um
@@ -90,10 +91,11 @@
   }
 
   :root[data-theme="dark"] {
-    --bg: #101512;
-    --surface: #171e1a;
+    --bg: #0d1210;
+    --surface: #161d19;
     --surface-2: #1f2822;
     --border: #2b362f;
+    --borda-card: #222b26;
     --ink: #e9efec;
     --ink-muted: #a3b1a9;
     --ink-faint: #909e97;
@@ -120,10 +122,11 @@
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #101512;
-      --surface: #171e1a;
+      --bg: #0d1210;
+      --surface: #161d19;
       --surface-2: #1f2822;
       --border: #2b362f;
+      --borda-card: #222b26;
       --ink: #e9efec;
       --ink-muted: #a3b1a9;
       --ink-faint: #909e97;
@@ -198,9 +201,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 14px 24px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    padding: 15px 26px;
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    backdrop-filter: saturate(180%) blur(14px);
+    border-bottom: 1px solid var(--borda-card);
+    box-shadow: 0 1px 0 rgba(16, 28, 23, 0.05);
   }
 
   .brand {
@@ -385,7 +391,8 @@
     gap: 2px;
     padding: 0 24px;
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--borda-card);
+    box-shadow: 0 1px 0 rgba(16, 28, 23, 0.05);
     overflow-x: auto;
   }
   .step-btn {
@@ -445,7 +452,7 @@
     color: var(--ink-faint);
     margin-bottom: 6px;
   }
-  .screen h1 { font-size: var(--fs-xl); margin-bottom: 6px; }
+  .screen h1 { font-size: var(--fs-xl); margin-bottom: 8px; letter-spacing: -0.028em; line-height: 1.12; }
   /* Onde existe veredito, o título da tela cede o posto a ele. */
   #screen-2 > h1, #screen-3 > h1 { font-size: var(--fs-lg); }
   /* text-wrap: pretty evita "rios" e linhas órfãs no rag à direita; a medida
@@ -461,12 +468,12 @@
 
   .card {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    padding: 20px 22px;
+    border: 1px solid var(--borda-card);
+    border-radius: var(--r-lg);
+    padding: 26px 28px;
     box-shadow: var(--shadow);
   }
-  .card + .card { margin-top: 20px; }
+  .card + .card { margin-top: 24px; }
   .card h3 { font-size: var(--fs-sm); margin-bottom: 4px; }
   .card .hint { font-size: var(--fs-xs); color: var(--ink-faint); margin: 0 0 14px; }
 
@@ -612,7 +619,8 @@
     gap: 2px;
     transition: border-color .15s ease, background .15s ease;
   }
-  .intake-tile:hover { border-color: var(--accent-soft-border); background: var(--accent-soft); }
+  .intake-tile { border-color: transparent; background: var(--surface-2); border-radius: var(--r-md); }
+  .intake-tile:hover { background: var(--accent-soft); }
   .intake-tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .intake-tile.selected { border: 1px solid var(--accent); background: var(--accent-soft); }
   .intake-tile .row { display: flex; align-items: center; gap: 8px; }
@@ -642,6 +650,15 @@
     margin-top: 14px;
   }
   textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  /* O campo principal da tela de entrada: preenchido, sem contorno, raio
+     maior. O contorno só aparece quando ele está em foco. §51 */
+  #case-text {
+    background: var(--surface-2);
+    border-color: transparent;
+    border-radius: var(--r-md);
+    min-height: 104px;
+  }
+  #case-text:focus { background: var(--surface); border-color: var(--border-control); }
 
   .plaud-row {
     margin-top: 14px;
@@ -791,6 +808,18 @@
   }
   .nota-rodape .linklike { font-size: inherit; }
 
+  /* Movimento: só onde ele explica uma mudança de estado. Nada de entrada
+     coreografada — em software clínico isso lê como enfeite. */
+  .card, .test-step, .program-row, .intake-tile, button.primary, button.ghost {
+    transition: box-shadow .18s ease, border-color .18s ease, background-color .18s ease, transform .18s ease;
+  }
+  button.primary:active, button.ghost:active, .intake-tile:active { transform: scale(0.985); }
+  .card:hover { box-shadow: 0 1px 2px rgba(16, 28, 23, 0.05), 0 10px 22px -10px rgba(16, 28, 23, 0.13), 0 28px 50px -28px rgba(16, 28, 23, 0.16); }
+  @media (prefers-reduced-motion: reduce) {
+    .card, .test-step, .program-row, .intake-tile, button.primary, button.ghost { transition: none; }
+    button.primary:active, button.ghost:active, .intake-tile:active { transform: none; }
+  }
+
   .selo {
     display: inline-block; vertical-align: middle; margin-left: 6px;
     padding: 2px 8px; border-radius: var(--r-full);
@@ -932,8 +961,9 @@
 
   /* Passos numerados do resultado pareado — deixa claro, de cara, que são
      2 testes distintos a solicitar, com o HRD (maior taxa de achado) em destaque. */
-  .test-steps { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .test-steps { margin-top: 20px; display: flex; flex-direction: column; gap: 14px; }
   .test-step {
+    border-color: var(--borda-card);
     display: flex;
     gap: 12px;
     align-items: flex-start;
@@ -3097,6 +3127,31 @@
   }
 
   // ===================== GENA =====================
+  /* O que o médico JÁ preencheu na tela, para a Gena não perguntar de novo.
+   *
+   * O prompt dela proíbe explicitamente "perguntar o que a pessoa acabou de
+   * dizer com outras palavras — o erro que mais faz uma conversa parecer
+   * robô". Mas ela não tinha como saber: cada conversa começava do zero,
+   * mesmo com o caso já estruturado na tela atrás do painel. O médico
+   * preenchia histologia, grau e estágio no passo 2, abria a Gena, e ela
+   * pedia histologia. Ver §51.
+   *
+   * O nome do paciente NUNCA entra aqui. É a única informação identificável
+   * que o app toca, e ela não sobe para o modelo de conversa. */
+  function contextoDaTela() {
+    if (!currentSubtype) return null;
+    const t = TUMORS.get(currentSubtype);
+    if (!t) return null;
+    const campos = {};
+    t.fields.forEach((f) => {
+      const el = document.getElementById('f-' + f.key);
+      const v = el && String(el.value || '').trim();
+      if (v) campos[f.label] = v.slice(0, 200);
+    });
+    if (!Object.keys(campos).length) return null;
+    return { tumor: t.label, campos };
+  }
+
   // Conversa real com o modelo (/api/chat), não roteiro fixo: a Gena entende
   // resposta em linguagem natural e sinaliza sozinha quando o caso está
   // completo o bastante para ir para a triagem estruturada.
@@ -3188,7 +3243,7 @@
     genaTyping(true);
 
     try {
-      const out = await api('/api/chat', { method: 'POST', body: { messages: genaMessages } });
+      const out = await api('/api/chat', { method: 'POST', body: { messages: genaMessages, contexto: contextoDaTela() } });
       genaTyping(false);
       if (out.reply) genaPush('assistant', out.reply);
 

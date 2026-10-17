@@ -585,6 +585,39 @@ CASO_PRONTO: <o caso em uma frase corrida, com tudo que foi reunido>
 
 Essa linha é lida pela plataforma e não aparece para o médico. Só a inclua quando realmente der para rodar. Se depois disso vier dado novo, mande a linha de novo, atualizada.`;
 
+/* O estado da tela vira um bloco curto no fim do system prompt.
+ *
+ * Três cuidados, porque isto vem do cliente:
+ *  - só aceita string, e corta em 200 caracteres por campo;
+ *  - o tumor precisa existir no registro, senão é descartado;
+ *  - qualquer campo cujo rótulo cheire a identificação de paciente é
+ *    recusado, mesmo que o cliente mande. O nome do paciente não sobe para o
+ *    modelo de conversa, e essa garantia mora aqui no servidor, não na
+ *    confiança de que o cliente se comportou. Ver §51.
+ */
+const ROTULO_PROIBIDO = /nome|paciente|cpf|prontu[áa]rio|nascimento|rg\b|telefone|email/i;
+
+function montarContextoDaTela(contexto) {
+  if (!contexto || typeof contexto !== 'object') return '';
+  const tumor = TUMORS.acharTumorPorLabel(String(contexto.tumor || ''));
+  if (!tumor) return '';
+
+  const campos = contexto.campos && typeof contexto.campos === 'object' ? contexto.campos : {};
+  const linhas = Object.entries(campos)
+    .filter(([rotulo, valor]) => typeof rotulo === 'string' && typeof valor === 'string'
+      && rotulo.length < 80 && valor.trim() && !ROTULO_PROIBIDO.test(rotulo))
+    .slice(0, 20)
+    .map(([rotulo, valor]) => `- ${rotulo}: ${valor.trim().slice(0, 200)}`);
+
+  if (!linhas.length) return '';
+
+  return `\n\n=== O QUE JÁ ESTÁ PREENCHIDO NA TELA ===\n\n`
+    + `O médico já estruturou este caso como ${tumor.label}, com estes campos:\n`
+    + `${linhas.join('\n')}\n\n`
+    + `NÃO pergunte nada que já esteja nesta lista — ele acabou de preencher e vai ver você perguntando de novo. `
+    + `Trate como dado confirmado e fale a partir dele. Se ele corrigir algo aqui, a correção dele vale.`;
+}
+
 app.post('/api/chat', auth.requireAuth(), tetoDeGasto('chat', 120), async (req, res, next) => {
   try {
     const history = Array.isArray(req.body.messages) ? req.body.messages : [];
@@ -601,10 +634,15 @@ app.post('/api/chat', auth.requireAuth(), tetoDeGasto('chat', 120), async (req, 
       return res.status(400).json({ error: 'A última mensagem precisa ser do médico.' });
     }
 
+    // O que já está preenchido na tela entra como contexto, para a Gena não
+    // repetir pergunta que o formulário já respondeu. Validado campo a campo:
+    // só string, tamanho limitado, e o nome do paciente nunca é aceito aqui.
+    const system = GENA_SYSTEM_PROMPT + montarContextoDaTela(req.body.contexto);
+
     const response = await client.messages.create({
       model: 'claude-opus-5',
       max_tokens: 600,
-      system: GENA_SYSTEM_PROMPT,
+      system,
       messages,
     });
 
