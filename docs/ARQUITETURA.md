@@ -4117,3 +4117,56 @@ dois.
 É a regra do §72.1 aplicada no sentido certo — quando o conteúdo muda, a
 exceção que existia para ele é refeita na mesma hora, em vez de ficar para trás
 e virar o defeito seguinte.
+
+## 73. A cobertura virou informação, não orientação (v1.35)
+
+O dono: *"separar como apenas uma informação e não parte das orientações"*.
+
+### 73.1 Por que lia como orientação
+
+O bloco tinha a **mesma margem, o mesmo ritmo vertical e a mesma família de
+cor** da linha de apoio acima — nada dizia que ali começava outra coisa. Três
+detalhes somavam:
+
+- **"COBRE"** em caixa alta com espacejamento largo lê-se como título de seção
+  de um texto de instruções.
+- O **"Como funciona"** é uma **ação** dentro de um bloco de informação, e ação
+  dentro de informação faz o bloco parecer um passo a executar.
+- Nenhuma superfície própria.
+
+### 73.2 O que ficou
+
+Superfície quase imperceptível: **45%** da cor de superfície sobre o fundo da
+página, borda na mesma proporção. O bastante para dizer "isto é outra coisa";
+discreto o bastante para não virar mais uma caixa competindo com o compositor.
+
+Rótulo em caixa baixa — **"Cobre"**. E o "Como funciona" **fora** do bloco, numa
+linha própria logo abaixo.
+
+A cobertura continua **acima** do campo, de propósito: *"serve para o meu
+caso?"* é a primeira pergunta de quem nunca usou, e respondê-la só depois de o
+médico tentar escrever custa caro. A alternativa de mandar o bloco para o
+rodapé foi mostrada e descartada por isso.
+
+### 73.3 Escolhido por captura, não por descrição
+
+As quatro propostas e os três graus de transparência foram **renderizados no
+app real, na largura do iPhone**, e mandados como imagem antes de qualquer
+linha entrar no código. Duas coisas só apareceram assim:
+
+- pôr o "Como funciona" no fim da linha de apoio **quebrou a frase em duas
+  linhas** e, em azul e negrito no meio do parágrafo, puxava mais atenção que o
+  título;
+- a versão mais transparente (30%, sem borda) **some** em tela de brilho baixo
+  e volta a parecer texto corrido — o defeito que a mudança existia para
+  corrigir.
+
+### 73.4 Contraste sobre fundo composto
+
+Fundo semitransparente **não tem uma cor**: tem a composição com o que está
+atrás. É o caso em que "parece claro o bastante" engana, porque nenhuma das
+duas cores escritas pelo autor é a cor que o olho recebe. A bateria já compõe
+as camadas (§57.2), e os dois alvos entraram nela.
+
+Medido: lista de tumores **5,83:1** no claro e **8,74:1** no escuro; rótulo
+**5,25:1** e **7,24:1**. 42 medições.

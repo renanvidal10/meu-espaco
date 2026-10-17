@@ -2094,23 +2094,33 @@
   /* ---- faixa de cobertura (tela 1) ----
      Sete subtipos numa frase corrida viravam um parágrafo que ninguém lê.
      Como chips, viram uma informação escaneável de relance. */
+  /* §73. Superfície quase imperceptível: 45% da cor de superfície sobre o
+     fundo da página, com a borda na mesma proporção. Existe o suficiente para
+     dizer "isto aqui é outra coisa", e some o suficiente para não virar mais
+     uma caixa concorrendo com o compositor.
+     A caixa alta do rótulo saiu junto: "COBRE" lia-se como título de seção de
+     um texto de instruções, que é exatamente o que o bloco deixou de ser. */
   .cobertura {
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;
     gap: 4px 10px;
-    margin: 0 0 24px;
+    margin: 20px 0 10px;
+    padding: 12px 14px;
+    border-radius: var(--r-md);
+    background: color-mix(in srgb, var(--surface) 45%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
     font-size: var(--fs-xs);
     color: var(--ink-muted);
   }
   .cobertura-label {
     font-size: var(--fs-2xs);
     font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
     color: var(--ink-faint);
     margin-right: 2px;
   }
+  /* A ação mora fora do bloco de informação. */
+  .cobertura-ajuda { margin: 0 0 22px; padding-left: 2px; }
   .chips { display: contents; }
   .chip {
     display: inline-flex;

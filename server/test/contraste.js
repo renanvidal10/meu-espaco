@@ -65,6 +65,12 @@ const ALVOS = [
   // quando o médico precisa ler depressa.
   { seletor: '.gena-bubble.gena-falha', minimo: 4.5, nota: 'balao de falha da Gena' },
   { seletor: '.gena-retentar', minimo: 4.5, nota: 'botao tentar de novo' },
+  /* §73. O bloco de cobertura ficou sobre superfície SEMITRANSPARENTE (45%).
+   * A cor efetiva do fundo é a composição com a página — é o caso em que
+   * "parece claro o bastante" engana, porque nenhuma das duas cores que o
+   * autor escreveu é a cor que o olho recebe. A bateria compõe as camadas. */
+  { seletor: '.cobertura #tumores-cobertos', minimo: 4.5, nota: 'lista de tumores cobertos' },
+  { seletor: '.cobertura-label', minimo: 4.5, nota: 'rotulo Cobre' },
 ];
 
 function paraRgb(css) {
