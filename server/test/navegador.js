@@ -1025,19 +1025,42 @@ async function rodar(nome, dispositivo) {
     const p = await ctx.newPage();
     p.on('pageerror', (e) => erros.push('exemplo: ' + e.message));
     await entrar(p);
+    /* §72. A primeira versão deste teste era VAZIA, pela segunda vez no mesmo
+     * campo. Ela media `scrollHeight` com o `min-height` em vigor — e
+     * scrollHeight nunca é menor que a altura da caixa. O número que voltava
+     * era o piso da própria caixa, então "precisa <= cabe" era verdade
+     * sempre, com qualquer conteúdo e qualquer altura.
+     *
+     * Para medir o texto é preciso TIRAR o piso: min-height e height a zero,
+     * o exemplo como valor, medir, e devolver tudo. Só aí o número é do
+     * texto. */
     const medida = await p.evaluate(() => {
       const t = document.getElementById('case-text');
       const exemplo = t.placeholder;
-      const antes = t.value;
+      const vAntes = t.value;
+      const minAntes = t.style.minHeight;
+      const hAntes = t.style.height;
+      t.style.minHeight = '0px';
+      t.style.height = '0px';
       t.value = exemplo;
       const precisa = t.scrollHeight;
-      t.value = antes;
+      t.style.minHeight = minAntes;
+      t.style.height = hAntes;
+      t.value = vAntes;
       return { cabe: t.clientHeight, precisa, palavras: exemplo.trim().split(/\s+/).length };
     });
     linha(
       ok(medida.precisa <= medida.cabe + 2, `o exemplo precisa de ${medida.precisa}px e o campo tem ${medida.cabe}px`),
       'o texto de exemplo cabe inteiro no campo',
     );
+    /* O outro lado, que é a queixa do dono: caixa grande com texto pequeno
+     * dentro parece inacabada. Meia dúzia de linhas de folga é vazio, não
+     * espaço para escrever — quem cola um laudo inteiro rola de qualquer
+     * jeito. O teto é generoso de propósito: é defeito grosseiro que ele
+     * pega, não ajuste fino. */
+    const folga = medida.cabe - medida.precisa;
+    linha(ok(folga <= 30, `${folga}px de vazio no campo (caixa ${medida.cabe}px, texto ${medida.precisa}px)`),
+      'a caixa do compositor não sobra vazio em volta do texto');
     linha(ok(medida.palavras >= 20, `só ${medida.palavras} palavras — o exemplo encolheu e deixaria de instruir`),
       'o exemplo continua nomeando o que colar');
     await p.close();

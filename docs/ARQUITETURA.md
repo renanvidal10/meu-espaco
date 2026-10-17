@@ -4042,3 +4042,60 @@ quadro, e o `padding-bottom` de 96px do `main` já reserva o espaço.
 
 Fica registrado porque corrigir um defeito inexistente custa tanto quanto
 deixar um real: mexeria no posicionamento do botão e quebraria o que funciona.
+
+## 72. A caixa que se ajusta ao texto, e a terceira medição falsa (v1.34)
+
+**O contexto de revisão deste produto é o celular.** O dono valida no iPhone;
+desktop e tablet não estão sendo avaliados. Toda medição de acabamento daqui
+em diante parte da largura do telefone.
+
+### 72.1 Uma regra de exceção que sobreviveu ao conteúdo que a justificava
+
+A queixa: o campo mostrava letra pequena **e** sobrava um vazio enorme em
+cima e embaixo do texto.
+
+Medido: a 12px o exemplo ocupava **107px** numa caixa de **152px** — 45px de
+nada. A regra de celular (fonte 12px, caixa 152px) nasceu no §71, quando o
+exemplo tinha 58 palavras e não cabia. No §68 o exemplo encolheu para 30
+palavras, e **a regra ficou**.
+
+Uma regra de exceção escrita para um conteúdo sobrevive à mudança desse
+conteúdo e vira o defeito seguinte.
+
+### 72.2 A regra que NÃO podia ser mexida
+
+Apagar a exceção não bastava: no celular **todo campo vai a 16px**, numa regra
+que existe para o iPhone não dar zoom ao focar um campo. Mexer nela trocaria um
+defeito estético por um de uso.
+
+Então quem se ajusta é a caixa. A 16px o exemplo ocupa 182px; a caixa foi para
+**184px** — 2px de folga. Letra maior para ler na consulta, e nenhum vazio.
+
+No desktop o mesmo defeito existia em silêncio: 124px de caixa para 79px de
+texto. Foi para 96px.
+
+Altura de campo não serve para caber o laudo — quem cola um laudo inteiro rola
+de qualquer jeito. Serve para caber a **instrução**.
+
+### 72.3 A terceira medição falsa, no mesmo campo
+
+O teste do §71 media `scrollHeight` **com o `min-height` em vigor**. E
+`scrollHeight` nunca é menor que a altura da caixa: o número que voltava era o
+piso da própria caixa. `precisa <= cabe` era verdade **sempre**, com qualquer
+conteúdo e qualquer altura.
+
+É a terceira armadilha de medição no mesmo elemento:
+1. §71 — `scrollHeight` de textarea vazia ignora o `placeholder`;
+2. §71 — `padding` mora dentro da caixa, então o vão entre dois elementos dá
+   zero;
+3. §72 — `scrollHeight` é limitado por baixo pelo `min-height`.
+
+As três tinham a mesma forma: **o número voltava, parecia razoável, e não era
+do que eu queria medir**. A defesa que funcionou nas três foi conferir contra
+uma expectativa independente — a aritmética, ou o olho na captura — e
+desconfiar quando não batia.
+
+Agora o teste zera `min-height` e `height` antes de medir, e devolve tudo. E
+ganhou o outro lado, que é a queixa do dono: **reprova se sobrar mais de 30px
+de vazio**. Provado forçando a caixa para 260px — acusa *"78px de vazio no
+campo (caixa 260px, texto 182px)"*.

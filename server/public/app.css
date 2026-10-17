@@ -867,7 +867,11 @@
     background: transparent;
     border: none;
     border-radius: var(--r-md);
-    min-height: 124px;
+    /* §72. A caixa é do tamanho do texto que ela mostra. Eram 124px para um
+       exemplo de 79px: 45px de vazio, que é o que faz um campo parecer
+       inacabado. Quem vai colar um laudo inteiro rola de qualquer jeito —
+       a altura não serve para caber o laudo, serve para caber a instrução. */
+    min-height: 96px;
     padding: 14px 14px 6px;
     resize: vertical;
     /* 1.5 de entrelinha num bloco de cinco linhas abre buracos entre elas e
@@ -876,16 +880,26 @@
     line-height: 1.4;
   }
   #case-text:focus, #case-text:focus-visible { background: transparent; border: none; outline: none; }
-  /* §71. O exemplo tem cinco linhas na largura do celular e vinha CORTADO no
-     meio da última — o campo não tinha altura para ele. Fonte um degrau menor
-     e mais altura: o médico lê a instrução inteira antes de escrever por cima
-     dela.
-     Esta regra PRECISA vir depois da base: media query não aumenta
-     especificidade, e na primeira tentativa ela ficou antes e não valeu
-     nada — o campo continuou em 124px e eu quase não percebi, porque
-     `scrollHeight` de textarea vazia ignora o texto de exemplo. */
+  /* §72. NÃO há regra de celular aqui, e isso é deliberado.
+   *
+   * Houve uma: fonte 12px e caixa de 152px. Ela nasceu quando o exemplo tinha
+   * 58 palavras e não cabia. Depois o exemplo encolheu para 30 (§68) e a
+   * regra ficou — resultado: o texto passou a precisar de 107px dentro de uma
+   * caixa de 152px. 45px de vazio, e letra pequena para ler na consulta.
+   *
+   * Medido na largura do iPhone: a 14px (o tamanho base) o exemplo ocupa
+   * 121px, e a caixa base tem 124px. Cabe com 3px de folga. A correção foi
+   * APAGAR a regra, não ajustá-la.
+   *
+   * A lição é de método: uma regra de exceção escrita para um conteúdo
+   * sobrevive à mudança desse conteúdo, e vira o defeito seguinte.
+   *
+   * O que ficou: no celular TODO campo vai a 16px, numa regra lá embaixo que
+   * existe para o iPhone não dar zoom ao focar — essa não se mexe. A 16px o
+   * exemplo ocupa 177px, então a CAIXA é que se ajusta ao texto, e não o
+   * contrário. Letra maior para ler na consulta, e nenhum vazio sobrando. */
   @media (max-width: 560px) {
-    #case-text { font-size: var(--fs-2xs); min-height: 152px; line-height: 1.45; }
+    #case-text { min-height: 184px; line-height: 1.45; }
   }
   /* §61. O texto de exemplo é instrução, não decoração: ele diz AO MÉDICO o
      que vale a pena colar. Fica claro o bastante para não competir com o que
