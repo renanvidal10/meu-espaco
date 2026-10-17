@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OncoGenYX — candidatos de animação</title>
+<style>
+  :root {
+    --bg: #f2f6fa; --surface: #ffffff; --surface-2: #eaf1f7;
+    --border: #e0e8f0; --ink: #10202e; --ink-muted: #4c6276; --ink-faint: #53697d;
+    --accent: #0e6180; --accent-ink: #fff; --accent-soft: #dceef5; --accent-soft-border: #b2d6e5;
+    --ok: #0f6b5c; --ok-soft: #dcebe6; --warn: #7d5509; --warn-soft: #f3e9d3;
+    --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-full: 999px;
+    --mov-toque: 90ms; --mov-rapido: 160ms; --mov-painel: 260ms;
+    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --elev-1: 0 1px 2px rgba(12,28,42,.05), 0 2px 6px -2px rgba(12,28,42,.07);
+    --elev-2: 0 1px 2px rgba(12,28,42,.06), 0 8px 18px -8px rgba(12,28,42,.13), 0 22px 40px -26px rgba(12,28,42,.16);
+    --acao: linear-gradient(170deg, #11768f 0%, #0e6180 62%, #0b5570 100%);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0a1017; --surface:#121b23; --surface-2:#1a252f; --border:#26333f;
+      --ink:#e6eef4; --ink-muted:#9fb2c1; --ink-faint:#8ea2b2;
+      --accent:#4fc3e8; --accent-ink:#04202c; --accent-soft:#16323f; --accent-soft-border:#27566b;
+      --ok:#55c2a8; --ok-soft:#1a352e; --warn:#dcb256; --warn-soft:#362c17;
+      --elev-1: 0 1px 2px rgba(0,0,0,.35); --elev-2: 0 10px 26px -12px rgba(0,0,0,.6);
+      --acao: linear-gradient(170deg, #6fd3f2 0%, #4fc3e8 62%, #3aa9cf 100%);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    line-height: 1.5; padding: 22px 16px 80px;
+  }
+  .topo { max-width: 60ch; margin: 0 auto 28px; }
+  h1 { font-size: 24px; letter-spacing: -.02em; margin: 0 0 8px; }
+  .topo p { color: var(--ink-muted); font-size: 15px; margin: 0; }
+
+  .caso {
+    max-width: 60ch; margin: 0 auto 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-lg); padding: 18px 18px 20px; box-shadow: var(--elev-1);
+  }
+  .caso > header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .caso h2 { font-size: 16px; margin: 0; letter-spacing: -.01em; }
+  .caso .tag {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    padding: 3px 9px; border-radius: var(--r-full); background: var(--accent-soft); color: var(--accent);
+  }
+  .caso > p.sobre { font-size: 13px; color: var(--ink-faint); margin: 0 0 14px; }
+  .palco {
+    background: var(--surface-2); border-radius: var(--r-md);
+    padding: 16px; margin-bottom: 12px; overflow: hidden;
+  }
+  .repetir {
+    min-height: 44px; padding: 0 16px;
+    border: 1px solid var(--accent-soft-border); border-radius: var(--r-sm);
+    background: var(--surface); color: var(--accent);
+    font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .repetir:active { transform: scale(.985); }
+  .voto { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 13px; color: var(--ink-faint); }
+
+  /* peças reais do produto, reduzidas */
+  .cartao {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-md); padding: 12px 14px; font-size: 14px;
+  }
+  .cartao + .cartao { margin-top: 8px; }
+  .cartao strong { display: block; font-size: 14px; margin-bottom: 2px; }
+  .cartao span { color: var(--ink-faint); font-size: 12px; }
+  .veredito {
+    background-color: var(--accent); background-image: var(--acao);
+    color: var(--accent-ink); border-radius: var(--r-md); padding: 16px 18px;
+    position: relative; overflow: hidden;
+  }
+  .veredito h3 { margin: 0 0 4px; font-size: 17px; letter-spacing: -.02em; }
+  .veredito p { margin: 0; font-size: 13px; opacity: .85; }
+  .botao {
+    min-height: 44px; padding: 0 20px; border: none; border-radius: var(--r-md);
+    background-color: var(--accent); background-image: var(--acao); color: var(--accent-ink);
+    font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 6px 14px -8px rgba(14,97,128,.6);
+  }
+
+  /* ---------- 1. entrada escalonada (JÁ ESTÁ NO APP) ---------- */
+  .rodando .a1 { animation: sobe var(--mov-painel) var(--ease) both; }
+  .rodando .a1:nth-child(2) { animation-delay: 45ms; }
+  .rodando .a1:nth-child(3) { animation-delay: 90ms; }
+  @keyframes sobe { from { opacity: 0; transform: translate3d(0, 10px, 0); } to { opacity: 1; transform: none; } }
+
+  /* ---------- 2. número que conta ---------- */
+  .contador { font-size: 40px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+  .contador + span { font-size: 13px; color: var(--ink-faint); }
+
+  /* ---------- 3. brilho que atravessa o painel ---------- */
+  .rodando .a3::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.22) 50%, transparent 65%);
+    transform: translateX(-120%);
+    animation: varrer 1100ms var(--ease) both;
+  }
+  @keyframes varrer { to { transform: translateX(120%); } }
+
+  /* ---------- 4. esqueleto enquanto lê o laudo ---------- */
+  .osso { height: 12px; border-radius: var(--r-full); background: var(--border); margin-bottom: 8px; }
+  .osso.curto { width: 55%; }
+  .rodando .a4 .osso {
+    background: linear-gradient(90deg, var(--border) 25%, var(--surface-2) 37%, var(--border) 63%);
+    background-size: 400% 100%;
+    animation: brilhar 1400ms ease-in-out infinite;
+  }
+  @keyframes brilhar { from { background-position: 100% 50%; } to { background-position: 0 50%; } }
+
+  /* ---------- 5. trilho que se desenha ---------- */
+  .trilho-demo { display: grid; grid-template-columns: 30px 1fr; column-gap: 14px; }
+  .trilho-col { position: relative; display: flex; justify-content: center; }
+  .trilho-col::after {
+    content: ''; position: absolute; top: 30px; bottom: -14px; left: 50%;
+    width: 2px; margin-left: -1px; background: var(--accent-soft-border);
+    transform-origin: top;
+  }
+  /* Repouso VISÍVEL. Esconder no estado base e só revelar pela animação é a
+     mesma armadilha do PDF em branco: se a animação não rodar, o conteúdo
+     some. O "from" da animação é que esconde, por um instante. */
+  .rodando .a5 .trilho-col::after { animation: descer 420ms var(--ease) 120ms both; }
+  @keyframes descer { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  .no {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; z-index: 1;
+    background-color: var(--accent); background-image: var(--acao); color: var(--accent-ink);
+  }
+  .rodando .a5 .no { animation: estourar 320ms var(--ease) both; }
+  .rodando .a5 .linha:nth-child(2) .no { animation-delay: 420ms; }
+  @keyframes estourar { from { transform: scale(0); } to { transform: scale(1); } }
+  .linha { display: contents; }
+  .linha > .corpo { padding-bottom: 14px; }
+
+  /* ---------- 6. marca-texto no critério que exclui ---------- */
+  .criterio { font-size: 13px; color: var(--ink-muted); line-height: 1.6; }
+  /* O traço é FUNDO do próprio texto, não um bloco atrás dele: z-index
+     negativo escorrega para trás do fundo do cartão e some. */
+  .marca {
+    color: var(--ink); font-weight: 650; padding: 0 2px;
+    background-image: linear-gradient(var(--warn-soft), var(--warn-soft));
+    background-repeat: no-repeat;
+    background-position: 0 88%;
+    background-size: 100% 9px;
+    border-radius: 2px;
+  }
+  .rodando .a6 .marca { animation: pintar 420ms var(--ease) both; }
+  .rodando .a6 .marca:nth-of-type(2) { animation-delay: 260ms; }
+  @keyframes pintar {
+    from { background-size: 0 9px; }
+    to { background-size: 100% 9px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important; animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important; transition-duration: .01ms !important;
+    }
+    .aviso-movimento { display: block !important; }
+  }
+  .aviso-movimento {
+    display: none; max-width: 60ch; margin: 0 auto 20px;
+    background: var(--warn-soft); color: var(--warn); border-radius: var(--r-md);
+    padding: 12px 14px; font-size: 13px; font-weight: 600;
+  }
+  footer { max-width: 60ch; margin: 30px auto 0; font-size: 13px; color: var(--ink-faint); }
+</style>
+</head>
+<body>
+
+<div class="topo">
+  <h1>Candidatos de animação</h1>
+  <p>Seis movimentos aplicados às peças reais do OncoGenYX. Toque em <strong>Repetir</strong> para ver cada um de novo. Me diga os números que você quer — e os que quer fora.</p>
+</div>
+
+<p class="aviso-movimento">Seu aparelho está com “reduzir movimento” ligado, então as animações aparecem desligadas aqui — que é exatamente o que o app faz nesse caso.</p>
+
+<!-- 1 -->
+<section class="caso" id="c1">
+  <header><h2>1. Entrada escalonada</h2><span class="tag">já está no app</span></header>
+  <p class="sobre">Os cards entram de baixo, um logo depois do outro. Dá a sensação de que a tela se montou, não de que apareceu pronta.</p>
+  <div class="palco">
+    <div class="cartao a1"><strong>ProgramAID (AstraZeneca)</strong><span>Via conferida em 16/10/2026</span></div>
+    <div class="cartao a1"><strong>Teste HRD myChoice CDx (GSK)</strong><span>Via conferida em 16/10/2026</span></div>
+    <div class="cartao a1"><strong>Life Genomics</strong><span>Laboratório parceiro</span></div>
+  </div>
+  <button class="repetir" onclick="repetir('c1')">Repetir</button>
+</section>
+
+<!-- 2 -->
+<section class="caso" id="c2">
+  <header><h2>2. Número que conta</h2><span class="tag">novo</span></header>
+  <p class="sobre">A contagem de testes sobe de zero até o valor. Chama o olho para o número que responde a pergunta do médico.</p>
+  <div class="palco">
+    <div class="veredito">
+      <h3><span class="contador" id="num">0</span> testes indicados</h3>
+      <p>Carcinoma seroso de ovário, alto grau, estágio IIIC.</p>
+    </div>
+  </div>
+  <button class="repetir" onclick="contar()">Repetir</button>
+</section>
+
+<!-- 3 -->
+<section class="caso" id="c3">
+  <header><h2>3. Brilho atravessando o veredito</h2><span class="tag">novo</span></header>
+  <p class="sobre">Uma luz passa uma vez pelo painel quando o resultado aparece. É o movimento mais “de produto caro” da lista — e o mais fácil de enjoar.</p>
+  <div class="palco">
+    <div class="veredito a3">
+      <h3>Este caso tem indicação para 2 testes</h3>
+      <p>Solicite os 2 testes abaixo.</p>
+    </div>
+  </div>
+  <button class="repetir" onclick="repetir('c3')">Repetir</button>
+</section>
+
+<!-- 4 -->
+<section class="caso" id="c4">
+  <header><h2>4. Esqueleto enquanto lê o laudo</h2><span class="tag">novo</span></header>
+  <p class="sobre">No lugar de um “carregando…”, a forma do que vem aparece pulsando. A espera parece menor porque o olho já sabe o que esperar.</p>
+  <div class="palco a4">
+    <div class="osso"></div>
+    <div class="osso"></div>
+    <div class="osso curto"></div>
+  </div>
+  <button class="repetir" onclick="repetir('c4')">Repetir</button>
+</section>
+
+<!-- 5 -->
+<section class="caso" id="c5">
+  <header><h2>5. O trilho se desenhando</h2><span class="tag">novo</span></header>
+  <p class="sobre">O nó 1 surge, a linha desce até o 2, o 2 surge. A ordem dos testes é clínica — aqui o movimento <em>diz</em> a ordem, não só a mostra.</p>
+  <div class="palco">
+    <div class="trilho-demo a5">
+      <div class="linha">
+        <div class="trilho-col"><span class="no">1</span></div>
+        <div class="corpo"><div class="cartao"><strong>HRD Somático</strong><span>Tecido tumoral</span></div></div>
+      </div>
+      <div class="linha">
+        <div class="trilho-col"><span class="no">2</span></div>
+        <div class="corpo"><div class="cartao"><strong>Painel germinativo</strong><span>Sangue periférico</span></div></div>
+      </div>
+    </div>
+  </div>
+  <button class="repetir" onclick="repetir('c5')">Repetir</button>
+</section>
+
+<!-- 6 -->
+<section class="caso" id="c6">
+  <header><h2>6. Marca-texto no que exclui</h2><span class="tag">novo</span></header>
+  <p class="sobre">O critério que <em>nega</em> o encaminhamento recebe um traço de marcador. Foi exatamente isso que o corte de 78 caracteres escondia.</p>
+  <div class="palco a6">
+    <p class="criterio">Elegível: carcinoma seroso ou endometrioide <span class="marca">de ALTO GRAU</span> de ovário, tuba uterina ou peritônio, <span class="marca">EM PRIMEIRA LINHA</span> de tratamento.</p>
+  </div>
+  <button class="repetir" onclick="repetir('c6')">Repetir</button>
+</section>
+
+<footer>
+  Nenhuma destas está ligada no app ainda, fora a nº 1. Elas respeitam “reduzir movimento” do aparelho, como tudo no OncoGenYX.
+</footer>
+
+<script>
+  function repetir(id) {
+    const el = document.getElementById(id);
+    el.classList.remove('rodando');
+    void el.offsetWidth;        // força o navegador a reiniciar a animação
+    el.classList.add('rodando');
+  }
+
+  function contar() {
+    const alvo = 2;
+    const campo = document.getElementById('num');
+    const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduzido) { campo.textContent = alvo; return; }
+    const inicio = performance.now();
+    const dur = 700;
+    campo.textContent = '0';
+    function passo(agora) {
+      const t = Math.min(1, (agora - inicio) / dur);
+      const suave = 1 - Math.pow(1 - t, 3);
+      campo.textContent = Math.round(suave * alvo);
+      if (t < 1) requestAnimationFrame(passo);
+    }
+    requestAnimationFrame(passo);
+  }
+
+  // Roda cada um uma vez ao entrar na tela, como aconteceria no app.
+  const observador = new IntersectionObserver((itens) => {
+    itens.forEach((item) => {
+      if (!item.isIntersecting) return;
+      item.target.classList.add('rodando');
+      if (item.target.id === 'c2') contar();
+      observador.unobserve(item.target);
+    });
+  }, { threshold: 0.4 });
+  document.querySelectorAll('.caso').forEach((c) => observador.observe(c));
+</script>
+</body>
+</html>
