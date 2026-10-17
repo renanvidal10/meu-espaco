@@ -241,7 +241,12 @@
   <section class="screen active" id="screen-0">
     <div class="eyebrow" id="eyebrow-0"></div>
     <h1>Descreva o caso</h1>
-    <p class="lede">Anexe o laudo, escreva ou dite. O subtipo oncológico é identificado sozinho.</p>
+    <!-- §68. "Anexe o laudo, escreva ou dite" repetia o que o compositor logo
+         abaixo JÁ mostra: os três botões se chamam PDF, Foto e Ditar, e o
+         campo pede o laudo. Dizer de novo em prosa não informa, só ocupa. O
+         que sobra é a única promessa que a tela não consegue demonstrar
+         sozinha. -->
+    <p class="lede">O subtipo oncológico é identificado sozinho.</p>
 
     <p class="cobertura">
       <span class="cobertura-label">Cobre</span>
@@ -266,7 +271,7 @@
     <div class="mode-panel active" id="mode-form">
       <div class="compositor" id="dropzone">
         <label class="sr-only" for="case-text">Descrição do caso clínico</label>
-        <textarea id="case-text" placeholder="Cole o laudo e tudo que tiver sobre o caso: anatomopatológico, imuno-histoquímico, estadiamento, cirurgia, tratamentos já feitos e história familiar. Quanto mais completo o material, mais precisa a indicação do teste.&#10;&#10;Ex.: mulher de 61 anos, carcinoma seroso de alto grau de ovário, FIGO IIIC, citorredução ótima, em carboplatina + paclitaxel. Mãe com câncer de mama aos 58."></textarea>
+        <textarea id="case-text" placeholder="Cole o laudo e o que mais tiver: histologia, grau, estadiamento, tratamentos e história familiar.&#10;&#10;Ex.: mulher, 61 anos, carcinoma seroso de alto grau de ovário, FIGO IIIC, em carboplatina."></textarea>
 
         <input type="file" id="input-pdf" accept="application/pdf" multiple style="display:none" onchange="addFiles('pdf', this.files)" />
         <input type="file" id="input-photo" accept="image/*" multiple style="display:none" onchange="addFiles('photo', this.files)" />

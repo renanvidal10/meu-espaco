@@ -3811,3 +3811,45 @@ corria. Medição no meio do voo acusa ruído, e ruído ensina a ignorar o teste
 Agora ela espera as animações assentarem (`document.getAnimations()`), deixando
 de fora as infinitas — o esqueleto pulsa para sempre, e esperar por ele nunca
 terminaria.
+
+## 68. O texto da entrada encolheu pela metade (v1.30)
+
+O dono apontou que o campo de entrada ficou com texto demais. Estava certo: o
+exemplo tinha **374 caracteres e 58 palavras** — um parágrafo de instrução no
+lugar onde o médico vai escrever.
+
+Agora tem **188 caracteres e 30 palavras**, e continua nomeando os eixos que as
+regras do registro leem:
+
+> Cole o laudo e o que mais tiver: histologia, grau, estadiamento, tratamentos
+> e história familiar.
+>
+> Ex.: mulher, 61 anos, carcinoma seroso de alto grau de ovário, FIGO IIIC, em
+> carboplatina.
+
+A linha de apoio da tela saiu junto. *"Anexe o laudo, escreva ou dite"* repetia
+o que o compositor logo abaixo **já mostra**: os três botões se chamam PDF,
+Foto e Ditar, e o campo pede o laudo. Dizer de novo em prosa não informa, só
+ocupa. Restou a única promessa que a tela não demonstra sozinha: *"O subtipo
+oncológico é identificado sozinho."*
+
+### 68.1 Medido, não estimado
+
+Contagem de palavras visíveis por tela, com todos os blocos abertos:
+
+| Tela | Palavras |
+|---|---|
+| 1 Novo caso | 47 |
+| 2 Revisão | 82 |
+| 3 Resultado | 191 |
+| 4 Programas | 244 |
+
+Os dois maiores blocos de texto restantes são os **avisos médico-legais** do
+rodapé: 38 palavras na tela de resultado, 33 na de programas. Eles **não foram
+tocados**. Encurtar texto jurídico de uma ferramenta clínica é decisão do dono
+do produto e, possivelmente, de quem assina o parecer legal — não um ajuste de
+acabamento visual.
+
+Fica registrado como o próximo candidato, se ele quiser: não encurtando o que
+dizem, mas tornando-os visualmente subordinados ou recolhíveis, como o §45 já
+fez com as notas que não mudam conduta.
