@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="2245" viewBox="0 0 1024 2245" font-family="Inter, 'DejaVu Sans', sans-serif">
-<rect width="1024" height="2245" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="2400" viewBox="0 0 1024 2400" font-family="Inter, 'DejaVu Sans', sans-serif">
+<rect width="1024" height="2400" fill="#ffffff"/>
 <text x="32" y="40" font-size="21" font-weight="600" fill="#1a1a1a" text-anchor="start" >Da chegada ao Café ou à célula: quem faz cada passo e onde falta um responsável</text>
 <rect x="32" y="70" width="20" height="20" rx="5" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
 <text x="62" y="86" font-size="15" font-weight="400" fill="#1a1a1a" text-anchor="start" >O sistema faz sozinho</text>
@@ -83,47 +83,56 @@
 <text x="512.0" y="1383.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >o sistema lembra a pessoa</text>
 <path d="M512,1278 L512,1312" stroke="#bdbdb9" stroke-width="2" fill="none"/>
 <path d="M507,1304 L512,1312 L517,1304 Z" fill="#bdbdb9"/>
-<rect x="342" y="1434" width="340" height="108" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
-<text x="512.0" y="1462.0" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Café de Conexão</text>
-<text x="512.0" y="1484.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >3º domingo do mês, com os pastores:</text>
-<text x="512.0" y="1505.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >apresentam a igreja e</text>
-<text x="512.0" y="1526.0" font-size="14.5" font-weight="500" fill="#1a1a1a" text-anchor="middle" >depois, segue para a célula</text>
+<rect x="342" y="1434" width="340" height="88" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
+<text x="512.0" y="1462.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Check-in na entrada</text>
+<text x="512.0" y="1484.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >voluntário da Integração marca</text>
+<text x="512.0" y="1505.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >quem chegou na lista de confirmados</text>
 <path d="M512,1400 L512,1434" stroke="#bdbdb9" stroke-width="2" fill="none"/>
 <path d="M507,1426 L512,1434 L517,1426 Z" fill="#bdbdb9"/>
-<path d="M177,815 L177,1582 L512,1582" stroke="#bdbdb9" stroke-width="2" fill="none"/>
-<path d="M512,1542 L512,1582" stroke="#bdbdb9" stroke-width="2" fill="none"/>
-<path d="M512,1582 L512,1622" stroke="#bdbdb9" stroke-width="2" fill="none"/>
-<path d="M507,1614 L512,1622 L517,1614 Z" fill="#bdbdb9"/>
-<rect x="308" y="1622" width="403" height="90" rx="12" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
-<text x="509.5" y="1651.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Direcionamento automático</text>
-<text x="509.5" y="1673.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >o sistema escolhe a célula pelo formulário:</text>
-<text x="509.5" y="1694.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >dias, faixa etária, bairro e Kids</text>
-<rect x="308" y="1746" width="403" height="82" rx="12" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
-<text x="509.5" y="1771.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Aviso ao líder da célula</text>
-<text x="509.5" y="1793.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >o sistema monta a mensagem</text>
-<text x="509.5" y="1814.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >com os dados da pessoa</text>
-<path d="M512,1712 L512,1746" stroke="#bdbdb9" stroke-width="2" fill="none"/>
-<path d="M507,1738 L512,1746 L517,1738 Z" fill="#bdbdb9"/>
-<rect x="308" y="1862" width="403" height="82" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
-<text x="509.5" y="1887.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Convite do líder</text>
-<text x="509.5" y="1909.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >o líder liga e convida</text>
-<text x="509.5" y="1930.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >em até 2 dias</text>
-<path d="M512,1828 L512,1862" stroke="#bdbdb9" stroke-width="2" fill="none"/>
-<path d="M507,1854 L512,1862 L517,1854 Z" fill="#bdbdb9"/>
-<rect x="308" y="1984" width="403" height="104" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
-<text x="509.5" y="2010.0" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Cobrança do líder da célula</text>
-<text x="509.5" y="2032.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >“você entrou em contato?” — o pastor vê</text>
-<text x="509.5" y="2053.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >no painel quem foi contatado</text>
-<text x="509.5" y="2074.0" font-size="14.5" font-weight="500" fill="#1a1a1a" text-anchor="middle" >hoje: Matheus · 2027: líderes de rede</text>
-<path d="M512,1944 L512,1976" stroke="#bdbdb9" stroke-width="2" fill="none"/>
-<path d="M507,1968 L512,1976 L517,1968 Z" fill="#bdbdb9"/>
-<rect x="308" y="2128" width="403" height="82" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="3"/>
-<text x="509.5" y="2153.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Pessoa na célula</text>
-<text x="509.5" y="2175.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >a pessoa vai à reunião</text>
-<text x="509.5" y="2196.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >e começa a se integrar</text>
-<path d="M512,2096 L512,2128" stroke="#bdbdb9" stroke-width="2" fill="none"/>
-<path d="M507,2120 L512,2128 L517,2120 Z" fill="#bdbdb9"/>
-<rect x="730" y="1190" width="262" height="262" rx="12" fill="#f6f6f4" stroke="#bdbdb9" stroke-width="1.8"/>
+<rect x="342" y="1556" width="340" height="124" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
+<text x="512.0" y="1581.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Café de Conexão</text>
+<text x="512.0" y="1603.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >3º domingo do mês, com os pastores:</text>
+<text x="512.0" y="1624.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >apresentam a igreja</text>
+<text x="512.0" y="1645.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >QR code no telão para quem não tem cadastro</text>
+<text x="512.0" y="1666.5" font-size="14.5" font-weight="500" fill="#1a1a1a" text-anchor="middle" >depois, segue para a célula</text>
+<path d="M512,1522 L512,1556" stroke="#bdbdb9" stroke-width="2" fill="none"/>
+<path d="M507,1548 L512,1556 L517,1548 Z" fill="#bdbdb9"/>
+<path d="M177,815 L177,1720 L512,1720" stroke="#bdbdb9" stroke-width="2" fill="none"/>
+<path d="M512,1680 L512,1720" stroke="#bdbdb9" stroke-width="2" fill="none"/>
+<path d="M512,1720 L512,1760" stroke="#bdbdb9" stroke-width="2" fill="none"/>
+<path d="M507,1752 L512,1760 L517,1752 Z" fill="#bdbdb9"/>
+<rect x="308" y="1760" width="403" height="124" rx="12" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
+<text x="509.5" y="1785.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Mensagem com 5 células</text>
+<text x="509.5" y="1807.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >WhatsApp com 5 sugestões perto de casa,</text>
+<text x="509.5" y="1828.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >pela faixa etária e Kids: bairro, horário</text>
+<text x="509.5" y="1849.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >e líderes; a pessoa toca na escolhida</text>
+<text x="509.5" y="1870.5" font-size="14.5" font-weight="500" fill="#1a1a1a" text-anchor="middle" >sem escolha em 2 dias: “Quem não respondeu”</text>
+<rect x="308" y="1918" width="403" height="82" rx="12" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
+<text x="509.5" y="1943.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Aviso ao líder da célula</text>
+<text x="509.5" y="1965.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >na hora da escolha: “Renan, a Mariana quer</text>
+<text x="509.5" y="1986.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >conhecer sua célula, entre em contato”</text>
+<path d="M512,1884 L512,1918" stroke="#bdbdb9" stroke-width="2" fill="none"/>
+<path d="M507,1910 L512,1918 L517,1910 Z" fill="#bdbdb9"/>
+<rect x="308" y="2034" width="403" height="82" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
+<text x="509.5" y="2059.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Convite do líder</text>
+<text x="509.5" y="2081.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >o líder liga e convida</text>
+<text x="509.5" y="2102.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >em até 2 dias</text>
+<path d="M512,2000 L512,2034" stroke="#bdbdb9" stroke-width="2" fill="none"/>
+<path d="M507,2026 L512,2034 L517,2026 Z" fill="#bdbdb9"/>
+<rect x="308" y="2156" width="403" height="104" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
+<text x="509.5" y="2182.0" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Cobrança do líder da célula</text>
+<text x="509.5" y="2204.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >“você entrou em contato?” — o pastor vê</text>
+<text x="509.5" y="2225.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >no painel quem foi contatado</text>
+<text x="509.5" y="2246.0" font-size="14.5" font-weight="500" fill="#1a1a1a" text-anchor="middle" >hoje: Matheus · 2027: líderes de rede</text>
+<path d="M512,2116 L512,2148" stroke="#bdbdb9" stroke-width="2" fill="none"/>
+<path d="M507,2140 L512,2148 L517,2140 Z" fill="#bdbdb9"/>
+<rect x="308" y="2300" width="403" height="82" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="3"/>
+<text x="509.5" y="2325.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Pessoa na célula</text>
+<text x="509.5" y="2347.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >a pessoa vai à reunião</text>
+<text x="509.5" y="2368.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >e começa a se integrar</text>
+<path d="M512,2268 L512,2300" stroke="#bdbdb9" stroke-width="2" fill="none"/>
+<path d="M507,2292 L512,2300 L517,2292 Z" fill="#bdbdb9"/>
+<rect x="730" y="1190" width="262" height="285" rx="12" fill="#f6f6f4" stroke="#bdbdb9" stroke-width="1.8"/>
 <text x="861.0" y="1226" font-size="16.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Visibilidade para o pastor</text>
 <text x="752" y="1258" font-size="14" font-weight="400" fill="#333" text-anchor="start" >O pastor cobra com números:</text>
 <text x="752" y="1278" font-size="14" font-weight="400" fill="#333" text-anchor="start" ></text>
@@ -131,7 +140,8 @@
 <text x="752" y="1318" font-size="14" font-weight="400" fill="#333" text-anchor="start" >• contato do responsável até</text>
 <text x="752" y="1338" font-size="14" font-weight="400" fill="#333" text-anchor="start" >   quarta (consegui, ainda não,</text>
 <text x="752" y="1358" font-size="14" font-weight="400" fill="#333" text-anchor="start" >   não respondeu)</text>
-<text x="752" y="1378" font-size="14" font-weight="400" fill="#333" text-anchor="start" >• líder da célula contatou em</text>
-<text x="752" y="1398" font-size="14" font-weight="400" fill="#333" text-anchor="start" >   até 2 dias</text>
-<text x="752" y="1418" font-size="14" font-weight="400" fill="#333" text-anchor="start" >• lista de quem não respondeu</text>
+<text x="752" y="1378" font-size="14" font-weight="400" fill="#333" text-anchor="start" >• presença real no Café (check-in)</text>
+<text x="752" y="1398" font-size="14" font-weight="400" fill="#333" text-anchor="start" >• líder da célula contatou em</text>
+<text x="752" y="1418" font-size="14" font-weight="400" fill="#333" text-anchor="start" >   até 2 dias</text>
+<text x="752" y="1438" font-size="14" font-weight="400" fill="#333" text-anchor="start" >• lista de quem não respondeu</text>
 </svg>
