@@ -64,6 +64,43 @@ Responsável por receber o dado bruto, seja qual for o formato.
 Todo dado bruto (PDF, imagem, áudio) é **processado e descartado** — não fica retido além do necessário para gerar o resumo estruturado do caso (ver seção 5, retenção de dados).
 
 ### Camada 2 — Pseudonimização (LGPD by design)
+
+> ## ⚠️ DESENHADO — NÃO IMPLEMENTADO (marcado em 19/10/2026)
+>
+> **Esta camada não existe no código.** O texto abaixo descreve uma intenção de
+> projeto, escrita no presente do indicativo, e foi lida por auditoria externa
+> como descrição do que o produto faz. Não é.
+>
+> **O que o código faz hoje, verificado linha a linha:** o material anexado
+> (PDF original, foto, texto digitado) é enviado **íntegro** ao modelo, sem
+> nenhuma redação. O schema de extração declara `nome_paciente` como campo
+> **obrigatório** (`server/extracao.js:44` e `:78`, `required:
+> Object.keys(properties)`), ou seja, o modelo é instruído a **localizar** o
+> nome. Um mesmo caso pode cruzar a fronteira até três vezes (leitura inicial,
+> segunda leitura dirigida, plano B de PDF recusado).
+>
+> **O que de fato existe:** `ROTULO_PROIBIDO` (`server/index.js:632`) filtra
+> rótulos identificadores do bloco de contexto enviado à Gena — e **só dele**
+> (usado uma única vez, em `:674`, no fluxo de chat). Não tem efeito algum
+> sobre a extração, que é o caminho por onde o dado efetivamente sai do país.
+>
+> **E em um ponto a implementação é melhor que este desenho:** não há tabela de
+> reidentificação, porque não há retenção nenhuma no servidor — `server/store.js`
+> cria apenas `users`, `sessions`, `resets` e `plaud_tokens`. Nenhum caso,
+> laudo ou documento é gravado. A §5 abaixo, que prevê retenção, também está
+> desatualizada **a favor do produto**.
+>
+> **Por que esta marcação importa mais que a dívida técnica:** este documento
+> circula. Se chegar a um hospital em due diligence, a uma operadora, a um
+> departamento de MLR ou à ANPD, a divergência entre arquitetura declarada e
+> arquitetura real deixa de ser pendência e vira risco de declaração inexata —
+> agravado pelo fato de a interface ser honesta (`index.html:568` diz "a
+> plataforma não os remove") enquanto este documento não era.
+>
+> **Alvo correto de engenharia:** redação no navegador **antes do upload**.
+> Remover `nome_paciente` do schema não reduz a transferência em um byte,
+> porque o laudo integral sobe de qualquer forma.
+
 Executa **antes** de qualquer outro processamento, inclusive antes de qualquer chamada a modelo de IA externo.
 
 - Nome completo → iniciais + identificador sequencial gerado pela plataforma (ex.: "Renan Lourenço Vidal" → `R.L.V. — Caso #0142`).
@@ -124,6 +161,18 @@ Gera um resumo que o médico pode salvar/exportar:
 - Disclaimer: "Esta é uma ferramenta de triagem e direcionamento, não substitui julgamento clínico nem aconselhamento genético."
 
 ### Camada 7 — Compliance, auditoria e disclaimers
+
+> ⚠️ **O log de auditoria abaixo é DESENHO, NÃO IMPLEMENTADO** (marcado em
+> 19/10/2026). Nem a tela de resultado nem o documento assinado citam diretriz,
+> ano ou versão do motor: `server/public/tumors.js` menciona NCCN/ASCO/ESMO
+> oito vezes, **nenhuma** em texto visível ao médico. O código de caso existe
+> (`app.js:748`) mas é `Math.random()` de quatro dígitos, não persistido e
+> **não impresso no documento**. Assimetria que um auditor nota em trinta
+> segundos: a camada comercial carrega `verificadoEm` e o mostra na tela
+> ("Via conferida em 16/10/2026"); a camada clínica não carrega data nenhuma.
+> Requisito próprio, escrito, consciente e não cumprido — o que retira
+> qualquer defesa de desconhecimento. Ver §80 do plano de correção.
+
 - Log de auditoria: quem gerou qual triagem, quando, com base em qual versão da diretriz (importante para defensibilidade médico-legal e para eventual submissão a Medical/Regulatory).
 - Disclaimer fixo em toda tela de recomendação.
 - Trilha de decisão explicável: a recomendação sempre aponta a regra/diretriz que a gerou (não é "caixa-preta" de IA generativa pura — a IA ajuda a extrair dado, mas a lógica de triagem é regras auditáveis mapeadas a NCCN/ESMO).
@@ -161,6 +210,39 @@ Este é o segundo gargalo que você identificou, e é tão importante quanto o p
 - **Caso estruturado pseudonimizado**: retido enquanto o médico mantiver a conta, para consulta de histórico.
 - **Tabela de reidentificação** (código ↔ nome real): armazenada separadamente, criptografada em repouso, acesso restrito ao médico dono do caso — nem a equipe de produto acessa em operação normal.
 - Base legal LGPD: execução de serviço solicitado pelo próprio médico (controlador dos dados do paciente) + apoio a cuidado de saúde — o produto atua como **operador** dos dados do médico, que segue sendo controlador em relação ao paciente dele.
+
+> ⚠️ **Os três itens acima e esta alocação de controladoria estão
+> DESATUALIZADOS** (marcado em 19/10/2026), em direções opostas:
+>
+> **Melhor que o descrito:** não há retenção nenhuma. Nenhum caso, laudo ou
+> documento é gravado — `server/store.js` cria apenas `users`, `sessions`,
+> `resets` e `plaud_tokens`. Não existe "caso estruturado retido" nem "tabela
+> de reidentificação". O pilar de retenção zero é real e é o ponto mais forte
+> do produto em privacidade.
+>
+> **Pior que o descrito:** "pseudonimizado" não se aplica a nada (ver Camada 2),
+> e a base legal correta para o dado do paciente é o **art. 11, II, "f"**
+> (tutela da saúde em procedimento realizado por profissional de saúde), não
+> "execução de serviço".
+>
+> **E a alocação "o produto atua como operador" não se sustenta.** Operador
+> trata **conforme instruções** do controlador (art. 5º, VII). A plataforma
+> decide sozinha, sem instrução do médico e sem que ele possa alterar: que o
+> material vai a um modelo nos EUA, qual modelo, que o modelo deve localizar o
+> nome do paciente, e que o material pode ser reenviado até três vezes. Quem
+> define finalidade e **meios essenciais** é controlador (art. 5º, VI). A
+> configuração real é de **controladoria conjunta quanto à transferência
+> internacional** — e disso decorrem obrigações próprias que não se transferem
+> por termo de uso: arts. 33-36 (transferência), 37 (registro das operações),
+> 38 (RIPD), 48 (incidente) e 42 (responsabilidade solidária).
+>
+> **Pendência vencida:** as cláusulas-padrão contratuais da ANPD (Res. CD/ANPD
+> 19/2024) tinham prazo de incorporação até **23/08/2025**. Não há período de
+> transição em curso.
+>
+> A qualificação final dos agentes e a redação das cláusulas exigem **advogado
+> habilitado em proteção de dados**. O que se afirma aqui com segurança é o
+> negativo: atribuir toda a controladoria ao médico não é defensável.
 - Necessário: Termo de Uso + Aviso de Privacidade explícitos, e — dado que se trata de dado de saúde (dado sensível, Art. 11 LGPD) — atenção redobrada a criptografia em trânsito/repouso e a não usar esses dados para treinar modelos de terceiros sem anonimização irreversível.
 
 ---

@@ -150,6 +150,14 @@
     color: var(--ink-muted); overflow-x: auto;
   }
   .etapa .dado b { color: var(--ink); font-weight: 600; }
+  .etapa p.ressalva {
+    margin-top: 11px; padding: 11px 13px;
+    border-left: 3px solid var(--humano);
+    background: var(--humano-suave);
+    border-radius: 0 8px 8px 0;
+    font-size: 14px; color: var(--ink-muted);
+  }
+  .etapa p.ressalva b { color: var(--humano); }
 
   /* ---- registro ---- */
   .registro {
@@ -239,7 +247,7 @@
           <li>Escolher qual painel solicitar</li>
           <li>Citar diretriz ou escrever justificativa clínica</li>
           <li>Associar um programa de acesso a um tumor</li>
-          <li>Ver o nome do paciente — ele é bloqueado no servidor antes de qualquer envio</li>
+          <li>Decidir o que o médico assina — a justificativa impressa é escrita pela regra, não pelo modelo</li>
         </ul>
       </div>
     </div>
@@ -318,7 +326,8 @@
         <div class="corpo">
           <span class="quem hum">Médico</span>
           <h3>Assina a solicitação</h3>
-          <p>O nome do paciente entra só aqui, num campo isolado que vive apenas no navegador. Ele não passa pelo motor de triagem, não é gravado em servidor nenhum e não chega ao modelo. Preenche o documento e acaba quando a aba fecha.</p>
+          <p>O nome do paciente vive num campo isolado, apenas no navegador. Ele <b>não passa pelo motor de triagem</b> e <b>não é gravado em servidor nenhum</b> — preenche o documento e acaba quando a aba fecha.</p>
+          <p class="ressalva"><b>Ressalva que precisa estar escrita aqui:</b> isso não quer dizer que o nome não saia do país. Na etapa 2, o material é enviado íntegro ao modelo — se o laudo traz nome, CPF ou prontuário, eles vão junto, e o modelo é instruído a localizar o nome para pré-preencher o documento. A plataforma não remove esses dados do material anexado. A tela de privacidade diz isso ao médico com todas as letras; esta página precisa dizer o mesmo.</p>
         </div>
       </div>
 

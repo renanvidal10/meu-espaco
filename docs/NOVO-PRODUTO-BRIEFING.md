@@ -118,8 +118,14 @@ Vieram de erro cometido e custam caro quando abandonadas.
 - **Animação nunca esconde conteúdo clínico.** O estado de repouso é o visível.
 - **Nenhuma fonte externa** (Google Fonts incluído): a promessa ao médico é que
   o material não gera pedido a terceiro.
-- **O nome do paciente nunca chega ao modelo.** Guarda no servidor, não no
-  navegador.
+- **O nome do paciente não entra no motor de triagem nem é gravado em servidor
+  nenhum.** Atenção à redação: no OncoGenYX isto **não** significa que o nome
+  não chega ao modelo. O material anexado sobe íntegro, e o modelo é instruído
+  a localizar o nome para pré-preencher o documento. O filtro que existe no
+  servidor (`ROTULO_PROIBIDO`) protege apenas o bloco de contexto do chat, não
+  o fluxo de extração. **No produto novo, decidir isto no desenho, antes da
+  primeira linha de código** — redação no navegador antes do envio é a única
+  medida que de fato reduz o que cruza a fronteira.
 - **Nada de `/api/` entra em cache do service worker.**
 - **A suíte de testes nunca toca banco de produção.**
 - **Medição se confere contra expectativa independente.** Três medições deste
