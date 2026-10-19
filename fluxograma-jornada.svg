@@ -5,8 +5,6 @@
 <text x="62" y="86" font-size="15" font-weight="400" fill="#1a1a1a" text-anchor="start" >O sistema faz sozinho</text>
 <rect x="402" y="70" width="20" height="20" rx="5" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
 <text x="432" y="86" font-size="15" font-weight="400" fill="#1a1a1a" text-anchor="start" >Feito por pessoas</text>
-<rect x="32" y="105" width="20" height="20" rx="5" fill="none" stroke="#d93030" stroke-width="2" stroke-dasharray="4 3"/>
-<text x="62" y="121" font-size="15" font-weight="400" fill="#1a1a1a" text-anchor="start" >Precisa de um responsável com nome</text>
 <text x="32" y="152" font-size="14.5" font-weight="400" fill="#666" text-anchor="start" >Não existe botão “sem interesse”: quem preencheu o formulário já é, no mínimo, um contato morno.</text>
 <rect x="212" y="175" width="600" height="300" rx="16" fill="#efeeec"/>
 <text x="512" y="202" font-size="15" font-weight="500" fill="#666" text-anchor="middle" >VISITANTE</text>
@@ -34,11 +32,11 @@
 <text x="32" y="557" font-size="14" font-weight="600" fill="#1a1a1a" text-anchor="start" >1 · Quero conhecer uma célula</text>
 <text x="856" y="557" font-size="14" font-weight="600" fill="#1a1a1a" text-anchor="start" >3 · Não respondeu</text>
 <text x="522" y="640" font-size="14" font-weight="600" fill="#1a1a1a" text-anchor="start" >2 · Quero conhecer mais (Café)</text>
-<rect x="32" y="665" width="290" height="150" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
+<rect x="32" y="665" width="290" height="150" rx="12" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
 <text x="177.0" y="714.0" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Direto à célula</text>
 <text x="177.0" y="736.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >quer conhecer uma célula:</text>
-<text x="177.0" y="757.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >pula o Café e segue para</text>
-<text x="177.0" y="778.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >o direcionamento à célula</text>
+<text x="177.0" y="757.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >pula o Café e o sistema segue</text>
+<text x="177.0" y="778.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >sozinho, sem ninguém no meio</text>
 <rect x="367" y="665" width="290" height="150" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
 <text x="512.0" y="703.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Direcionamento à Integração</text>
 <text x="512.0" y="725.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >Matheus, líder da Integração,</text>
@@ -96,10 +94,10 @@
 <path d="M512,1542 L512,1582" stroke="#bdbdb9" stroke-width="2" fill="none"/>
 <path d="M512,1582 L512,1622" stroke="#bdbdb9" stroke-width="2" fill="none"/>
 <path d="M507,1614 L512,1622 L517,1614 Z" fill="#bdbdb9"/>
-<rect x="308" y="1622" width="403" height="90" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
-<text x="509.5" y="1651.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Direcionamento à célula</text>
-<text x="509.5" y="1673.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >Matheus vê o perfil do formulário</text>
-<text x="509.5" y="1694.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >(idade, bairro) e escolhe a célula</text>
+<rect x="308" y="1622" width="403" height="90" rx="12" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
+<text x="509.5" y="1651.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Direcionamento automático</text>
+<text x="509.5" y="1673.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >o sistema escolhe a célula pelo formulário:</text>
+<text x="509.5" y="1694.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >dias, faixa etária, bairro e Kids</text>
 <rect x="308" y="1746" width="403" height="82" rx="12" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
 <text x="509.5" y="1771.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Aviso ao líder da célula</text>
 <text x="509.5" y="1793.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >o sistema monta a mensagem</text>
@@ -112,12 +110,11 @@
 <text x="509.5" y="1930.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >em até 2 dias</text>
 <path d="M512,1828 L512,1862" stroke="#bdbdb9" stroke-width="2" fill="none"/>
 <path d="M507,1854 L512,1862 L517,1854 Z" fill="#bdbdb9"/>
-<rect x="308" y="1984" width="403" height="104" rx="12" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
-<text x="509.5" y="2010.0" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Retorno do líder</text>
-<text x="509.5" y="2032.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >o pastor vê no painel se o líder</text>
-<text x="509.5" y="2053.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >da célula fez contato com a pessoa</text>
-<text x="509.5" y="2074.0" font-size="14.5" font-weight="600" fill="#d93030" text-anchor="middle" >quem registra o contato: a definir</text>
-<rect x="300" y="1976" width="419" height="120" rx="16" fill="none" stroke="#d93030" stroke-width="2" stroke-dasharray="7 5"/>
+<rect x="308" y="1984" width="403" height="104" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="2"/>
+<text x="509.5" y="2010.0" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Cobrança do líder da célula</text>
+<text x="509.5" y="2032.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >“você entrou em contato?” — o pastor vê</text>
+<text x="509.5" y="2053.0" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >no painel quem foi contatado</text>
+<text x="509.5" y="2074.0" font-size="14.5" font-weight="500" fill="#1a1a1a" text-anchor="middle" >hoje: Matheus · 2027: líderes de rede</text>
 <path d="M512,1944 L512,1976" stroke="#bdbdb9" stroke-width="2" fill="none"/>
 <path d="M507,1968 L512,1976 L517,1968 Z" fill="#bdbdb9"/>
 <rect x="308" y="2128" width="403" height="82" rx="12" fill="#e4eefa" stroke="#2f6fc9" stroke-width="3"/>
