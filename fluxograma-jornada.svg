@@ -103,9 +103,9 @@
 <path d="M507,1752 L512,1760 L517,1752 Z" fill="#bdbdb9"/>
 <rect x="308" y="1760" width="403" height="124" rx="12" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
 <text x="509.5" y="1785.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Mensagem com 5 células</text>
-<text x="509.5" y="1807.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >WhatsApp com 5 sugestões perto de casa,</text>
-<text x="509.5" y="1828.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >pela faixa etária e Kids: bairro, horário</text>
-<text x="509.5" y="1849.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >e líderes; a pessoa toca na escolhida</text>
+<text x="509.5" y="1807.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >5 sugestões pelo bairro do formulário, faixa etária</text>
+<text x="509.5" y="1828.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >e Kids; se faltar célula no bairro, completa com</text>
+<text x="509.5" y="1849.5" font-size="14.5" font-weight="400" fill="#5d5d5d" text-anchor="middle" >as mais próximas. A pessoa toca na escolhida</text>
 <text x="509.5" y="1870.5" font-size="14.5" font-weight="500" fill="#1a1a1a" text-anchor="middle" >sem escolha em 2 dias: “Quem não respondeu”</text>
 <rect x="308" y="1918" width="403" height="82" rx="12" fill="#e0f2dc" stroke="#2ca02c" stroke-width="2"/>
 <text x="509.5" y="1943.5" font-size="17.5" font-weight="600" fill="#1a1a1a" text-anchor="middle" >Aviso ao líder da célula</text>
