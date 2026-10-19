@@ -66,6 +66,24 @@ let falhas=0;const ok=(c,m)=>{console.log((c?'  ✓ ':'  ✗ ')+m);if(!c)falhas+
   ok(/^https?:\/\/[^/]+\/$/.test(String(ogUrl)),`og:url absoluto: ${ogUrl}`);
   ok(/^https?:\/\/[^/]+\/compartilhar\.png$/.test(String(ogImg)),`og:image absoluto: ${ogImg}`);
   ok(!!marcacao('og:title') && !!marcacao('og:description'),'tem título e descrição próprios no cartão');
+
+  /* §79. O MESMO texto em dois lugares que ninguém olha junto: desenhado
+   * dentro da imagem (binária) e escrito nas marcações (texto). Mantidos à
+   * mão, divergem — e a divergência é invisível até alguém mandar o link e
+   * ver um cartão dizendo uma coisa na imagem e outra no título.
+   * test/gerar-cartao.js é a fonte; aqui se exige que as marcações repitam.
+   * Mudar o texto sem gerar a imagem de novo reprova nesta linha. */
+  const cartao=require('/home/user/meu-espaco/server/test/gerar-cartao.js');
+  // Neste arquivo a mensagem é impressa tanto no acerto quanto na falha, então
+  // ela descreve O QUE SE VERIFICA — não o defeito. "og:description diverge do
+  // cartão" com um ✓ na frente diz o contrário do que aconteceu.
+  ok(marcacao('og:title')===cartao.TEXTO.titulo,`og:title repete o título desenhado: "${cartao.TEXTO.titulo}"`);
+  ok(marcacao('og:description')===cartao.TEXTO.apoio,'og:description repete a linha de apoio desenhada no cartão');
+  ok(marcacao('og:image:alt')===cartao.TEXTO.alt,'a alternativa textual da imagem acompanha o cartão');
+  const tw=(n)=>{const m=new RegExp('<meta name="'+n+'" content="([^"]*)"').exec(html);return m?m[1]:null;};
+  ok(tw('twitter:title')===cartao.TEXTO.titulo && tw('twitter:description')===cartao.TEXTO.apoio,
+    'as marcações do Twitter dizem o mesmo que as do Facebook');
+  ok(!/—|–/.test(cartao.TEXTO.apoio),'a linha de apoio segue sem travessão, como o dono pediu');
   ok(/twitter:card" content="summary_large_image/.test(html),'o cartão usa a imagem grande, não a miniatura');
   const img=await fetch(BASE+'/compartilhar.png');
   ok(img.ok && (img.headers.get('content-type')||'').includes('image/png'),`a imagem do cartão existe → ${img.status} ${img.headers.get('content-type')||''}`);
