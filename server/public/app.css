@@ -648,6 +648,11 @@
     margin: 0 0 26px;
     text-wrap: pretty;
   }
+  /* §75. Na tela 1 a linha de apoio é seguida pela faixa de cobertura, que é
+     a MESMA conversa ("dá para o meu caso?"). 26px separavam como se fossem
+     assuntos diferentes. Onde a linha de apoio é seguida pelo conteúdo da
+     tela, os 26px continuam valendo. */
+  #screen-0 > .lede { margin-bottom: 18px; }
 
   .card {
     background: var(--surface);
@@ -2106,16 +2111,26 @@
      uma caixa concorrendo com o compositor.
      A caixa alta do rótulo saiu junto: "COBRE" lia-se como título de seção de
      um texto de instruções, que é exatamente o que o bloco deixou de ser. */
+  /* §75. Era uma caixa recuada, e o recuo de 15px fazia dela o ÚNICO item da
+     tela fora da prumada: título, linha de apoio, "Como funciona", compositor
+     e rodapé nascem todos na borda da página; só o conteúdo daqui começava
+     adiante. Agora a superfície sangra até a borda da tela e devolve o recuo
+     como padding — a faixa é mais larga que a coluna de texto, e o texto
+     dentro dela cai exatamente na mesma borda do resto. Não é um ajuste de
+     número: o padding é o mesmo token que recua a página, então o alinhamento
+     passa a ser consequência, não coincidência. */
   .cobertura {
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;
-    gap: 4px 10px;
-    margin: 20px 0 10px;
-    padding: 12px 14px;
-    border-radius: var(--r-md);
+    gap: 2px 8px;
+    margin: 0 calc(var(--inset-dir, 16px) * -1) 0 calc(var(--inset-esq, 16px) * -1);
+    padding: 9px var(--inset-dir, 16px) 10px var(--inset-esq, 16px);
+    border-radius: 0;
     background: color-mix(in srgb, var(--surface) 45%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+    border: 0 solid color-mix(in srgb, var(--border) 45%, transparent);
+    border-top-width: 1px;
+    border-bottom-width: 1px;
     font-size: var(--fs-xs);
     color: var(--ink-muted);
   }
@@ -2131,7 +2146,11 @@
      nenhuma, e 2px bastam para o olho registrar desalinho sem saber por quê.
      Conteúdo dentro de uma superfície é que recua; conteúdo no nível da
      página, nunca. */
-  .cobertura-ajuda { margin: 0 0 22px; padding-left: 0; }
+  /* §75. A ação encostada na faixa a que pertence. Os 22px de antes deixavam
+     as duas palavras flutuando no meio do caminho entre a faixa e o campo,
+     sem pertencer a nenhum dos dois. O botão já traz 6px de respiro próprio,
+     então 2px aqui bastam para o olho ler "isto é sobre aquilo". */
+  .cobertura-ajuda { margin: 2px 0 12px; padding-left: 0; }
   .chips { display: contents; }
   .chip {
     display: inline-flex;
@@ -2321,16 +2340,29 @@
     padding-left: max(24px, env(safe-area-inset-left));
     padding-right: max(24px, env(safe-area-inset-right));
   }
+  /* §75. Os recuos laterais da página viram token. Há conteúdo que precisa
+     SANGRAR até a borda da tela (a faixa de cobertura da tela 1) e, ainda
+     assim, nascer com o texto na mesma prumada de todo o resto. Derivar um do
+     outro é a única forma de o alinhamento não depender de dois números
+     escritos à mão em pontos distantes da folha. */
   main {
-    padding-left: max(24px, env(safe-area-inset-left));
-    padding-right: max(24px, env(safe-area-inset-right));
+    --inset-esq: max(24px, env(safe-area-inset-left));
+    --inset-dir: max(24px, env(safe-area-inset-right));
+    padding-left: var(--inset-esq);
+    padding-right: var(--inset-dir);
     padding-bottom: calc(96px + env(safe-area-inset-bottom));
   }
   .gate { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
   @media (max-width: 560px) {
     .topbar { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
     .steps { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
-    main { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+    main {
+      --inset-esq: max(16px, env(safe-area-inset-left));
+      --inset-dir: max(16px, env(safe-area-inset-right));
+      padding-left: var(--inset-esq);
+      padding-right: var(--inset-dir);
+      padding-bottom: calc(88px + env(safe-area-inset-bottom));
+    }
   }
 
   @media print {

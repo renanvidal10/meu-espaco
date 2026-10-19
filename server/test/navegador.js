@@ -1138,16 +1138,23 @@ async function rodar(nome, dispositivo) {
         if (!era) tela.classList.add('active');
 
         const bordas = [];
+        const sangrias = [];
         Array.from(tela.children).forEach((el) => {
           if (!el.getClientRects().length) return;
           const cs = getComputedStyle(el);
+          const r = el.getBoundingClientRect();
+          const nome = el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(' ')[0] : '');
+          // O que o olho lê como início do texto: a caixa, mais a borda
+          // pintada, mais o padding. Medir só `left` dava o número certo por
+          // acidente enquanto ninguém tinha padding, e erado assim que alguém
+          // tivesse.
+          const inicioDoTexto = r.left + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
           // Superfície (fundo pintado ou borda) tem inset próprio: o texto
-          // dela recua de propósito e não entra nesta conta.
+          // dela recua de propósito e não entra na conta da borda da página.
           const temFundo = cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent';
-          const temBorda = parseFloat(cs.borderLeftWidth) > 0;
-          if (temFundo || temBorda) return;
-          const inicioDoTexto = el.getBoundingClientRect().left + (parseFloat(cs.paddingLeft) || 0);
-          bordas.push({ el: el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).split(' ')[0] : ''), x: Math.round(inicioDoTexto) });
+          const temBorda = parseFloat(cs.borderTopWidth) > 0 || parseFloat(cs.borderLeftWidth) > 0;
+          if (temFundo || temBorda) { sangrias.push({ el: nome, caixa: Math.round(r.left), x: Math.round(inicioDoTexto) }); return; }
+          bordas.push({ el: nome, x: Math.round(inicioDoTexto) });
         });
 
         if (bordas.length < 2) { if (!era) tela.classList.remove('active'); return; }
@@ -1160,6 +1167,19 @@ async function rodar(nome, dispositivo) {
             fora.push(`tela ${i}: ${b.el} começa em ${b.x}px, e a borda da página é ${referencia}px`);
           }
         });
+        /* §75. Uma superfície que SANGRA — que começa antes da coluna de
+         * texto, encostando na borda da tela — não é um cartão: é uma faixa.
+         * Cartão pode recuar o próprio conteúdo, porque a caixa dele já
+         * marca onde o conteúdo começa. Faixa não tem essa caixa visível de
+         * um lado nem do outro, então o único lugar onde o texto dela pode
+         * nascer é a prumada da página. Era exatamente aqui que a faixa de
+         * cobertura destoava: a caixa na borda certa, o texto 15px adiante,
+         * e a conta antiga nem olhava porque "é superfície". */
+        sangrias.forEach((s) => {
+          if (s.caixa < referencia - 1 && Math.abs(s.x - referencia) > 1) {
+            fora.push(`tela ${i}: a faixa ${s.el} sangra até ${s.caixa}px mas nasce o texto em ${s.x}px, fora da prumada de ${referencia}px`);
+          }
+        });
         if (!era) tela.classList.remove('active');
       });
       return fora;
@@ -1167,6 +1187,33 @@ async function rodar(nome, dispositivo) {
 
     linha(ok(desalinhados.length === 0, desalinhados.slice(0, 4).join(' | ')),
       'uma borda de texto só, nas quatro telas');
+    await p.close();
+  }
+
+  /* ---------- 13h. "Como funciona" pertence à faixa que explica ---------- */
+  {
+    /* §75. "As duas palavras em azul que a gente colocou embaixo,
+     * completamente distante da caixa." — o dono.
+     *
+     * O defeito não era o vão em si: era o vão de BAIXO ser maior que o de
+     * CIMA. Um rótulo mais perto do que vem depois do que do que vem antes
+     * muda de dono aos olhos de quem lê, e passa a parecer legenda do campo
+     * de texto. A regra é de proximidade, não de pixels: o link fica mais
+     * perto da faixa que explica do que do compositor. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('proximidade: ' + e.message));
+    await entrar(p);
+    const v = await p.evaluate(() => {
+      const r = (s) => document.querySelector(s).getBoundingClientRect();
+      const faixa = r('.cobertura');
+      const link = r('.cobertura-ajuda');
+      const campo = r('#dropzone');
+      return { acima: +(link.top - faixa.bottom).toFixed(1), abaixo: +(campo.top - link.bottom).toFixed(1) };
+    });
+    linha(ok(v.acima < v.abaixo, `${v.acima}px acima do link e ${v.abaixo}px abaixo — ele pertence ao campo, não à faixa`),
+      'o "Como funciona" fica mais perto da faixa que explica');
+    linha(ok(v.acima <= 8, `${v.acima}px entre a faixa e o link`),
+      'o link encosta na faixa, sem flutuar no meio do caminho');
     await p.close();
   }
 
