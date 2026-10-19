@@ -1,0 +1,322 @@
+<title>Contra-parecer OncoGenYX</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: documento de resposta. Coluna única, estreita, com uma faixa de
+     veredito por achado à esquerda — a mesma gramática de selo que o produto
+     usa nos testes indicados. */
+  :root {
+    --bg: #f2f6fa; --surface: #ffffff; --surface-2: #e9eff6;
+    --ink: #10202e; --ink-muted: #4c6276; --ink-faint: #627a8f;
+    --borda: #d3dfea; --acento: #0e6180; --acento-suave: #e2eef4;
+    --ok: #1f6f4a; --ok-suave: #e4f2ea;
+    --nao: #8a2f2f; --nao-suave: #f7e6e6;
+    --meio: #8a5a12; --meio-suave: #f8f0dd;
+    --fonte: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a1017; --surface: #121b23; --surface-2: #19242e;
+      --ink: #e8eef4; --ink-muted: #a8bccd; --ink-faint: #8aa0b4;
+      --borda: #24323f; --acento: #4fc3e8; --acento-suave: #13303d;
+      --ok: #6fd4a3; --ok-suave: #122a21;
+      --nao: #e88b8b; --nao-suave: #2d1818;
+      --meio: #e2b562; --meio-suave: #2b2213;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a1017; --surface: #121b23; --surface-2: #19242e;
+    --ink: #e8eef4; --ink-muted: #a8bccd; --ink-faint: #8aa0b4;
+    --borda: #24323f; --acento: #4fc3e8; --acento-suave: #13303d;
+    --ok: #6fd4a3; --ok-suave: #122a21;
+    --nao: #e88b8b; --nao-suave: #2d1818;
+    --meio: #e2b562; --meio-suave: #2b2213;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--fonte);
+    font-size: 16px; line-height: 1.62;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0 72px;
+  }
+  .folha { max-width: 790px; margin: 0 auto; }
+
+  .topo { padding-block: 44px 10px; }
+  .eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--ink-faint); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .eyebrow::before { content: ''; width: 18px; height: 3px; border-radius: 999px; background: var(--acento); flex: none; }
+  h1 { font-size: clamp(29px, 5.6vw, 43px); line-height: 1.08; letter-spacing: -.03em; margin: 14px 0 0; text-wrap: balance; }
+  .lede { font-size: clamp(16.5px, 2.2vw, 19px); color: var(--ink-muted); margin: 15px 0 0; max-width: 62ch; }
+  .lede b { color: var(--ink); font-weight: 650; }
+
+  h2 { font-size: clamp(20px, 3.2vw, 26px); letter-spacing: -.022em; margin: 0 0 6px; line-height: 1.2; text-wrap: balance; }
+  h3 { font-size: 17.5px; margin: 0 0 5px; letter-spacing: -.012em; }
+  p { margin: 0 0 14px; } p:last-child { margin-bottom: 0; }
+  section { padding-block: 40px 0; }
+  .sub { color: var(--ink-muted); margin: 0 0 20px; max-width: 64ch; }
+  code { font-family: var(--mono); font-size: .88em; background: var(--surface-2); padding: 2px 5px; border-radius: 5px; }
+
+  /* placar */
+  .placar { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 11px; }
+  .pl { background: var(--surface); border: 1px solid var(--borda); border-radius: 12px; padding: 15px; min-width: 0; }
+  .pl .n { font-size: 27px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; display: block; }
+  .pl .q { font-size: 12.5px; color: var(--ink-muted); display: block; margin-top: 2px; line-height: 1.4; }
+  .pl.verde .n { color: var(--ok); } .pl.vermelho .n { color: var(--nao); } .pl.amarelo .n { color: var(--meio); }
+
+  /* achados */
+  .achado { background: var(--surface); border: 1px solid var(--borda); border-radius: 14px; padding: 18px 19px; margin-bottom: 13px; }
+  .achado-cab { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 9px; }
+  .cod { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--ink-faint); }
+  .selo { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .selo.conf { background: var(--nao-suave); color: var(--nao); }
+  .selo.parc { background: var(--meio-suave); color: var(--meio); }
+  .selo.impr { background: var(--ok-suave); color: var(--ok); }
+  .selo.fix { background: var(--acento-suave); color: var(--acento); }
+  .achado h3 { margin-bottom: 7px; }
+  .achado p { font-size: 14.8px; color: var(--ink-muted); margin: 0 0 10px; }
+  .achado p:last-child { margin-bottom: 0; }
+  .achado p b { color: var(--ink); font-weight: 620; }
+  .prova { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; background: var(--surface-2); border-radius: 9px; padding: 11px 13px; margin: 0 0 11px; overflow-x: auto; color: var(--ink); }
+
+  .nota { border-left: 3px solid var(--acento); padding: 2px 0 2px 15px; color: var(--ink-muted); font-size: 14.8px; margin: 18px 0 0; }
+  .nota b { color: var(--ink); }
+  .nota.alerta { border-left-color: var(--nao); }
+  .nota.alerta b { color: var(--nao); }
+
+  .tabela { width: 100%; border-collapse: collapse; font-size: 14.3px; }
+  .tabela th { text-align: left; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); padding: 0 11px 8px 0; font-weight: 700; }
+  .tabela td { padding: 9px 11px 9px 0; border-top: 1px solid var(--borda); color: var(--ink-muted); vertical-align: top; }
+  .tabela td:first-child { color: var(--ink); font-weight: 600; }
+  .envolve { overflow-x: auto; }
+
+  .fases { display: grid; gap: 13px; }
+  .fase { background: var(--surface); border: 1px solid var(--borda); border-radius: 14px; padding: 17px 19px; border-left: 4px solid var(--acento); }
+  .fase.ja { border-left-color: var(--ok); background: var(--ok-suave); }
+  .fase .quando { font-size: 11.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: 5px; }
+  .fase.ja .quando { color: var(--ok); }
+  .fase ol, .fase ul { margin: 9px 0 0; padding-left: 19px; }
+  .fase li { font-size: 14.5px; color: var(--ink-muted); margin-bottom: 6px; line-height: 1.5; }
+  .fase li:last-child { margin-bottom: 0; }
+  .fase li b { color: var(--ink); font-weight: 620; }
+
+  .rodape { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--borda); font-size: 13px; color: var(--ink-faint); }
+</style>
+
+<div class="folha">
+
+<header class="topo">
+  <div class="eyebrow">OncoGenYX · resposta a AV-ONCOGENYX-2026-10-18</div>
+  <h1>Contra-parecer</h1>
+  <p class="lede">Quatro times verificaram os 15 achados da auditoria externa contra o código, executando o motor, subindo o servidor e navegando a aplicação. <b>Onze procedem</b>, dois em parte, dois não. E o trabalho encontrou <b>dezenove defeitos que a auditoria não viu</b> — um deles grave, criado por nós, e que estava dentro da entrega que eu havia dado como pronta para publicar.</p>
+</header>
+
+<section>
+  <h2>O dado que reenquadra o parecer</h2>
+  <p class="sub">A auditoria avaliou <code>oncogenyx.onrender.com</code>, build de 17/10. Vinte e seis commits não publicados não estavam lá. Isso poderia significar que parte dos achados já estava corrigida. Não significa.</p>
+  <p class="nota"><b>Os 26 commits tocam quase só interface, documentação e testes.</b> A única alteração de servidor entre eles foi feita por mim, no commit da pré-visualização do link — e <b>introduziu uma vulnerabilidade de execução de código</b>. Nenhum achado de segurança da auditoria podia estar corrigido, porque todo o código de autenticação, CSP e limite de taxa já estava em produção. A verificação não confirmou melhora: encontrou uma regressão.</p>
+</section>
+
+<section>
+  <h2>Placar</h2>
+  <div class="placar">
+    <div class="pl vermelho"><span class="n">11</span><span class="q">achados confirmados</span></div>
+    <div class="pl amarelo"><span class="n">2</span><span class="q">procedem em parte</span></div>
+    <div class="pl verde"><span class="n">2</span><span class="q">improcedentes, com prova</span></div>
+    <div class="pl"><span class="n">19</span><span class="q">defeitos que a auditoria não viu</span></div>
+    <div class="pl verde"><span class="n">3</span><span class="q">já corrigidos nesta resposta</span></div>
+  </div>
+  <p class="nota">Quatro achados tiveram a <b>gravidade alterada</b>: dois para cima (M4 e L2), dois para baixo (M6 e M8). Em dois casos a auditoria, tendo avaliado de fora e sem o código do servidor, atribuiu a causa errada — e seguir a recomendação ao pé da letra teria custado dias de trabalho sem resolver o problema que ela própria nomeou.</p>
+</section>
+
+<section>
+  <h2>O que a auditoria não viu, e nós criamos</h2>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">N1</span><span class="selo conf">Crítico</span><span class="selo fix">Corrigido</span></div>
+    <h3>Injeção de código pelo cabeçalho <code>Host</code></h3>
+    <p>A pré-visualização do link exige endereço absoluto, então o servidor passou a escrever o endereço do pedido dentro de atributos HTML da página. <code>host</code> e <code>x-forwarded-proto</code> são <b>cabeçalhos do cliente</b>: quem fala com o processo escolhe o valor.</p>
+    <div class="prova">Host: x"&gt;&lt;script&gt;alert(document.domain)&lt;/script&gt;&lt;b a="
+→ HTTP/1.1 200 OK
+  &lt;link rel="canonical" href="http://x"&gt;&lt;script&gt;…&lt;/script&gt;&lt;b a="/" /&gt;
+&gt;&gt;&gt; script injetado no corpo HTML: SIM · 4 pontos</div>
+    <p>E executava, porque a CSP trazia <code>script-src 'unsafe-inline'</code>. A mesma função monta o <b>link de redefinição de senha</b>: ligar o modo de acesso completo sem o endereço configurado transformaria isso em envenenamento de reset — token de conta entregue ao servidor do atacante. O defeito esperava a próxima etapa do plano para ficar grave.</p>
+    <p><b>Corrigido em três camadas:</b> validação de formato do host com descarte do que não casa; escape de atributo no ponto de interpolação, deliberadamente redundante; e a diretriz de CSP fechada.</p>
+    <p class="nota"><b>O que a auditoria errou aqui, e importa para o orçamento:</b> ela atribuiu <code>script-src 'unsafe-inline'</code> aos botões com <code>onclick</code>. Falso — esses são governados por outra diretriz. O <code>unsafe-inline</code> existia por <b>sete linhas</b> de registro do service worker. Migrar 51 handlers, como ela recomenda, custaria um dia e <b>não removeria</b> a diretriz que ela nomeou. Mover sete linhas para um arquivo removeu, em quinze minutos.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">N2</span><span class="selo conf">Confirmado</span><span class="selo fix">Corrigido</span></div>
+    <h3>O nome do gene era destruído no documento assinado</h3>
+    <p>A justificativa impressa emenda os testes prévios numa frase e rebaixava a inicial.</p>
+    <div class="prova">entrada : BRCA germinativo negativo em 2021 (Invitae)
+impresso: …acima descrito, bRCA germinativo negativo em 2021.</div>
+    <p>O comentário imediatamente acima do defeito dizia que esse mesmo erro já havia sido corrigido uma vez <b>"porque destruía nome de gene no documento ASSINADO"</b>. A correção ficou pela metade, e o caso que sobrou é o mais comum — o texto quase sempre começa pelo gene. <b>Invisível na tela</b>, porque a tela mostra a justificativa sem esse prefixo. Só aparece no papel.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">N3</span><span class="selo conf">Confirmado</span><span class="selo fix">Corrigido</span></div>
+    <h3>Justificativa clínica apagada virava PDF assinado</h3>
+    <p>"Editar campos" torna editável toda célula do documento, inclusive a justificativa. Era possível apagá-la por inteiro e baixar assim mesmo: papel com a marca da plataforma, campo em branco e a assinatura do médico embaixo.</p>
+    <p>A regra já existia no código, para o campo ao lado: <i>"documento assinado sem paciente não é um rascunho"</i>. Nunca foi aplicada à justificativa.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">N4</span><span class="selo conf">Crítico</span></div>
+    <h3>A arquitetura declarava uma pseudonimização que o código inverte</h3>
+    <p>O documento de arquitetura descrevia, <b>no presente do indicativo</b>, uma camada que executa <i>"antes de qualquer chamada a modelo de IA externo"</i>, com <i>"tabela de correspondência nome real ↔ código do caso, criptografada"</i>.</p>
+    <p>Não existe. E o código faz o oposto: o laudo sobe íntegro e o modelo é <b>instruído por schema obrigatório a localizar o nome do paciente</b>. O filtro que existe protege apenas o bloco de contexto do assistente — e nunca tocou o caminho por onde o dado sai do país.</p>
+    <p class="nota alerta"><b>Por que isto é mais perigoso que o defeito original:</b> a interface sempre foi honesta — a tela de privacidade diz "a plataforma não os remove". O documento interno não era. Se ele chegasse a um hospital em due diligence ou à autoridade de proteção de dados, a divergência entre arquitetura declarada e arquitetura real deixaria de ser dívida técnica e viraria <b>risco de declaração inexata</b>. As três seções foram marcadas <code>DESENHADO — NÃO IMPLEMENTADO</code>, com data e com o que o código faz.</p>
+    <p>Em um ponto a implementação é <b>melhor</b> que o desenho: não há tabela de reidentificação porque não há retenção nenhuma. O banco guarda usuários e sessões — nenhum caso, laudo ou documento. A retenção zero é real.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">N5</span><span class="selo conf">Alto</span></div>
+    <h3>O motor imprime o oposto do que o médico informou</h3>
+    <p>A auditoria encontrou o caso do campo de risco <b>vazio</b> sendo afirmado como baixo. Não encontrou o caso do campo <b>preenchido</b>:</p>
+    <div class="prova">risco informado: "Intermediário desfavorável"
+  → impresso: "risco baixo ou intermediário FAVORÁVEL"</div>
+    <p>E é inconsistência interna: em ovário o motor se recusa a afirmar grau e estágio não confirmados, com um comentário explicando que <i>"o médico não pode afirmar o que a tela ainda está pedindo para confirmar"</i>. Próstata afirma uma categoria que ninguém informou — e inverte a que foi informada.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">N6</span><span class="selo conf">Alto</span></div>
+    <h3>A cota de uso é decorativa enquanto a identidade for grátis</h3>
+    <p>A auditoria concluiu que não há limite de taxa. Há — confirmado, com 429 na centésima vigésima requisição. Mas o teto é por conta, e <b>conta nova é de graça</b>: esgota, cria outra. Cerca de 96 mil chamadas pagas por hora, por endereço.</p>
+    <p>Este é o achado real de abuso, e é consequência direta do problema de identidade. O furo verdadeiro escapou porque a auditoria mediu o sintoma errado.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">N7</span><span class="selo conf">Alto</span></div>
+    <h3>Renomear a conta de um médico vaza para a sessão viva dele</h3>
+    <p>A auditoria notou que entrar com o mesmo CRM e outro nome troca o nome da conta. Não notou que o <b>token já emitido continua válido e passa a devolver o nome do atacante</b>. O médico legítimo, sem fazer nada, no próximo recarregamento assina solicitações com o nome de outra pessoa.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">N8</span><span class="selo parc">Médio</span></div>
+    <h3>Treze outros</h3>
+    <p>Resumo clínico afirmando teste que não foi emitido; a metilação de MLH1, que a nota manda fazer primeiro, não é emitida como pedido nenhum; histologia em inglês devolvendo <b>zero testes</b> em ovário, apagando a indicação germinativa universal; armadilha de foco ausente no modal mais novo, com o teste de acessibilidade cego exatamente no mesmo ponto; o texto impresso não é o texto prometido na tela; edição do nome do paciente descartada em silêncio; células editáveis sem rótulo para leitor de tela; nenhuma pergunta sobre transfusão recente ou transplante de medula antes de um painel germinativo em sangue; duas transferências internacionais não declaradas no aviso de privacidade; uma integração dormente de <b>transcrição de consulta</b> já codificada no branch; uma seção do documento de arquitetura contradizendo outra; e um teste cujo nome prometia mais do que a função entregava — dando falsa cobertura ao defeito do histórico familiar.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Onde discordamos da auditoria</h2>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">H2</span><span class="selo impr">Improcedente</span></div>
+    <h3>Critério etário de mama</h3>
+    <p>A auditoria classificou como achado ALTO que o motor use 50 anos, contra os 65 da ASCO-SSO 2024. O comportamento reproduz. O enquadramento não procede.</p>
+    <div class="prova">ARQUITETURA.md §38.2 — Mama: corte etário permanece em 50 anos
+Decisão: NCCN. A ASCO-SSO 2024 (DOI 10.1200/JCO.23.02225)
+recomenda até 65 anos — critério mais largo, NÃO ADOTADO.
+Passa a constar como divergência conhecida e registrada.</div>
+    <p>É uma <b>decisão de curadoria já tomada</b>, documentada com fonte e identificador, com regra de desempate permanente. A auditoria descreveu como defeito uma escolha deliberada. Isso não a torna certa — é discutível, e a discussão cabe à curadoria clínica. Mas o lugar de mudá-la é o documento, não o código.</p>
+    <p><b>Procede em parte:</b> o campo de ascendência Ashkenazi existe em próstata e não existe em mama, sem registro da assimetria. É lacuna real.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">M6</span><span class="selo impr">Improcedente no núcleo</span></div>
+    <h3>"Sem limite de taxa"</h3>
+    <p>O limite existe, nos valores exatos, com teste de regressão, e foi provado por requisição real. O achado se reduz a cabeçalhos informativos ausentes — e a um cabeçalho normativo que falta no 429, <b>correção de uma linha</b>.</p>
+    <p>A auditoria, avaliando de fora, inferiu ausência de política a partir de ausência de cabeçalho. Em compensação, o furo verdadeiro (N6) escapou inteiro.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">M4</span><span class="selo conf">Gravidade elevada</span></div>
+    <h3>Documento incompleto — não é médio, é alto</h3>
+    <p>A auditoria descreve a consequência certa — <i>"o médico precisa reescrever o pedido em outro sistema"</i> — e não extrai a conclusão: isso <b>zera o ganho de tempo</b>, que é a proposta de valor inteira do produto.</p>
+    <p>A pesquisa do time trouxe o dado que muda a recomendação: <b>não existe código específico para a maior parte do que o produto indica</b>. Painel germinativo, HRD, perfil somático e painel molecular amplo colapsam todos num código genérico de sequenciamento. Só a pesquisa de instabilidade de microssatélites tem código próprio. O que autoriza um pedido não é o código sozinho: é <b>código + lista de genes + indicação clínica</b> — e o produto já tem os dois últimos, faltando juntá-los.</p>
+    <p>Sobre sugerir diagnóstico codificado: <b>dois dos sete subtipos derivam com segurança</b>. Cinco não — e ovário é o pior caso, porque a própria curadoria do produto trata ovário, tuba uterina e peritônio como um grupo, que são códigos diferentes, e o produto nunca pergunta qual. Campo preenchido automaticamente <b>desconvida a conferência</b>: sugerir e errar é pior que não sugerir.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">C2</span><span class="selo parc">Procede, remédio desproporcional</span></div>
+    <h3>Enquadramento regulatório</h3>
+    <p>Procede que não existe nenhum artefato de enquadramento. E a tese defensiva que o próprio projeto sustentava <b>não se sustenta sob a norma brasileira</b>: a regra de classificação fala em informações para decisões com fins terapêuticos <b>ou de diagnóstico</b>, e o produto cai no texto.</p>
+    <p class="nota alerta"><b>A armadilha que precisa ser dita:</b> os quatro atenuantes do projeto — não prescreve conduta, o médico confirma, as regras são determinísticas, o médico assina — correspondem com precisão ao <i>carve-out</i> americano para apoio à decisão clínica. <b>Esse mecanismo não existe no direito brasileiro.</b> Um argumento que funcionaria perante a agência americana não funciona perante a brasileira. Os atenuantes valem — mas valem para a <b>classe</b>, não para escapar do enquadramento.</p>
+    <p><b>Onde a auditoria exagerou:</b> tratar gestão de risco e ciclo de vida de software como pré-requisito indistinto. São trabalho de meses, são indispensáveis para venda institucional, e são desproporcionais para um piloto fechado e gratuito — pior, deslocam esforço do que de fato protege o médico no piloto, que é rastreabilidade no documento.</p>
+  </div>
+
+  <div class="achado">
+    <div class="achado-cab"><span class="cod">L2</span><span class="selo conf">Gravidade elevada</span></div>
+    <h3>Conflito de interesse — o problema não é a ordem</h3>
+    <p>A auditoria viu a ordem comercial das indústrias. Não viu que existe <b>um único laboratório parceiro</b>, nos sete subtipos, em toda indicação germinativa, e é serviço pago, sem alternativa mencionada.</p>
+    <p>Exclusividade não divulgada é conflito mais difícil de defender que ordem de lista. A recomendação de uma linha na tela é necessária e insuficiente.</p>
+    <p><b>Em defesa do produto, e a auditoria não creditou:</b> o selo "sem custo" foi removido dos cards justamente para não privilegiar quem aparece primeiro; os critérios <i>excludentes</i> são protegidos contra truncamento; os programas são renderizados depois da recomendação clínica; e o motor é desacoplado da camada comercial, com a regra escrita. É desenho ético deliberado, não acidente.</p>
+  </div>
+</section>
+
+<section>
+  <h2>O achado que vale mais que todos</h2>
+  <p class="sub">Está no placar da própria auditoria, e é fácil passar batido.</p>
+  <p class="nota"><b>A inteligência artificial estava mascarando defeitos do motor.</b> Nos testes ao vivo, ela corrigiu sozinha quatro dos seis erros: converteu a negação de histórico familiar, calculou a categoria de risco de próstata, traduziu o laudo em inglês e mapeou a extensão da doença. Enquanto ela lê bem, o motor <b>parece</b> melhor do que é. Os defeitos aparecem quando o médico corrige um campo na tela de revisão — que é exatamente o momento em que ele está mais confiante do que escreveu.</p>
+  <p>Isso não é um bug. É uma descoberta sobre a arquitetura, e muda o que a bateria de testes precisa exercitar: não o caminho feliz da leitura automática, mas o caminho da edição manual.</p>
+</section>
+
+<section>
+  <h2>Plano</h2>
+  <p class="sub">Ordenado por risco, não por esforço. Nada aqui depende de curadoria clínica, exceto onde está dito.</p>
+
+  <div class="fases">
+    <div class="fase ja">
+      <span class="quando">Já feito nesta resposta</span>
+      <ul>
+        <li><b>Injeção pelo cabeçalho Host</b> fechada em três camadas, com quatro testes de regressão por socket cru — porque a biblioteca de requisições se recusa a montar um cabeçalho assim, e foi essa recusa que deixou o furo passar.</li>
+        <li><b>Nome do gene</b> chega inteiro ao documento assinado.</li>
+        <li><b>Justificativa apagada</b> barra o download.</li>
+        <li><b>Três seções do documento de arquitetura</b> marcadas como desenho não implementado, com o que o código faz.</li>
+      </ul>
+    </div>
+
+    <div class="fase">
+      <span class="quando">Antes de qualquer médico convidado</span>
+      <ol>
+        <li><b>Fechar a entrada.</b> Hoje "convidado" é promessa de processo, não propriedade do sistema. Qualquer pessoa gera solicitação com o nome e o CRM de um médico real — e o CRM é público.</li>
+        <li><b>Quatro defeitos de leitura de campo</b>, todos produzindo afirmação falsa em documento assinado ou falso negativo que apaga indicação: negação lida como critério atendido; extensão metastática classificada como localizada; risco não informado — ou invertido — afirmado como favorável; histologia em inglês devolvendo zero testes.</li>
+        <li><b>Rastreabilidade no documento:</b> diretriz, ano, versão do motor, código de caso estável e os valores que o médico confirmou. Hoje a camada comercial carrega data de verificação e a clínica não carrega nenhuma.</li>
+        <li><b>Instrumentos de proteção de dados.</b> As cláusulas-padrão contratuais tinham prazo até agosto de 2025 — não é pendência de adequação, é obrigação vencida.</li>
+        <li><b>Banco persistente.</b> Sem ele não há registro de operações nem comunicação de incidente, e qualquer trilha de auditoria nasce inutilizável.</li>
+      </ol>
+    </div>
+
+    <div class="fase">
+      <span class="quando">Para o piloto valer a pena</span>
+      <ol>
+        <li><b>Completar o documento</b> — identificação do paciente, convênio, laboratório de destino, lista de genes em linha própria, metodologia, origem do tecido. Os dados do paciente numa ficha preenchida uma vez e reaproveitada. Sem isso o piloto mede um produto que o médico abandona na última tela.</li>
+        <li><b>Declaração de finalidade de uso</b> e responsável técnico identificáveis.</li>
+        <li><b>Transparência dirigida ao paciente</b> no documento que ele recebe — hoje todos os avisos falam com o médico, e o titular do dado nunca é informado.</li>
+        <li><b>Declaração de conflito de interesse</b> em página própria, incluindo a exclusividade do laboratório.</li>
+      </ol>
+    </div>
+
+    <div class="fase">
+      <span class="quando">Curadoria clínica — não é decisão de engenharia</span>
+      <ul>
+        <li>Corte etário de mama: manter 50 ou adotar 65.</li>
+        <li>Ascendência Ashkenazi em mama.</li>
+        <li>HER2 por imuno-histoquímica em endométrio seroso avançado.</li>
+        <li>PD-L1 no painel de pulmão metastático.</li>
+        <li>Redundância entre painel multigênico e painel de Lynch em colorretal.</li>
+        <li>Se o motor deve inferir grau a partir do texto da histologia.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Ressalvas do gestor</h2>
+  <p>Três coisas que eu não posso deixar implícitas.</p>
+  <p class="nota alerta"><b>A vulnerabilidade mais grave deste contra-parecer é minha.</b> Eu a introduzi, apresentei a entrega que a continha como acabamento profissional, e recomendei publicar. Duzentos e sessenta e dois testes passavam com ela presente — a bateria verificava que o endereço tinha sido substituído, só no caminho benigno. <b>Teste que exercita apenas a entrada bem comportada não é teste de segurança.</b></p>
+  <p class="nota alerta"><b>Eu afirmei, aqui e em material que pode circular, que o nome do paciente nunca chega ao modelo.</b> É falso, e o código sempre disse o contrário. Confundi "não é guardado" com "não é enviado" — e a diferença entre as duas é toda a transferência internacional. Corrigido em quatro documentos, incluindo a página publicada.</p>
+  <p class="nota"><b>A nota 6,8 me parece justa, e talvez generosa.</b> O núcleo clínico é realmente bom e o cuidado é real — e a verificação encontrou mais defeito do que a auditoria, não menos. Mas há uma assimetria que nenhuma nota captura: o produto acerta nos lugares difíceis, que exigiram pesquisa e decisão, e erra nos lugares banais, que exigiam só conferir. Todos os três defeitos corrigidos hoje eram de uma linha.</p>
+</section>
+
+<footer class="rodape">
+  Verificação executada em 19/10/2026 sobre o branch <code>claude/oncology-genetic-screening-tool-81w16p</code>. Motor executado caso a caso; servidor subido com sondas por socket; aplicação navegada em dois aparelhos. Nenhuma afirmação deste documento foi aceita de segunda mão: as consequentes foram reproduzidas pelo gestor antes de entrar aqui. As questões de critério clínico não foram alteradas e aguardam curadoria. As conclusões regulatórias e de proteção de dados exigem advogado habilitado — o que se afirma com segurança são os fatos técnicos e o negativo jurídico.
+</footer>
+
+</div>
