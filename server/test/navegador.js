@@ -1217,6 +1217,154 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- 13i. a revelação ao rolar nunca esconde conteúdo ---------- */
+  {
+    /* §76. A revelação ao rolar é a única animação do app que trabalha
+     * ESCONDENDO para depois mostrar. Numa ferramenta clínica isso é a
+     * manobra mais perigosa que existe — já custou um PDF em branco e um
+     * critério de exclusão ilegível durante a própria animação que existia
+     * para destacá-lo.
+     *
+     * Três travas, nos três modos de falhar:
+     *  a) nada nasce escondido no HTML — o estado escondido só é posto pelo
+     *     script, depois que o observador que o desfaz está de pé;
+     *  b) o que o médico rolou até ver está opaco de verdade;
+     *  c) com "reduzir movimento", ninguém chega a ser escondido. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('revelacao: ' + e.message));
+    await mockExtracao(p, { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61' });
+    await entrar(p);
+
+    // (a) O HTML servido não pode trazer a classe que esconde.
+    const fonte = await (await fetch(BASE + '/index.html')).text();
+    linha(ok(!/class="[^"]*\brevela\b/.test(fonte), 'o index.html já nasce com a classe que esconde'),
+      'nada nasce escondido no HTML servido');
+
+    await p.fill('#case-text', 'caso de ovário');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('button:has-text("Rodar triagem")');
+    await p.waitForSelector('#screen-2.active');
+    await p.click('#verdict-next-btn');
+    await p.waitForSelector('#screen-3.active');
+
+    // (b) Rola a tela inteira e mede: nada que o médico alcança fica apagado.
+    const apagados = await p.evaluate(async () => {
+      const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+      const alvos = () => Array.from(document.querySelectorAll('.screen.active .test-step, .screen.active #programs-dynamic > .card, .screen.active .disclaimer, .screen.active .secao'))
+        .filter((el) => !el.hidden && el.getBoundingClientRect().height > 0);
+      const fora = [];
+      const passo = Math.round(window.innerHeight * 0.8);
+      for (let y = 0; y < document.body.scrollHeight; y += passo) {
+        window.scrollTo({ top: y, behavior: 'instant' });
+        await espera(700);
+        alvos().forEach((el) => {
+          const r = el.getBoundingClientRect();
+          const naTela = r.bottom > 0 && r.top < window.innerHeight;
+          if (!naTela) return;
+          const o = parseFloat(getComputedStyle(el).opacity);
+          if (o < 0.99) fora.push(`${el.className.split(' ')[0]} com opacidade ${o.toFixed(2)}`);
+        });
+      }
+      return [...new Set(fora)];
+    });
+    linha(ok(apagados.length === 0, apagados.slice(0, 3).join(' | ')),
+      'nada que o médico rolou até ver fica apagado');
+    await p.close();
+
+    // (c) Com "reduzir movimento", ninguém chega a ser escondido.
+    const ctxCalmo = await browser.newContext({ ...dispositivo, reducedMotion: 'reduce' });
+    const q = await ctxCalmo.newPage();
+    q.on('pageerror', (e) => erros.push('revelacao-calma: ' + e.message));
+    await mockExtracao(q, { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61' });
+    await entrar(q);
+    await q.fill('#case-text', 'caso de ovário');
+    await q.click('#btn-extract');
+    await q.waitForSelector('#screen-1.active');
+    await q.click('button:has-text("Rodar triagem")');
+    await q.waitForSelector('#screen-2.active');
+    await q.click('#verdict-next-btn');
+    await q.waitForSelector('#screen-3.active');
+    const escondidos = await q.evaluate(() => document.querySelectorAll('.revela').length);
+    linha(ok(escondidos === 0, `${escondidos} elemento(s) escondidos mesmo com movimento reduzido`),
+      'com movimento reduzido, nada chega a ser escondido');
+    await q.close();
+    await ctxCalmo.close();
+  }
+
+  /* ---------- 13j. cabeçalho de seção nunca anuncia seção vazia ---------- */
+  {
+    /* §76. Cabeçalho sem nada embaixo é pior que nenhum cabeçalho: promete uma
+     * seção que não existe, e numa tela clínica o médico fica procurando o
+     * que não foi indicado. A regra é de RELAÇÃO, não de caso: o cabeçalho
+     * está visível se, e somente se, a lista que ele anuncia tem conteúdo. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('secao: ' + e.message));
+    await mockExtracao(p, { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61' });
+    await entrar(p);
+
+    const conferir = () => p.evaluate(() => {
+      const par = [['secao-solicitar', 'test-steps'], ['secao-programas', 'programs-dynamic']];
+      return par.map(([idSecao, idLista]) => {
+        const s = document.getElementById(idSecao);
+        const l = document.getElementById(idLista);
+        return { secao: idSecao, visivel: !!(s && !s.hidden), temConteudo: !!(l && l.children.length > 0) };
+      });
+    });
+
+    // Antes de qualquer triagem as duas listas estão vazias.
+    const antes = await conferir();
+    const erradosAntes = antes.filter((x) => x.visivel !== x.temConteudo);
+    linha(ok(erradosAntes.length === 0, erradosAntes.map((x) => x.secao).join(', ')),
+      'sem triagem, nenhum cabeçalho de seção aparece');
+
+    await p.fill('#case-text', 'caso de ovário');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('button:has-text("Rodar triagem")');
+    await p.waitForSelector('#screen-2.active');
+    await p.click('#verdict-next-btn');
+    await p.waitForSelector('#screen-3.active');
+
+    const depois = await conferir();
+    const erradosDepois = depois.filter((x) => x.visivel !== x.temConteudo);
+    linha(ok(erradosDepois.length === 0, erradosDepois.map((x) => `${x.secao}: visível=${x.visivel} conteúdo=${x.temConteudo}`).join(' | ')),
+      'com triagem, cada cabeçalho acompanha a própria lista');
+    linha(ok(depois.every((x) => x.visivel), 'nenhum cabeçalho apareceu mesmo com lista cheia'),
+      'as duas seções aparecem quando há o que mostrar');
+    await p.close();
+  }
+
+  /* ---------- 13k. o toque afunda o botão e ele volta inteiro ---------- */
+  {
+    /* §76. O rebote é a ÚNICA curva do app que passa do ponto e volta, e vale
+     * só para o gesto do dedo. Dois jeitos de isso virar defeito: o botão não
+     * responder (e o médico tocar duas vezes), ou não voltar ao tamanho (e a
+     * tela ficar com um botão menor para sempre). Mede-se os dois. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('rebote: ' + e.message));
+    await entrar(p);
+    const escala = (sel) => p.evaluate((s) => {
+      const m = new DOMMatrixReadOnly(getComputedStyle(document.querySelector(s)).transform);
+      return +m.a.toFixed(3);
+    }, '#btn-extract');
+
+    const repouso = await escala();
+    await p.locator('#btn-extract').hover();
+    await p.mouse.down();
+    await p.waitForTimeout(160);
+    const pressionado = await escala();
+    await p.mouse.up();
+    await p.waitForTimeout(500);
+    const voltou = await escala();
+
+    linha(ok(pressionado < repouso - 0.005, `pressionado ${pressionado} contra ${repouso} em repouso — o toque não responde`),
+      'o botão afunda quando o dedo encosta');
+    linha(ok(Math.abs(voltou - 1) < 0.005, `o botão parou em ${voltou} em vez de 1`),
+      'e volta ao tamanho inteiro quando solta');
+    await p.close();
+  }
+
   /* ---------- 14. varredura de diagramação: texto encostando em texto ---------- */
   {
     /* §64.1. Dois defeitos relatados do celular eram da mesma família:

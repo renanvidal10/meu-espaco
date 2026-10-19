@@ -1373,6 +1373,10 @@
         </div>
       </div>`;
     }).join('');
+    // §76. Cabeçalho sem nada embaixo é pior que nenhum cabeçalho: anuncia uma
+    // seção que não existe. Some junto com a lista.
+    const secao = document.getElementById('secao-solicitar');
+    if (secao) secao.hidden = !tests.length;
   }
 
   function renderNotes(notes) {
@@ -1418,18 +1422,24 @@
   function renderPrograms() {
     const container = document.getElementById('programs-dynamic');
     const note = document.getElementById('programs-note');
-    if (!lastResult) { container.innerHTML = ''; return; }
+    // §76. O cabeçalho da seção acompanha a lista: sem programas na tela, ele
+    // anunciaria uma seção vazia.
+    const secao = document.getElementById('secao-programas');
+    const mostrarSecao = (v) => { if (secao) secao.hidden = !v; };
+    if (!lastResult) { container.innerHTML = ''; mostrarSecao(false); return; }
 
     const { result, values, tumor: t } = lastResult;
     const tests = result.tests || [];
 
     if (!tests.length) {
       container.innerHTML = '';
+      mostrarSecao(false);
       note.textContent = 'Esta triagem não indicou nenhum teste genético para o caso informado - por isso nenhum programa de acesso é mostrado.';
       note.style.display = '';
       return;
     }
     note.style.display = 'none';
+    mostrarSecao(true);
 
     const diagnostico = t.diagnosis(values);
     // "Nenhum relatado" / "Não relatado" são negativas explícitas, não
@@ -1890,6 +1900,86 @@
     });
     window.scrollTo({ top: 0, behavior: comportamentoDeRolagem() });
     anunciarTela(alvo);
+    prepararRevelacao();
+  }
+
+  /* §76. Revelação ao rolar.
+   *
+   * A entrada escalonada da tela (§57.4) acerta o que está visível quando ela
+   * abre. O que está abaixo da dobra animava no mesmo instante: quando o
+   * médico chegava rolando, já tinha acabado. Dez programas viravam lista
+   * morta.
+   *
+   * Três cuidados, e os três vêm de defeito já cometido neste projeto:
+   *
+   * 1. O ESTADO ESCONDIDO SÓ NASCE AQUI. `.revela` não existe no HTML. Se
+   *    esta função não rodar, se o navegador não tiver IntersectionObserver,
+   *    se o script quebrar antes — nada chega a ficar invisível. É o §67
+   *    cumprido ao pé da letra, e a lição do PDF em branco.
+   * 2. SÓ O QUE ESTÁ ABAIXO DA DOBRA. Esconder o que o médico já está vendo
+   *    para revelar em seguida seria piscada, não apresentação.
+   * 3. REDE DE SEGURANÇA. Passados 12s, tudo é liberado de qualquer forma.
+   *    Um observador que não dispara — navegador com comportamento próprio,
+   *    elemento que nunca cruza o limiar — não pode deixar conteúdo clínico
+   *    escondido. O prazo é longo de propósito: curto demais desligaria a
+   *    revelação antes de o médico terminar de ler a primeira tela.
+   */
+  let relogioDaRevelacao = null;
+  function prepararRevelacao() {
+    const tela = document.querySelector('.screen.active');
+    if (!tela) return;
+
+    const candidatos = Array.from(tela.querySelectorAll(
+      '.test-step, #programs-dynamic > .card, .regras-gerais, .disclaimer, .secao',
+    ));
+    const liberar = (el) => { el.classList.remove('revela'); el.classList.remove('revela-visivel'); };
+
+    // Limpa o que sobrou da tela anterior antes de qualquer coisa.
+    document.querySelectorAll('.revela, .revela-visivel').forEach(liberar);
+    if (relogioDaRevelacao) { clearTimeout(relogioDaRevelacao); relogioDaRevelacao = null; }
+
+    const semMovimento = window.matchMedia
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (semMovimento || typeof IntersectionObserver !== 'function') return;
+
+    /* A posição é medida em relação ao TOPO DO DOCUMENTO, não ao da janela.
+     * Medir pela janela parecia certo e estava errado: esta função roda logo
+     * depois do `scrollTo` para o topo, que é SUAVE — a rolagem ainda está
+     * em curso, `scrollY` ainda marca a posição da tela anterior, e a conta
+     * de "abaixo da dobra" saía toda deslocada. Medido assim, um caso de
+     * ovário marcava 1 de 4 blocos na tela de programas e nenhum na de
+     * resultado: a revelação simplesmente não acontecia.
+     * Como sempre aterrissamos no topo, a dobra é a altura da janela. */
+    const dobra = window.innerHeight;
+    const abaixoDaDobra = candidatos.filter((el) => {
+      if (el.hidden) return false;
+      const r = el.getBoundingClientRect();
+      const topoNoDocumento = r.top + window.scrollY;
+      return r.height > 0 && topoNoDocumento > dobra - 40;
+    });
+    if (!abaixoDaDobra.length) return;
+
+    abaixoDaDobra.forEach((el) => el.classList.add('revela'));
+
+    const observador = new IntersectionObserver((entradas) => {
+      entradas.forEach((entrada) => {
+        if (!entrada.isIntersecting) return;
+        const el = entrada.target;
+        observador.unobserve(el);
+        el.classList.add('revela-visivel');
+        // A transição precisa de um quadro com o estado inicial ainda
+        // aplicado; remover `.revela` no mesmo quadro faria o elemento
+        // saltar para o lugar sem animar.
+        requestAnimationFrame(() => el.classList.remove('revela'));
+      });
+    }, { threshold: 0.04, rootMargin: '0px 0px -5% 0px' });
+
+    abaixoDaDobra.forEach((el) => observador.observe(el));
+
+    relogioDaRevelacao = setTimeout(() => {
+      observador.disconnect();
+      abaixoDaDobra.forEach(liberar);
+    }, 12000);
   }
 
   // Troca de tela era completamente silenciosa: o foco ficava no <body> e nada

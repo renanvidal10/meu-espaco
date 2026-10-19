@@ -70,10 +70,16 @@
     --mov-toque: 90ms;    /* resposta ao dedo: pressionar, soltar */
     --mov-rapido: 160ms;  /* estado: hover, foco, cor */
     --mov-painel: 260ms;  /* superfície: painel, tela, card entrando */
-    /* Curva única. Começa rápido e desacelera no fim, que é como um objeto
-       com massa se comporta. Sem "bounce": isto é uma ferramenta clínica. */
+    /* Curva única para tudo que é CONTEÚDO. Começa rápido e desacelera no
+       fim, que é como um objeto com massa se comporta. Sem "bounce": painel,
+       tela e card entrando não quicam numa ferramenta clínica. */
     --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
     --ease-saida: cubic-bezier(0.4, 0, 1, 1);
+    /* §76. A ÚNICA exceção, e ela é deliberada: a volta do botão depois do
+       toque. Aqui o que se simula não é conteúdo chegando, é um objeto
+       físico sendo solto — e objeto solto passa do ponto e volta. Vale para
+       o gesto do dedo, nunca para conteúdo entrando na tela. */
+    --rebote: cubic-bezier(0.2, 1.4, 0.4, 1);
 
     /* --- profundidade ----------------------------------------------------
        Quatro níveis em vez de sombras escritas à mão em cada componente. A
@@ -513,6 +519,30 @@
   .screen.active > #programs-dynamic > .card:nth-child(n+4) { animation-delay: 130ms; }
   @keyframes sobe { from { opacity: 0; transform: translate3d(0, 10px, 0); } to { opacity: 1; transform: none; } }
 
+  /* §76. A entrada escalonada acima resolve o que está NA TELA quando ela
+     abre. O que está abaixo da dobra animava no mesmo instante: quando o
+     médico rolava até lá, meio segundo depois, já tinha acabado. Rolar dez
+     programas virava uma lista morta.
+     A revelação ao rolar acerta o tempo — cada bloco se apresenta quando
+     entra no campo de visão.
+     A classe `.revela` é posta PELO JAVASCRIPT, nunca escrita no HTML. É a
+     regra do §67 cumprida ao pé da letra: se o observador não existir, não
+     rodar ou falhar, nada chega a ficar escondido, porque o estado escondido
+     só passa a existir depois que a máquina que o desfaz está de pé. E ainda
+     assim há uma rede: o próprio script limpa tudo passados 2s. */
+  .revela { opacity: 0; transform: translate3d(0, 10px, 0); }
+  .revela-visivel {
+    opacity: 1;
+    transform: none;
+    transition: opacity 450ms var(--ease), transform 450ms var(--ease);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .revela, .revela-visivel { opacity: 1; transform: none; transition: none; }
+  }
+  @media print {
+    .revela, .revela-visivel { opacity: 1 !important; transform: none !important; }
+  }
+
   /* ===================== §67. MOVIMENTO QUE DIZ ALGO =====================
    *
    * Regra que vale para todas as animações abaixo, e que nasceu de dois
@@ -635,6 +665,31 @@
     color: var(--ink-faint);
     margin-bottom: 6px;
   }
+  /* §76. Cabeçalho de seção. As telas 3 e 4 eram pilha de cartões sem
+     hierarquia: tudo com o mesmo peso, e o olho sem onde se apoiar. Um
+     cabeçalho de caixa inteira custaria altura demais numa tela que já está
+     apertada — isto aqui é só um traço na cor de acento, o nome da seção em
+     letra pequena e um filete atravessando até a margem. Marca a divisão com
+     uma linha de altura. */
+  .secao {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 26px 0 12px;
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .secao-traco {
+    flex: none;
+    width: 18px; height: 3px;
+    border-radius: var(--r-full);
+    background: var(--accent);
+  }
+  .secao::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
   .screen h1 { font-size: var(--fs-xl); margin-bottom: 8px; letter-spacing: -0.028em; line-height: 1.12; }
   /* Onde existe veredito, o título da tela cede o posto a ele. */
   #screen-2 > h1, #screen-3 > h1 { font-size: var(--fs-lg); }
@@ -1130,7 +1185,25 @@
       color var(--mov-rapido) var(--ease),
       transform var(--mov-painel) var(--ease);
   }
-  button.primary:active, button.ghost:active { transform: scale(0.985); }
+  /* §76. O toque responde com peso.
+     Antes o botão afundava e voltava na MESMA curva de 260ms da entrada de
+     tela — subir e descer no mesmo ritmo não é o que um botão físico faz.
+     Agora afunda depressa (90ms) e volta numa curva que passa do ponto e
+     retorna. É quase imperceptível de propósito: o que se percebe não é a
+     animação, é o botão ter respondido. */
+  button.primary, button.ghost, .anexo {
+    transition:
+      box-shadow var(--mov-rapido) var(--ease),
+      border-color var(--mov-rapido) var(--ease),
+      background-color var(--mov-rapido) var(--ease),
+      background-image var(--mov-rapido) var(--ease),
+      color var(--mov-rapido) var(--ease),
+      transform var(--mov-painel) var(--rebote);
+  }
+  button.primary:active, button.ghost:active, .anexo:active {
+    transform: scale(0.97);
+    transition-duration: var(--mov-toque);
+  }
 
   /* §55. Botão indisponível fica legível: o médico precisa entender que falta
      um dado, não achar que a tela travou. O cursor e a ausência de resposta ao
@@ -1146,8 +1219,8 @@
   .campo-aviso[hidden] { display: none; }
   .card:hover { box-shadow: 0 1px 2px rgba(16, 28, 23, 0.05), 0 10px 22px -10px rgba(16, 28, 23, 0.13), 0 28px 50px -28px rgba(16, 28, 23, 0.16); }
   @media (prefers-reduced-motion: reduce) {
-    .card, .test-step, .program-row, .compositor, button.primary, button.ghost { transition: none; }
-    button.primary:active, button.ghost:active { transform: none; }
+    .card, .test-step, .program-row, .compositor, button.primary, button.ghost, .anexo { transition: none; }
+    button.primary:active, button.ghost:active, .anexo:active { transform: none; }
   }
 
   /* Alvos de toque que estavam abaixo do piso de 44px desde antes desta
