@@ -2308,7 +2308,60 @@
     .instalar-btn .instalar-rotulo { display: none; }
   }
 
-  /* Abas iPhone / Android dentro do modal. */
+  /* §77. Aviso de navegador embutido: o médico abriu o link dentro de outro
+     aplicativo e dali não há instalação possível. É informação de bloqueio,
+     e por isso usa a cor de atenção — não a de acento, que neste modal está
+     reservada ao caminho que funciona. */
+  .inst-aviso {
+    display: flex; align-items: flex-start; gap: 9px;
+    margin: 16px 0 2px;
+    padding: 11px 13px;
+    border-radius: var(--r-sm);
+    background: var(--warn-soft);
+    border: 1px solid var(--warn-soft-border, var(--warn));
+    color: var(--warn);
+    font-size: var(--fs-2xs); line-height: 1.5;
+  }
+  .inst-aviso .ic { flex: none; width: 16px; height: 16px; margin-top: 1px; }
+
+  /* Já instalado: confirmação, não instrução. */
+  .inst-pronto {
+    display: flex; align-items: flex-start; gap: 11px;
+    margin: 16px 0 2px;
+    padding: 13px 14px;
+    border-radius: var(--r-md);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-soft-border);
+  }
+  .inst-pronto-marca {
+    flex: none;
+    width: 24px; height: 24px; border-radius: var(--r-full);
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent); color: var(--accent-ink);
+    font-size: var(--fs-2xs); font-weight: 700;
+  }
+  .inst-pronto strong { display: block; font-size: var(--fs-xs); margin-bottom: 2px; }
+  .inst-pronto span { font-size: var(--fs-2xs); color: var(--ink-muted); line-height: 1.5; }
+
+  /* As três dúvidas de sempre, fechadas: uma linha. Abertas de início
+     viravam parede de texto — foi a crítica do dono à referência. */
+  .inst-duvidas { margin: 14px 0 16px; }
+  .inst-duvidas > summary {
+    cursor: pointer; list-style: none;
+    font-size: var(--fs-2xs); font-weight: 700;
+    color: var(--accent);
+    min-height: 32px; display: flex; align-items: center;
+  }
+  .inst-duvidas > summary::-webkit-details-marker { display: none; }
+  .inst-duvidas > summary::after { content: '  +'; white-space: pre; }
+  .inst-duvidas[open] > summary::after { content: '  −'; }
+  .inst-duvidas p {
+    font-size: var(--fs-2xs); color: var(--ink-muted);
+    line-height: 1.5; margin: 8px 0 0;
+  }
+  .inst-duvidas p strong { color: var(--ink); }
+
+  /* Abas iPhone / Android / Computador dentro do modal. */
   .sistema-abas {
     display: flex; gap: 4px; padding: 4px;
     background: var(--surface-2); border-radius: var(--r-md);
@@ -2316,6 +2369,7 @@
   }
   .sistema-aba {
     flex: 1; min-height: var(--toque);
+    padding: 0 4px;
     border: none; border-radius: var(--r-sm);
     background: transparent; color: var(--ink-muted);
     font-family: inherit; font-size: var(--fs-xs); font-weight: 600;
@@ -2328,6 +2382,11 @@
     box-shadow: var(--elev-1);
   }
   .sistema-aba:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+  /* Três abas em 390px: a terceira entrou, e o rótulo precisa caber inteiro.
+     Cortar "Computador" no meio seria pior do que a letra menor. */
+  @media (max-width: 560px) {
+    .sistema-aba { font-size: var(--fs-2xs); }
+  }
 
   .modal-passo .n {
     flex-shrink: 0;

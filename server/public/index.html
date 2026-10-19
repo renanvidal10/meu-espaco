@@ -563,12 +563,34 @@
      verdade; o passo a passo fica como reserva. -->
 <div class="modal-fundo" id="instalar" role="dialog" aria-modal="true" aria-labelledby="inst-titulo">
   <div class="modal">
-    <h2 id="inst-titulo">Instale o OncoGenYX no celular</h2>
+    <h2 id="inst-titulo">Instale o OncoGenYX no seu aparelho</h2>
     <p class="modal-sub">Abre em tela cheia, sem barra de navegador, e fica com os outros aplicativos. Não ocupa espaço: não é um download, é um atalho que roda sozinho.</p>
 
-    <div class="sistema-abas" role="tablist" aria-label="Escolha o seu aparelho">
+    <!-- §77. O caso que some sem ninguém saber: o médico recebe o link por
+         WhatsApp, LinkedIn ou Instagram e abre DENTRO do aplicativo de
+         mensagem. Esse navegador embutido não instala nada — não tem a API
+         do Android nem o "Adicionar à Tela de Início" do Safari. Sem este
+         aviso, o passo a passo manda procurar um botão que não existe ali, e
+         o médico conclui que a plataforma é que está quebrada. -->
+    <div class="inst-aviso" id="inst-embutido" hidden>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+      <span><strong>Esta página está aberta dentro de outro aplicativo.</strong> Daqui não é possível instalar. Toque no menu <strong>⋮</strong> ou <strong>•••</strong> deste aplicativo e escolha <strong id="inst-embutido-acao">Abrir no navegador</strong>; depois volte a este botão.</span>
+    </div>
+
+    <!-- Já instalado: oferecer passo a passo de instalação a quem já instalou
+         é a definição de ruído. -->
+    <div class="inst-pronto" id="inst-pronto" hidden>
+      <span class="inst-pronto-marca" aria-hidden="true">✓</span>
+      <div>
+        <strong>Você já está usando o aplicativo.</strong>
+        <span>Ele abre pelo ícone na tela de início, em tela cheia. Para remover, é como qualquer outro: segure o ícone e escolha apagar.</span>
+      </div>
+    </div>
+
+    <div class="sistema-abas" id="inst-abas" role="tablist" aria-label="Escolha o seu aparelho">
       <button class="sistema-aba" id="aba-ios" type="button" role="tab" aria-selected="true" aria-controls="passos-ios" onclick="mostrarPassos('ios')">iPhone e iPad</button>
       <button class="sistema-aba" id="aba-android" type="button" role="tab" aria-selected="false" aria-controls="passos-android" onclick="mostrarPassos('android')">Android</button>
+      <button class="sistema-aba" id="aba-computador" type="button" role="tab" aria-selected="false" aria-controls="passos-computador" onclick="mostrarPassos('computador')">Computador</button>
     </div>
 
     <div class="modal-passos" id="passos-ios" role="tabpanel" aria-labelledby="aba-ios">
@@ -625,6 +647,51 @@
         </div>
       </div>
     </div>
+
+    <!-- §77. A terceira aba faltava, e o médico que usa a plataforma no
+         computador do consultório é justamente quem mais ganha com ela
+         aberta em janela própria, sem abas nem barra de endereço por perto
+         enquanto ele está com o paciente na frente. -->
+    <div class="modal-passos" id="passos-computador" role="tabpanel" aria-labelledby="aba-computador" hidden>
+      <div class="modal-passo">
+        <span class="n">1</span>
+        <div>
+          <strong>Use o Chrome ou o Edge</strong>
+          <span>No Firefox e no Safari do Mac não existe instalação — a plataforma funciona igual, mas continua dentro de uma aba.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">2</span>
+        <div>
+          <strong>Clique em "Instalar agora" abaixo</strong>
+          <span>Se o botão não aparecer, procure o ícone de instalar na barra de endereço, à direita — um monitor com uma seta para baixo.</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">3</span>
+        <div>
+          <strong>Ou use o menu do navegador</strong>
+          <span>Os três pontinhos no canto superior direito, depois "Instalar OncoGenYX".</span>
+        </div>
+      </div>
+      <div class="modal-passo">
+        <span class="n">4</span>
+        <div>
+          <strong>Pronto</strong>
+          <span>Abre em janela própria, com o ícone na área de trabalho e na barra de tarefas.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- §77. Três dúvidas que aparecem sempre, e que fechadas custam uma
+         linha. Abertas de início, viram parede de texto — foi a crítica do
+         dono ao site que serviu de referência. -->
+    <details class="inst-duvidas" id="inst-duvidas">
+      <summary>Dúvidas rápidas</summary>
+      <p><strong>Ocupa espaço no aparelho?</strong> Praticamente nada. Não é um download de loja: é esta própria página, guardada como atalho.</p>
+      <p><strong>Funciona sem internet?</strong> A tela abre, mas a leitura do caso precisa de conexão — ela acontece no servidor.</p>
+      <p><strong>Como desinstalo?</strong> Igual a qualquer aplicativo: segure o ícone e escolha apagar.</p>
+    </details>
 
     <div class="modal-rodape">
       <button class="primary" type="button" id="inst-instalar" onclick="instalarAgora()" hidden>Instalar agora</button>

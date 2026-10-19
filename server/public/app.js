@@ -446,13 +446,47 @@
       || (/Macintosh/.test(ua) && typeof document.ontouchend !== 'undefined');
   }
 
+  function ehAndroid() { return /Android/.test(navigator.userAgent || ''); }
+
+  /* §77. Navegador embutido em outro aplicativo.
+   *
+   * É o modo de falhar que nunca chega como reclamação: o médico recebe o
+   * link por WhatsApp ou LinkedIn, abre DENTRO do aplicativo de mensagem, e
+   * aquele navegador não instala nada — não tem a API do Android nem o
+   * "Adicionar à Tela de Início" do Safari. Sem aviso, o passo a passo manda
+   * procurar um botão que ali não existe, e a conclusão do médico é que a
+   * plataforma está quebrada.
+   *
+   * Detecta-se o que é detectável e diz-se só o que se sabe. Facebook,
+   * Instagram, LinkedIn e Line se identificam na assinatura do navegador; a
+   * webview genérica do Android traz " wv". O navegador interno do WhatsApp
+   * no iPhone não se distingue com segurança — por isso o aviso é redigido
+   * para servir a qualquer aplicativo, sem citar nome nenhum. */
+  function navegadorEmbutido() {
+    const ua = navigator.userAgent || '';
+    if (/FBAN|FBAV|FB_IAB|Instagram|LinkedInApp|Line\//i.test(ua)) return true;
+    if (/Android/.test(ua) && /;\s*wv\)/.test(ua)) return true;
+    return false;
+  }
+
+  function aparelhoProvavel() {
+    if (ehIOS()) return 'ios';
+    if (ehAndroid()) return 'android';
+    return 'computador';
+  }
+
   function atualizarBotaoInstalar() {
     const btn = document.getElementById('instalar-btn');
     if (!btn) return;
     // Já instalado: não há o que oferecer.
     if (modoAplicativo()) { btn.hidden = true; return; }
-    // Android só depois do evento; iOS sempre, porque lá o caminho é manual.
-    btn.hidden = !(promptDeInstalacao || ehIOS());
+    /* Quem mostra o botão:
+     * - o evento do Chrome (Android e computador), que instala de verdade;
+     * - o iPhone, sempre, porque lá o caminho é manual e o passo a passo É o
+     *   mecanismo;
+     * - o navegador embutido, porque ali o botão não instala, mas é o único
+     *   lugar onde cabe explicar por que não instala e o que fazer. */
+    btn.hidden = !(promptDeInstalacao || ehIOS() || navegadorEmbutido());
   }
 
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -471,13 +505,53 @@
   function abrirInstalar() {
     focoAntesDoInstalar = document.activeElement;
     // Abre já na aba do aparelho de quem está olhando.
-    mostrarPassos(ehIOS() ? 'ios' : 'android');
+    mostrarPassos(aparelhoProvavel());
+
+    // §77. Quem já instalou não precisa de passo a passo de instalação.
+    const jaInstalado = modoAplicativo();
+    const pronto = document.getElementById('inst-pronto');
+    const abas = document.getElementById('inst-abas');
+    const duvidas = document.getElementById('inst-duvidas');
+    if (pronto) pronto.hidden = !jaInstalado;
+    if (abas) abas.hidden = jaInstalado;
+    if (duvidas) duvidas.hidden = jaInstalado;
+    // A linha de apoio vende a instalação ("abre em tela cheia, sem barra de
+    // navegador"). Para quem já instalou, é propaganda do que ele já tem.
+    const apoio = document.querySelector('#instalar .modal-sub');
+    if (apoio) apoio.hidden = jaInstalado;
+    /* Escopo no modal de instalação, não na página. `.modal-passos` também
+     * monta os passos do modal de privacidade e o das boas-vindas: um
+     * seletor solto apagava os dois de uma vez, e o estrago só apareceria
+     * para quem abrisse "Como funciona" depois de instalar o app. */
+    document.querySelectorAll('#instalar .modal-passos').forEach((el) => { if (jaInstalado) el.hidden = true; });
+
+    const embutido = !jaInstalado && navegadorEmbutido();
+    const aviso = document.getElementById('inst-embutido');
+    if (aviso) aviso.hidden = !embutido;
+    if (embutido) {
+      // O rótulo do menu muda entre os sistemas; dizer o nome certo evita o
+      // médico procurar uma opção que no aparelho dele tem outro nome.
+      const acao = document.getElementById('inst-embutido-acao');
+      if (acao) acao.textContent = ehIOS() ? 'Abrir no Safari' : 'Abrir no navegador';
+    }
+
     const instalarAgoraBtn = document.getElementById('inst-instalar');
-    if (instalarAgoraBtn) instalarAgoraBtn.hidden = !promptDeInstalacao;
-    document.getElementById('instalar').classList.add('aberto');
+    if (instalarAgoraBtn) instalarAgoraBtn.hidden = !promptDeInstalacao || jaInstalado;
+    const painel = document.getElementById('instalar');
+    painel.classList.add('aberto');
     setTimeout(() => {
-      const alvo = document.getElementById(promptDeInstalacao ? 'inst-instalar' : 'inst-fechar');
-      if (alvo) alvo.focus();
+      const alvo = document.getElementById(promptDeInstalacao && !jaInstalado ? 'inst-instalar' : 'inst-fechar');
+      /* §77. `focus()` rola o elemento para a vista, e "Fechar" mora no pé do
+       * modal: quem abria sem botão de instalar — justamente o iPhone e o
+       * navegador embutido — chegava com o painel já rolado até embaixo, com
+       * o passo 1 e o aviso de bloqueio fora da tela. O foco é posto sem
+       * rolagem, e o painel volta ao topo. */
+      if (alvo) {
+        try { alvo.focus({ preventScroll: true }); } catch { alvo.focus(); }
+      }
+      const caixa = painel.querySelector('.modal');
+      if (caixa) caixa.scrollTop = 0;
+      painel.scrollTop = 0;
     }, 60);
   }
 
@@ -487,7 +561,7 @@
   }
 
   function mostrarPassos(sistema) {
-    for (const nome of ['ios', 'android']) {
+    for (const nome of ['ios', 'android', 'computador']) {
       const painel = document.getElementById('passos-' + nome);
       const aba = document.getElementById('aba-' + nome);
       if (painel) painel.hidden = nome !== sistema;

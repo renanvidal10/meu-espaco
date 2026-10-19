@@ -882,6 +882,111 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- 13b2. instalar: computador, já instalado e navegador embutido ---------- */
+  {
+    /* §77. Três buracos do fluxo de instalação, e os três só apareciam fora
+     * do percurso testado:
+     *
+     *  a) COMPUTADOR não tinha aba nenhuma, e o título dizia "no celular".
+     *     O médico que usa a plataforma no consultório é exatamente quem
+     *     mais ganha com ela em janela própria.
+     *  b) JÁ INSTALADO abria o passo a passo de instalação — ruído puro.
+     *  c) NAVEGADOR EMBUTIDO é o modo de falhar que nunca vira reclamação:
+     *     o médico recebe o link por WhatsApp ou LinkedIn, abre dentro do
+     *     aplicativo de mensagem, e dali não há instalação possível. Sem
+     *     aviso, ele procura um botão que não existe e conclui que a
+     *     plataforma está quebrada. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('instalar-2: ' + e.message));
+    await entrar(p);
+    await p.evaluate(() => { window.__abrir = () => abrirInstalar(); });
+
+    // (a) A aba de computador existe e nomeia o caminho real.
+    await p.evaluate(() => window.__abrir());
+    await p.waitForTimeout(150);
+    await p.click('#aba-computador');
+    await p.waitForTimeout(120);
+    const textoPc = await p.locator('#passos-computador').innerText();
+    const temNavegador = /chrome/i.test(textoPc) && /edge/i.test(textoPc);
+    const temBarra = /barra de endereço/i.test(textoPc);
+    linha(ok(temNavegador && temBarra, `chrome+edge=${temNavegador} barra=${temBarra}`),
+      'computador → passo a passo nomeia Chrome, Edge e a barra de endereço');
+    const soUmaAberta = await p.evaluate(() => Array.from(document.querySelectorAll('#instalar .modal-passos')).filter((el) => !el.hidden).length);
+    linha(ok(soUmaAberta === 1, `${soUmaAberta} passo a passo visíveis ao mesmo tempo`),
+      'com três abas, continua uma por vez');
+    // O título não pode mais excluir quem está no computador.
+    const titulo = await p.locator('#inst-titulo').innerText();
+    linha(ok(!/celular/i.test(titulo), `o título ainda diz "${titulo}"`),
+      'o título do modal não exclui quem está no computador');
+    await p.click('#inst-fechar');
+
+    // (b) Já instalado: confirmação no lugar do passo a passo.
+    await p.evaluate(() => {
+      Object.defineProperty(window.navigator, 'standalone', { value: true, configurable: true });
+      window.__abrir();
+    });
+    await p.waitForTimeout(150);
+    const instalado = await p.evaluate(() => ({
+      pronto: !document.getElementById('inst-pronto').hidden,
+      abas: !document.getElementById('inst-abas').hidden,
+      passos: Array.from(document.querySelectorAll('#instalar .modal-passos')).filter((el) => !el.hidden).length,
+      botao: !document.getElementById('inst-instalar').hidden,
+      // Os outros modais não podem ser atingidos de carona: `.modal-passos`
+      // também monta a privacidade e as boas-vindas.
+      forasteiros: Array.from(document.querySelectorAll('.modal-passos:not(#instalar .modal-passos)')).filter((el) => el.hidden).length,
+    }));
+    linha(ok(instalado.pronto && !instalado.abas && instalado.passos === 0 && !instalado.botao,
+      JSON.stringify(instalado)),
+      'já instalado → confirmação no lugar do passo a passo');
+    linha(ok(instalado.forasteiros === 0, `${instalado.forasteiros} passo(s) de outros modais foram escondidos junto`),
+      'e os passos dos outros modais ficam intactos');
+    await p.click('#inst-fechar');
+    await p.close();
+
+    // (c) Navegador embutido: aviso presente, e ausente no navegador normal.
+    const ua = dispositivo.userAgent || '';
+    const ctxEmbutido = await browser.newContext({
+      ...dispositivo,
+      userAgent: ua + ' [FBAN/FBIOS;FBAV/450.0.0]',
+    });
+    const q = await ctxEmbutido.newPage();
+    q.on('pageerror', (e) => erros.push('embutido: ' + e.message));
+    await entrar(q);
+    linha(ok(await q.locator('#instalar-btn').isVisible(),
+      'no navegador embutido o botão some, e com ele o único lugar onde cabe explicar o bloqueio'),
+      'navegador embutido → o botão continua à vista');
+    await q.evaluate(() => abrirInstalar());
+    await q.waitForTimeout(150);
+    const aviso = await q.locator('#inst-embutido');
+    linha(ok(await aviso.isVisible(), 'o aviso de navegador embutido não apareceu'),
+      'navegador embutido → avisa que dali não dá para instalar');
+    const textoAviso = await aviso.innerText();
+    linha(ok(/navegador|safari/i.test(textoAviso) && /menu/i.test(textoAviso), textoAviso.slice(0, 80)),
+      'e diz o que fazer: abrir pelo menu, no navegador');
+    /* §77. O aviso tem de estar NA TELA quando o modal abre. `focus()` rola o
+     * elemento focado para a vista, e "Fechar" mora no pé do modal: sem
+     * cuidado, o painel abria já rolado até embaixo e a mensagem mais
+     * importante da tela nascia fora dela. */
+    const avisoNaTela = await q.evaluate(() => {
+      const r = document.getElementById('inst-embutido').getBoundingClientRect();
+      return r.top >= -1 && r.top < window.innerHeight * 0.6;
+    });
+    linha(ok(avisoNaTela, 'o modal abriu rolado e o aviso de bloqueio nasceu fora da tela'),
+      'e o aviso aparece sem precisar rolar');
+    await q.close();
+    await ctxEmbutido.close();
+
+    const r = await ctx.newPage();
+    r.on('pageerror', (e) => erros.push('nao-embutido: ' + e.message));
+    await entrar(r);
+    await r.evaluate(() => abrirInstalar());
+    await r.waitForTimeout(150);
+    linha(ok((await r.locator('#inst-embutido').isVisible()) === false,
+      'o aviso de navegador embutido aparece em navegador comum'),
+      'navegador comum → nenhum aviso de bloqueio');
+    await r.close();
+  }
+
   /* ---------- 13c. animações não podem apagar conteúdo ---------- */
   {
     /* §67. A regra das animações do app: O ESTADO DE REPOUSO É O VISÍVEL.
