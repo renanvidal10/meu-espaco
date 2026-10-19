@@ -20,6 +20,64 @@ let falhas=0;const ok=(c,m)=>{console.log((c?'  ✓ ':'  ✗ ')+m);if(!c)falhas+
   ok(man.icons.some(i=>i.purpose==='maskable'),'tem ícone maskable para o Android');
   ok(!!man.id && !!man.start_url,'tem id e start_url');
 
+  /* §78. A cor da marca estava declarada em TRÊS lugares — o manifesto, a
+   * marcação theme-color do HTML e os tokens do app.css — e dois deles
+   * tinham ficado no verde da paleta antiga. O resultado: a plataforma teal
+   * por dentro, e a barra do sistema no celular e a tela de abertura do app
+   * instalado em verde. Ninguém abre o manifesto para conferir, então a
+   * divergência vive para sempre.
+   * O teste lê o app.css como fonte da verdade e exige que os outros dois
+   * digam o mesmo. */
+  console.log('\n=== A COR DA MARCA É UMA SÓ ===');
+  const css=await (await fetch(BASE+'/app.css')).text();
+  const token=(nome,onde)=>{
+    const bloco=onde==='escuro'
+      ? css.slice(css.indexOf('prefers-color-scheme: dark'))
+      : css;
+    const m=new RegExp('--'+nome+':\\s*(#[0-9a-fA-F]{3,8})').exec(bloco);
+    return m?m[1].toLowerCase():null;
+  };
+  const acento=token('accent','claro');
+  const fundoClaro=token('bg','claro');
+  const fundoEscuro=token('bg','escuro');
+  ok(!!acento && !!fundoClaro && !!fundoEscuro,`tokens lidos do app.css: accent=${acento} bg=${fundoClaro} bg-escuro=${fundoEscuro}`);
+  ok(String(man.theme_color).toLowerCase()===acento,`manifesto theme_color=${man.theme_color}, e o acento do app é ${acento}`);
+  ok(String(man.background_color).toLowerCase()===fundoClaro,`manifesto background_color=${man.background_color}, e o fundo do app é ${fundoClaro}`);
+  const html=await (await fetch(BASE+'/')).text();
+  const corDe=(esquema)=>{
+    const re=new RegExp('<meta name="theme-color" content="(#[0-9a-fA-F]{3,8})" media="\\(prefers-color-scheme: '+esquema+'\\)"');
+    const m=re.exec(html);return m?m[1].toLowerCase():null;
+  };
+  ok(corDe('light')===acento,`theme-color claro=${corDe('light')}, e o acento do app é ${acento}`);
+  ok(corDe('dark')===fundoEscuro,`theme-color escuro=${corDe('dark')}, e o fundo escuro do app é ${fundoEscuro}`);
+
+  /* §78. Pré-visualização do link: é a primeira coisa que o médico vê quando
+   * recebe o endereço por mensagem, e vinha em branco. As marcações exigem
+   * URL ABSOLUTA — caminho relativo o WhatsApp não resolve —, e o endereço é
+   * escrito pelo servidor, não à mão, para não quebrar quando o domínio
+   * próprio entrar no ar. */
+  console.log('\n=== PRÉ-VISUALIZAÇÃO DO LINK ===');
+  ok(!html.includes('__ORIGEM__'),'o marcador de endereço foi substituído pelo servidor');
+  const marcacao=(prop)=>{
+    const m=new RegExp('<meta property="'+prop+'" content="([^"]*)"').exec(html);
+    return m?m[1]:null;
+  };
+  const ogUrl=marcacao('og:url');const ogImg=marcacao('og:image');
+  ok(/^https?:\/\/[^/]+\/$/.test(String(ogUrl)),`og:url absoluto: ${ogUrl}`);
+  ok(/^https?:\/\/[^/]+\/compartilhar\.png$/.test(String(ogImg)),`og:image absoluto: ${ogImg}`);
+  ok(!!marcacao('og:title') && !!marcacao('og:description'),'tem título e descrição próprios no cartão');
+  ok(/twitter:card" content="summary_large_image/.test(html),'o cartão usa a imagem grande, não a miniatura');
+  const img=await fetch(BASE+'/compartilhar.png');
+  ok(img.ok && (img.headers.get('content-type')||'').includes('image/png'),`a imagem do cartão existe → ${img.status} ${img.headers.get('content-type')||''}`);
+  ok(Number(img.headers.get('content-length')||0)>10000,'e não é um arquivo vazio');
+  ok(marcacao('og:image:width')==='1200' && marcacao('og:image:height')==='630','as medidas declaradas são as do formato de cartão grande');
+
+  const robots=await fetch(BASE+'/robots.txt');
+  const textoRobots=await robots.text();
+  ok(robots.ok,`robots.txt → ${robots.status}`);
+  ok(/Disallow:\s*\/api\//.test(textoRobots),'robots.txt mantém a API fora do alcance de rastreador');
+  ok(!/Disallow:\s*\/\s*$/m.test(textoRobots),'e não bloqueia o site inteiro, o que apagaria a pré-visualização do link');
+
   console.log('\n=== NO NAVEGADOR ===');
   const browser=await pw.chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
   const ctx=await browser.newContext({viewport:{width:390,height:780}});

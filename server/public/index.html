@@ -10,9 +10,41 @@
 <title>OncoGenYX - Triagem genômica em oncologia</title>
 <meta name="description" content="Triagem de indicação de teste genético germinativo e somático em oncologia, com base em diretrizes nacionais e internacionais vigentes." />
 <meta name="color-scheme" content="light dark" />
-<meta name="theme-color" content="#0f6b5c" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#121a17" media="(prefers-color-scheme: dark)" />
+<!-- §78. Estas duas cores pintam a barra do sistema no celular e a moldura da
+     janela do app instalado. Ficaram no verde da paleta antiga: a plataforma
+     inteira virou teal e a borda do aparelho continuou verde, que é
+     exatamente o tipo de detalhe que denuncia amadorismo sem ninguém saber
+     apontar por quê. Os valores são os mesmos tokens do app.css
+     (--accent no claro, --bg no escuro) e há teste que reprova se divergirem. -->
+<meta name="theme-color" content="#0e6180" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0a1017" media="(prefers-color-scheme: dark)" />
 <meta name="format-detection" content="telephone=no" />
+
+<!-- §78. Pré-visualização do link.
+     Sem estas linhas, mandar o endereço para um oncologista no WhatsApp ou no
+     LinkedIn mostrava um endereço cru, sem título, sem descrição e sem
+     imagem. Era a primeira coisa que o médico via da plataforma — e a que
+     mais dizia "isto é um teste de alguém", por mais cuidada que a tela
+     estivesse do outro lado do clique.
+     __ORIGEM__ é trocado pelo servidor pelo endereço real: estas marcações
+     exigem URL absoluta, e deixar o domínio escrito à mão aqui quebraria no
+     dia em que ele mudar. -->
+<link rel="canonical" href="__ORIGEM__/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="OncoGenYX" />
+<meta property="og:locale" content="pt_BR" />
+<meta property="og:url" content="__ORIGEM__/" />
+<meta property="og:title" content="OncoGenYX — Triagem genômica em oncologia" />
+<meta property="og:description" content="Descreva o caso, anexe o laudo e receba qual teste genético solicitar — com a diretriz que sustenta a indicação." />
+<meta property="og:image" content="__ORIGEM__/compartilhar.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="OncoGenYX — a triagem genômica que cabe na sua consulta. Cobre ovário, mama, próstata, colorretal, pulmão, pâncreas e endométrio." />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="OncoGenYX — Triagem genômica em oncologia" />
+<meta name="twitter:description" content="Descreva o caso, anexe o laudo e receba qual teste genético solicitar — com a diretriz que sustenta a indicação." />
+<meta name="twitter:image" content="__ORIGEM__/compartilhar.png" />
 
 <!-- Instalação na tela de início: abre sem barra de endereço, como aplicativo. -->
 <link rel="manifest" href="/manifest.webmanifest" />

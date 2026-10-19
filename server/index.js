@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
@@ -1031,6 +1032,26 @@ app.get('/api/config', (req, res) => {
     plaudEnabled: plaud.isConfigured(),
   });
 });
+
+/* §78. A página entregue com o endereço real escrito dentro.
+ *
+ * As marcações de pré-visualização (og:url, og:image, canonical) exigem URL
+ * ABSOLUTA — o WhatsApp e o LinkedIn não resolvem caminho relativo. Escrever
+ * o domínio à mão no HTML quebraria no dia em que ele mudar, e é justamente
+ * o que vai acontecer quando o domínio próprio entrar no ar.
+ *
+ * Então o HTML guarda um marcador e o servidor troca pelo endereço de quem
+ * pediu: APP_ORIGIN quando existe, senão o host do próprio pedido. Vale em
+ * produção, no Render e na máquina de quem desenvolve, sem configurar nada.
+ *
+ * O arquivo é lido uma vez, no boot: trocar duas palavras numa string já
+ * carregada é barato; ler disco a cada pedido não é. */
+const PAGINA = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+function entregarPagina(req, res) {
+  res.type('html').send(PAGINA.replaceAll('__ORIGEM__', appOrigin(req)));
+}
+app.get('/', entregarPagina);
+app.get('/index.html', entregarPagina);
 
 app.use(express.static(path.join(__dirname, 'public')));
 

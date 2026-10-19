@@ -1,0 +1,14 @@
+# §78. A tela de entrada descreve o produto e é uma superfície legítima de
+# descoberta — fica aberta. O que nunca pode ser varrido é a API: ali não há
+# página nenhuma, só respostas de caso, e rastreador em endpoint clínico é
+# tráfego que não deveria existir.
+#
+# Bloquear o site inteiro seria tentador, mas quebraria a pré-visualização do
+# link: o rastreador do Facebook — que é quem monta o cartão do WhatsApp —
+# respeita este arquivo, e com "Disallow: /" o médico voltaria a receber um
+# endereço cru. Se um dia a preferência for sumir do Google, a troca é de uma
+# linha, e aí a pré-visualização passa a ser o preço.
+
+User-agent: *
+Disallow: /api/
+Allow: /
