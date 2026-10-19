@@ -847,15 +847,6 @@
 
 <script src="/app.js"></script>
 
-<script>
-  // Registrar o service worker é o que faz o Android oferecer "instalar
-  // aplicativo" em vez de "adicionar atalho". Falhar aqui não pode derrubar
-  // nada: o app funciona igual sem ele.
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => undefined);
-    });
-  }
-</script>
+<script src="/registra-sw.js"></script>
 </body>
 </html>

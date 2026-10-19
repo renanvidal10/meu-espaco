@@ -133,7 +133,15 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      /* §80. `'unsafe-inline'` saiu daqui. Ela existia por SETE LINHAS de
+       * registro do service worker que moravam num <script> inline no
+       * index.html — e não pelos handlers onclick, que são governados por
+       * `scriptSrcAttr`, logo abaixo. A distinção não é acadêmica: enquanto
+       * esta diretriz esteve ligada, qualquer HTML que entrasse na página
+       * virava script EXECUTÁVEL. Foi o que transformou a injeção pelo
+       * cabeçalho Host em execução de código no domínio do médico. As sete
+       * linhas foram para /registra-sw.js e a diretriz fechou. */
+      scriptSrc: ["'self'"],
       // O helmet põe script-src-attr 'none' por padrão, que bloqueia todo
       // handler inline. A interface tem 44 (onclick, onsubmit, onchange,
       // oninput) e pararia inteira. Concessão consciente e única: o resto da
@@ -274,10 +282,35 @@ const NEUTRAL_RESET_RESPONSE = {
   message: 'Se este email estiver cadastrado, você receberá um link para definir a senha em instantes.',
 };
 
+/* §80. O endereço do próprio serviço, montado a partir do pedido quando não
+ * há APP_ORIGIN configurado.
+ *
+ * `host` e `x-forwarded-proto` são CABEÇALHOS DO CLIENTE. Quem fala com o
+ * processo escolhe o valor deles. Este valor é interpolado dentro de
+ * atributos HTML da página entregue (canonical, og:url, og:image) e dentro do
+ * link de redefinição de senha — ou seja, dois lugares onde um valor
+ * escolhido por terceiro é desastre:
+ *
+ *   Host: x"><script>...</script><b a="   -> script executado no domínio do médico
+ *   X-Forwarded-Proto: javascript        -> href javascript:
+ *   Host: servidor-do-atacante           -> token de senha entregue ao atacante
+ *
+ * Então: formato validado, e o que não casar é descartado em vez de
+ * remendado. Host inválido cai para caminho relativo (string vazia), que
+ * produz href="/" — correto e inofensivo. Protocolo inválido vira https.
+ *
+ * Isto não substitui definir APP_ORIGIN em produção, que continua sendo o
+ * certo; é a rede para quando ela não estiver lá. */
+const HOST_VALIDO = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,252}[A-Za-z0-9])?(?::\d{1,5})?$/;
+
 function appOrigin(req) {
   if (process.env.APP_ORIGIN) return process.env.APP_ORIGIN.replace(/\/$/, '');
-  const proto = req.get('x-forwarded-proto') || req.protocol;
-  return `${proto}://${req.get('host')}`;
+  const protoBruto = String(req.get('x-forwarded-proto') || req.protocol || '')
+    .split(',')[0].trim().toLowerCase();
+  const proto = (protoBruto === 'http' || protoBruto === 'https') ? protoBruto : 'https';
+  const host = String(req.get('host') || '').trim();
+  if (!HOST_VALIDO.test(host)) return '';
+  return `${proto}://${host}`;
 }
 
 async function deliverResetLink({ req, user, isFirstAccess }) {
@@ -1047,8 +1080,23 @@ app.get('/api/config', (req, res) => {
  * O arquivo é lido uma vez, no boot: trocar duas palavras numa string já
  * carregada é barato; ler disco a cada pedido não é. */
 const PAGINA = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+
+/* §80. Segunda camada, deliberadamente redundante com a validação de
+ * `appOrigin`. O marcador cai DENTRO de atributos de aspas duplas, então o
+ * que fecha o atributo e abre uma tag é `"` e `<`. Confiar só na validação
+ * faria desta linha a única coisa entre um cabeçalho de cliente e o HTML
+ * entregue ao médico — e foi exatamente assim que o defeito nasceu. */
+function escaparAtributo(valor) {
+  return String(valor)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 function entregarPagina(req, res) {
-  res.type('html').send(PAGINA.replaceAll('__ORIGEM__', appOrigin(req)));
+  res.type('html').send(PAGINA.replaceAll('__ORIGEM__', escaparAtributo(appOrigin(req))));
 }
 app.get('/', entregarPagina);
 app.get('/index.html', entregarPagina);

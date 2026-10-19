@@ -185,6 +185,70 @@ test('CORS não é mais aberto a qualquer origem', async () => {
   assert.notStrictEqual(r.headers.get('access-control-allow-origin'), '*');
 });
 
+/* ============ §80. o cabeçalho Host não entra na página ============
+ *
+ * A pré-visualização do link exige URL absoluta, então o servidor passou a
+ * escrever o endereço do pedido dentro de atributos HTML (canonical, og:url,
+ * og:image). `host` e `x-forwarded-proto` são escolhidos por quem fala com o
+ * processo — e um Host como `x"><script>…</script><b a="` fechava o atributo
+ * e injetava script EXECUTÁVEL, porque a CSP da época trazia
+ * `script-src 'unsafe-inline'`.
+ *
+ * Defeito introduzido por nós, no commit da pré-visualização, e invisível
+ * para as 262 verificações da suíte: a bateria do aplicativo testava que o
+ * marcador havia sido substituído e que og:url era absoluto — só no caminho
+ * benigno, nunca com um Host hostil. Teste que só exercita a entrada bem
+ * comportada não é teste de segurança.
+ *
+ * Usa socket cru porque `fetch` recusa montar um Host com esses caracteres —
+ * e foi exatamente essa recusa que deixou o furo passar despercebido. */
+const net = require('node:net');
+
+function pedidoCru(porta, host, extras = '') {
+  return new Promise((resolve, reject) => {
+    const s = net.connect(porta, '127.0.0.1', () => {
+      s.write(`GET / HTTP/1.1\r\nHost: ${host}\r\n${extras}Connection: close\r\n\r\n`);
+    });
+    let corpo = '';
+    s.on('data', (d) => { corpo += d; });
+    s.on('end', () => resolve(corpo));
+    s.on('error', reject);
+  });
+}
+
+test('Host hostil não injeta HTML na página entregue', async () => {
+  const porta = Number(new URL(base).port);
+  const resposta = await pedidoCru(porta, 'x"><script>alert(document.domain)</script><b a="');
+  assert.ok(!/<script>alert\(document\.domain\)<\/script>/.test(resposta),
+    'o cabeçalho Host virou script executável dentro da página');
+  assert.ok(!/href="http:\/\/x"/.test(resposta), 'o atributo foi fechado pelo valor injetado');
+  assert.ok(/<link rel="canonical"/.test(resposta), 'a página deixou de ser entregue');
+});
+
+test('protocolo forjado não vira esquema javascript:', async () => {
+  const porta = Number(new URL(base).port);
+  const resposta = await pedidoCru(porta, '127.0.0.1', 'X-Forwarded-Proto: javascript\r\n');
+  assert.ok(!/javascript:/i.test(resposta), 'x-forwarded-proto entrou cru na página');
+});
+
+test('Host legítimo continua produzindo endereço absoluto', async () => {
+  const porta = Number(new URL(base).port);
+  const resposta = await pedidoCru(porta, `127.0.0.1:${porta}`);
+  const m = /<meta property="og:url" content="([^"]*)"/.exec(resposta);
+  assert.ok(m, 'og:url sumiu da página');
+  assert.match(m[1], new RegExp(`^https?://127\\.0\\.0\\.1:${porta}/$`),
+    `og:url saiu como "${m && m[1]}" — a correção não pode quebrar a pré-visualização`);
+});
+
+test('a CSP não permite mais script inline', async () => {
+  const r = await fetch(base + '/');
+  const csp = r.headers.get('content-security-policy') || '';
+  const scriptSrc = /(?:^|;)\s*script-src ([^;]*)/.exec(csp);
+  assert.ok(scriptSrc, 'sem diretriz script-src');
+  assert.ok(!/'unsafe-inline'/.test(scriptSrc[1]),
+    `script-src ainda traz unsafe-inline (${scriptSrc[1]}) — é ela que torna injeção de HTML executável`);
+});
+
 /* ============ validação de CRM ============ */
 
 test('CRM inválido é recusado no acesso E na edição de perfil', async () => {
