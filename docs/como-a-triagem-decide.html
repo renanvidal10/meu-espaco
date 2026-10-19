@@ -1,0 +1,446 @@
+<title>Como a triagem decide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: um trilho vertical único atravessa a página, o mesmo device que a
+     tela de Resultado usa para ordenar os testes. Tudo pendura nele. */
+  :root {
+    --bg: #f2f6fa;
+    --surface: #ffffff;
+    --surface-2: #e9eff6;
+    --ink: #10202e;
+    --ink-muted: #4c6276;
+    --ink-faint: #627a8f;
+    --borda: #d3dfea;
+    --acento: #0e6180;
+    --acento-suave: #e2eef4;
+    --maquina: #1f6f4a;
+    --maquina-suave: #e2f1e9;
+    --humano: #8a5a12;
+    --humano-suave: #f7eeda;
+    --fonte: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a1017;
+      --surface: #121b23;
+      --surface-2: #19242e;
+      --ink: #e8eef4;
+      --ink-muted: #a8bccd;
+      --ink-faint: #8aa0b4;
+      --borda: #24323f;
+      --acento: #4fc3e8;
+      --acento-suave: #13303d;
+      --maquina: #6fd4a3;
+      --maquina-suave: #122a21;
+      --humano: #e2b562;
+      --humano-suave: #2b2213;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a1017;
+    --surface: #121b23;
+    --surface-2: #19242e;
+    --ink: #e8eef4;
+    --ink-muted: #a8bccd;
+    --ink-faint: #8aa0b4;
+    --borda: #24323f;
+    --acento: #4fc3e8;
+    --acento-suave: #13303d;
+    --maquina: #6fd4a3;
+    --maquina-suave: #122a21;
+    --humano: #e2b562;
+    --humano-suave: #2b2213;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--fonte);
+    font-size: 16px;
+    line-height: 1.6;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0 72px;
+  }
+  .folha { max-width: 820px; margin: 0 auto; }
+
+  /* ---- abertura ---- */
+  .topo { padding-block: 44px 8px; }
+  .eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ink-faint);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before {
+    content: ''; width: 18px; height: 3px; border-radius: 999px;
+    background: var(--acento); flex: none;
+  }
+  h1 {
+    font-size: clamp(30px, 6vw, 46px); line-height: 1.08;
+    letter-spacing: -.03em; margin: 14px 0 0; text-wrap: balance;
+  }
+  .tese {
+    font-size: clamp(17px, 2.4vw, 20px); color: var(--ink-muted);
+    margin: 16px 0 0; max-width: 60ch; line-height: 1.55;
+  }
+  .tese strong { color: var(--ink); font-weight: 650; }
+
+  h2 {
+    font-size: clamp(21px, 3.4vw, 27px); letter-spacing: -.022em;
+    margin: 0 0 6px; line-height: 1.2; text-wrap: balance;
+  }
+  h3 { font-size: 17px; margin: 0 0 4px; letter-spacing: -.012em; }
+  p { margin: 0 0 14px; }
+  p:last-child { margin-bottom: 0; }
+  section { padding-block: 40px 0; }
+  .sub { color: var(--ink-muted); margin: 0 0 22px; max-width: 64ch; }
+
+  /* ---- as duas naturezas ---- */
+  .duas { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 620px) { .duas { grid-template-columns: 1fr; } }
+  .natureza { border-radius: 14px; padding: 18px 18px 20px; border: 1px solid var(--borda); min-width: 0; }
+  .natureza.maquina { background: var(--maquina-suave); border-color: color-mix(in srgb, var(--maquina) 32%, transparent); }
+  .natureza.humano { background: var(--humano-suave); border-color: color-mix(in srgb, var(--humano) 32%, transparent); }
+  .natureza .tag {
+    font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    display: block; margin-bottom: 8px;
+  }
+  .natureza.maquina .tag { color: var(--maquina); }
+  .natureza.humano .tag { color: var(--humano); }
+  .natureza ul { margin: 10px 0 0; padding-left: 18px; }
+  .natureza li { margin-bottom: 6px; font-size: 14.5px; line-height: 1.5; }
+  .natureza li:last-child { margin-bottom: 0; }
+
+  /* ---- o trilho ---- */
+  .trilho { margin-top: 10px; }
+  .etapa {
+    display: grid; grid-template-columns: 34px 1fr; gap: 0 16px;
+    position: relative; min-width: 0;
+  }
+  .no {
+    grid-row: 1 / span 2; width: 34px; height: 34px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
+    background: var(--acento); color: #fff; position: relative; z-index: 1;
+  }
+  .etapa:not(:last-child) .no::after {
+    content: ''; position: absolute; top: 34px; left: 50%;
+    width: 2px; height: calc(100% + 100vh); max-height: 999px;
+    transform: translateX(-50%); background: var(--borda); z-index: -1;
+  }
+  .etapa .corpo { padding-bottom: 26px; min-width: 0; }
+  .etapa:last-child .corpo { padding-bottom: 0; }
+  .quem {
+    display: inline-block; font-size: 10.5px; font-weight: 800;
+    letter-spacing: .07em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; margin-bottom: 7px;
+  }
+  .quem.maq { background: var(--maquina-suave); color: var(--maquina); }
+  .quem.hum { background: var(--humano-suave); color: var(--humano); }
+  .quem.cod { background: var(--acento-suave); color: var(--acento); }
+  .etapa p { font-size: 15px; color: var(--ink-muted); margin: 0; }
+  .etapa p + p { margin-top: 9px; }
+  .etapa .dado {
+    margin-top: 11px; background: var(--surface); border: 1px solid var(--borda);
+    border-radius: 10px; padding: 11px 13px;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+    color: var(--ink-muted); overflow-x: auto;
+  }
+  .etapa .dado b { color: var(--ink); font-weight: 600; }
+
+  /* ---- registro ---- */
+  .registro {
+    background: var(--surface); border: 1px solid var(--borda);
+    border-radius: 16px; padding: 22px; margin-top: 6px;
+  }
+  .registro-topo { text-align: center; padding-bottom: 18px; border-bottom: 1px solid var(--borda); }
+  .registro-topo code {
+    font-family: var(--mono); font-size: 15px; font-weight: 700;
+    color: var(--acento); background: var(--acento-suave);
+    padding: 5px 11px; border-radius: 8px; display: inline-block;
+  }
+  .registro-topo p { margin: 10px 0 0; font-size: 14px; color: var(--ink-muted); }
+  .saidas { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 18px; }
+  .saida { background: var(--surface-2); border-radius: 10px; padding: 12px 13px; min-width: 0; }
+  .saida strong { display: block; font-size: 13.5px; margin-bottom: 2px; }
+  .saida span { font-size: 12.5px; color: var(--ink-faint); line-height: 1.45; display: block; }
+
+  /* ---- exemplo ---- */
+  .caso { background: var(--surface); border: 1px solid var(--borda); border-radius: 16px; overflow: hidden; }
+  .caso-cab { background: var(--surface-2); padding: 14px 18px; border-bottom: 1px solid var(--borda); }
+  .caso-cab strong { font-size: 14px; }
+  .caso-cab span { display: block; font-size: 13px; color: var(--ink-muted); margin-top: 2px; }
+  .porta { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; padding: 13px 18px; border-bottom: 1px solid var(--borda); align-items: center; }
+  .porta:last-child { border-bottom: 0; }
+  .porta .pergunta { font-size: 14.5px; min-width: 0; }
+  .porta .pergunta em { display: block; font-size: 12.5px; color: var(--ink-faint); font-style: normal; margin-top: 2px; }
+  .porta .resp {
+    font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+  }
+  .resp.sim { background: var(--maquina-suave); color: var(--maquina); }
+  .resp.nao { background: var(--humano-suave); color: var(--humano); }
+  .caso-saida { padding: 15px 18px; background: var(--acento-suave); }
+  .caso-saida strong { font-size: 14.5px; color: var(--ink); }
+  .caso-saida p { font-size: 13.5px; color: var(--ink-muted); margin: 4px 0 0; }
+
+  /* ---- estados ---- */
+  .estados { display: grid; gap: 9px; }
+  .estado { display: grid; grid-template-columns: auto 1fr; gap: 13px; align-items: start; background: var(--surface); border: 1px solid var(--borda); border-radius: 11px; padding: 13px 15px; min-width: 0; }
+  .estado code { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--acento); background: var(--acento-suave); padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+  .estado span { font-size: 14px; color: var(--ink-muted); line-height: 1.5; min-width: 0; }
+  .estado span b { color: var(--ink); font-weight: 600; }
+  @media (max-width: 520px) { .estado { grid-template-columns: 1fr; gap: 7px; } .estado code { justify-self: start; } }
+
+  /* ---- numeros ---- */
+  .numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 12px; }
+  .numero { background: var(--surface); border: 1px solid var(--borda); border-radius: 12px; padding: 16px; min-width: 0; }
+  .numero .n { font-size: 27px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; display: block; }
+  .numero .q { font-size: 13px; color: var(--ink-muted); display: block; margin-top: 3px; line-height: 1.4; }
+
+  .nota {
+    margin-top: 22px; border-left: 3px solid var(--acento);
+    padding: 2px 0 2px 16px; color: var(--ink-muted); font-size: 14.5px;
+  }
+  .nota b { color: var(--ink); }
+  .rodape { margin-top: 46px; padding-top: 20px; border-top: 1px solid var(--borda); font-size: 13px; color: var(--ink-faint); }
+  .rodape code { font-family: var(--mono); font-size: 12px; }
+</style>
+
+<div class="folha">
+
+  <header class="topo">
+    <div class="eyebrow">OncoGenYX · motor clínico</div>
+    <h1>Como a triagem decide</h1>
+    <p class="tese">Nenhum modelo de linguagem decide qual teste solicitar. A inteligência artificial faz uma coisa só: <strong>lê o material e organiza o que está escrito nele</strong>. A indicação sai de regras determinísticas, escritas à mão a partir de diretrizes, que dão sempre a mesma resposta para a mesma entrada.</p>
+  </header>
+
+  <section>
+    <h2>A divisão de trabalho</h2>
+    <p class="sub">Esta separação é a decisão de arquitetura mais importante do projeto. Ela existe porque um modelo de linguagem é excelente em ler um laudo bagunçado e péssimo como fonte de verdade clínica — ele pode errar de formas plausíveis, e numa indicação de exame isso é dano a uma pessoa.</p>
+    <div class="duas">
+      <div class="natureza maquina">
+        <span class="tag">A IA faz</span>
+        <ul>
+          <li>Lê texto digitado, PDF de laudo e foto de laudo</li>
+          <li>Identifica o sítio de origem do tumor</li>
+          <li>Preenche campos: histologia, grau, estadiamento, idade, história familiar, tratamentos</li>
+          <li>Cita o trecho literal que sustenta cada leitura</li>
+          <li>Diz o que não conseguiu encontrar</li>
+        </ul>
+      </div>
+      <div class="natureza humano">
+        <span class="tag">A IA nunca faz</span>
+        <ul>
+          <li>Decidir se há indicação de teste</li>
+          <li>Escolher qual painel solicitar</li>
+          <li>Citar diretriz ou escrever justificativa clínica</li>
+          <li>Associar um programa de acesso a um tumor</li>
+          <li>Ver o nome do paciente — ele é bloqueado no servidor antes de qualquer envio</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>O percurso de um caso</h2>
+    <p class="sub">Sete etapas, da primeira linha que o médico escreve até o PDF que ele assina. A etiqueta de cada uma diz quem executa.</p>
+
+    <div class="trilho">
+
+      <div class="etapa">
+        <div class="no">1</div>
+        <div class="corpo">
+          <span class="quem hum">Médico</span>
+          <h3>Descreve o caso</h3>
+          <p>Texto livre, PDF do laudo, foto da página, ou ditado. Nada precisa estar em formato nenhum: a etapa seguinte existe justamente para organizar o que vier.</p>
+        </div>
+      </div>
+
+      <div class="etapa">
+        <div class="no">2</div>
+        <div class="corpo">
+          <span class="quem maq">IA</span>
+          <h3>Lê e estrutura</h3>
+          <p>O material vai para o modelo com um formulário em branco gerado pelo registro de tumores — não um pedido aberto. Para cada campo de cada tumor existe uma instrução de extração escrita por nós, e para cada tumor existe uma descrição das pistas que identificam o sítio de origem.</p>
+          <p>O modelo é obrigado a devolver, junto com o subtipo, <b>o trecho literal do material que nomeia o órgão de origem</b>. Resposta com subtipo preenchido e justificativa vazia é rejeitada pelo servidor.</p>
+          <div class="dado">
+            <b>tipo_tumor:</b> "Ginecológico - Ovário"<br>
+            <b>tipo_tumor_justificativa:</b> "carcinoma seroso de alto grau de ovário"<br>
+            <b>histologia:</b> "Seroso" &nbsp; <b>grau:</b> "Alto grau" &nbsp; <b>estadiamento:</b> "IIIC"<br>
+            <b>fontes_usadas:</b> ["laudo anatomopatológico, p. 2"]
+          </div>
+        </div>
+      </div>
+
+      <div class="etapa">
+        <div class="no">3</div>
+        <div class="corpo">
+          <span class="quem hum">Médico</span>
+          <h3>Confere e corrige</h3>
+          <p>Tela de revisão com os campos preenchidos e editáveis. É o ponto de controle: a triagem usa exatamente o que estiver escrito ali, não o que a IA achou. O médico assume a entrada antes de a regra rodar.</p>
+        </div>
+      </div>
+
+      <div class="etapa">
+        <div class="no">4</div>
+        <div class="corpo">
+          <span class="quem cod">Regra</span>
+          <h3>Classifica</h3>
+          <p>Cada tumor tem uma função própria que recebe os campos confirmados e devolve o resultado. Sem modelo, sem busca, sem aleatoriedade: uma sequência de perguntas em ordem clínica, cada uma com saída própria. Mesma entrada, mesma saída, sempre.</p>
+          <p>A ordem importa. Em ovário, por exemplo, a verificação de tumor <i>borderline</i> vem antes de tudo, porque é o único caso em que a revisão clínica <b>retira</b> um exame que o critério anterior dava — e uma saída dessas nunca é silenciosa.</p>
+        </div>
+      </div>
+
+      <div class="etapa">
+        <div class="no">5</div>
+        <div class="corpo">
+          <span class="quem cod">Regra</span>
+          <h3>Monta a resposta</h3>
+          <p>A saída não é "sim/não". É um objeto com os testes indicados, e cada teste carrega o nome do painel, a amostra, a justificativa clínica, a fonte e os programas de acesso. Esse mesmo objeto alimenta a tela de resultado e o PDF — não existe um texto para a tela e outro para o papel.</p>
+        </div>
+      </div>
+
+      <div class="etapa">
+        <div class="no">6</div>
+        <div class="corpo">
+          <span class="quem cod">Regra</span>
+          <h3>Anexa os programas</h3>
+          <p>Cada teste aponta para programas de acesso de uma lista curada à mão. Um programa só se associa a um tumor com verificação documentada — <b>nunca por analogia</b>. Onde ainda não há verificação, o card aparece marcado como pendente, de propósito.</p>
+        </div>
+      </div>
+
+      <div class="etapa">
+        <div class="no">7</div>
+        <div class="corpo">
+          <span class="quem hum">Médico</span>
+          <h3>Assina a solicitação</h3>
+          <p>O nome do paciente entra só aqui, num campo isolado que vive apenas no navegador. Ele não passa pelo motor de triagem, não é gravado em servidor nenhum e não chega ao modelo. Preenche o documento e acaba quando a aba fecha.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>O cérebro é um arquivo só</h2>
+    <p class="sub">Não existe uma base de conhecimento separada que o sistema consulta. Existe um registro — um único arquivo — onde cada tumor é descrito por inteiro: os campos que ele pede, como identificá-lo num laudo, a regra que o classifica e os programas ligados a cada teste. Tudo o que o médico vê é gerado a partir dele.</p>
+    <div class="registro">
+      <div class="registro-topo">
+        <code>tumors.js</code>
+        <p>7 subtipos: ovário, mama, próstata, colorretal, pulmão, pâncreas e endométrio</p>
+      </div>
+      <div class="saidas">
+        <div class="saida"><strong>Instrução de leitura</strong><span>O formulário que a IA recebe</span></div>
+        <div class="saida"><strong>Campos da revisão</strong><span>O que o médico confere</span></div>
+        <div class="saida"><strong>Motor de regras</strong><span>A classificação do caso</span></div>
+        <div class="saida"><strong>Tela de resultado</strong><span>Testes, justificativa e fonte</span></div>
+        <div class="saida"><strong>Cards de programa</strong><span>Acesso por teste</span></div>
+        <div class="saida"><strong>Documento em PDF</strong><span>A solicitação assinável</span></div>
+      </div>
+    </div>
+    <p class="nota"><b>Por que isso importa:</b> acrescentar um tumor novo é escrever uma entrada nesse registro. As seis saídas aparecem juntas, já coerentes entre si. Antes de existir o registro, uma regra podia mudar na tela e continuar velha no PDF — e ninguém via.</p>
+  </section>
+
+  <section>
+    <h2>De onde vem a diretriz</h2>
+    <p class="sub">O sistema não busca diretriz na hora. Buscar ao vivo significaria depender de um serviço externo, de uma interpretação feita na hora e de um resultado que pode mudar entre dois casos idênticos. Em vez disso, cada diretriz foi lida, discutida e transformada em critério explícito, antes de virar código.</p>
+    <div class="trilho">
+      <div class="etapa">
+        <div class="no">1</div>
+        <div class="corpo">
+          <h3>A diretriz é lida e documentada</h3>
+          <p>A regra entra em <code>docs/ARQUITETURA.md</code> em português, com a fonte nomeada e o critério exato que a dispara. NCCN, ASCO, ESGO-ESTRO-ESP, AUA/SUO, EAU, e os ensaios que sustentam cada número.</p>
+        </div>
+      </div>
+      <div class="etapa">
+        <div class="no">2</div>
+        <div class="corpo">
+          <h3>Só então vira código</h3>
+          <p>Diretriz primeiro, código depois. A ordem foi adotada depois de um erro: uma regra implementada sem antes levantar todos os critérios da diretriz deixou de fora uma histologia inteira.</p>
+        </div>
+      </div>
+      <div class="etapa">
+        <div class="no">3</div>
+        <div class="corpo">
+          <h3>E ganha um teste que a fixa</h3>
+          <p>Cada regra clínica tem teste automatizado. Mudar a regra sem querer reprova a bateria antes de chegar ao médico.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>A regra do ovário, por dentro</h2>
+    <p class="sub">Um caso real atravessando as portas, na ordem em que a função as abre.</p>
+    <div class="caso">
+      <div class="caso-cab">
+        <strong>Mulher, 61 anos</strong>
+        <span>Carcinoma seroso de alto grau de ovário, FIGO IIIC, em carboplatina</span>
+      </div>
+      <div class="porta">
+        <div class="pergunta">Histologia preenchida?<em>Sem ela não há o que classificar</em></div>
+        <span class="resp sim">Sim</span>
+      </div>
+      <div class="porta">
+        <div class="pergunta">É borderline?<em>Baixo potencial de malignidade sai do espectro BRCA</em></div>
+        <span class="resp nao">Não</span>
+      </div>
+      <div class="porta">
+        <div class="pergunta">É histologia epitelial?<em>Não epiteliais têm indicação própria, fora desta regra</em></div>
+        <span class="resp sim">Sim</span>
+      </div>
+      <div class="porta">
+        <div class="pergunta">Seroso ou endometrioide?<em>Só essas duas abrem a porta do teste somático</em></div>
+        <span class="resp sim">Sim</span>
+      </div>
+      <div class="porta">
+        <div class="pergunta">Alto grau?<em>Grau e estágio são eixos independentes, um não se deduz do outro</em></div>
+        <span class="resp sim">Sim</span>
+      </div>
+      <div class="porta">
+        <div class="pergunta">Estágio III ou IV?<em>FIGO IIIC está dentro</em></div>
+        <span class="resp sim">Sim</span>
+      </div>
+      <div class="caso-saida">
+        <strong>Dois testes indicados, com ordem clínica</strong>
+        <p><b>1. HRD somático</b> — tecido tumoral, prioridade. Apoia a decisão de manutenção com inibidor de PARP.<br>
+        <b>2. Painel germinativo multigênico</b> — sangue periférico. BRCA1/2, RAD51C, RAD51D, BRIP1, PALB2 e genes de Lynch.</p>
+      </div>
+    </div>
+    <p class="nota"><b>Uma correção que veio de parecer externo:</b> o painel germinativo era restrito a BRCA1/2. Cerca de 20% das variantes patogênicas em ovário estão fora desses dois genes — restringir o painel deixava essas portadoras sem diagnóstico e sem rastreio em cascata na família. Hoje o painel é multigênico, e o motivo está escrito dentro do código.</p>
+  </section>
+
+  <section>
+    <h2>Seis respostas possíveis, não duas</h2>
+    <p class="sub">"Não indicado por esta regra" e "sem indicação de teste" são coisas clinicamente diferentes. Confundir as duas faz o médico deixar de testar um paciente que precisa — por isso cada situação tem um estado próprio e um texto próprio.</p>
+    <div class="estados">
+      <div class="estado"><code>completo</code><span><b>Critério integralmente atendido.</b> Os testes saem afirmados, e a justificativa impressa afirma junto.</span></div>
+      <div class="estado"><code>provisorio</code><span><b>Indicação provável, com dado por confirmar.</b> Falta grau ou estágio no laudo. O documento diz que o critério está por confirmar — o médico não assina o que a tela ainda está perguntando.</span></div>
+      <div class="estado"><code>parcial</code><span><b>Um teste indicado, outro não.</b> Em ovário: germinativo sim, somático fora do critério. A tela nomeia qual critério não foi atendido e o que o reabriria.</span></div>
+      <div class="estado"><code>sem-indicacao</code><span><b>Fora do critério desta regra.</b> Único caso em que a triagem retira um exame. Diz o porquê e o que reabriria a indicação.</span></div>
+      <div class="estado"><code>nao-reconhecida</code><span><b>Histologia fora da regra, mas não sem indicação.</b> Pequenas células hipercalcêmico associa-se a SMARCA4; cordões sexuais a STK11 e DICER1. A tela encaminha à oncogenética em vez de calar.</span></div>
+      <div class="estado"><code>insuficiente</code><span><b>Falta dado para classificar.</b> Volta à revisão e nomeia o campo que falta.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Como sabemos que está certo</h2>
+    <p class="sub">Uma regra clínica errada não dá sintoma: a tela mostra uma resposta plausível e ninguém desconfia. Então o motor é varrido inteiro, por combinação, e submetido a invariantes — propriedades que precisam valer em todo caso possível, independentemente do tumor.</p>
+    <div class="numeros">
+      <div class="numero"><span class="n">67.284</span><span class="q">combinações de entrada varridas</span></div>
+      <div class="numero"><span class="n">1</span><span class="q">bug real encontrado e corrigido</span></div>
+      <div class="numero"><span class="n">262</span><span class="q">testes automatizados</span></div>
+      <div class="numero"><span class="n">7</span><span class="q">subtipos cobertos</span></div>
+    </div>
+    <p class="nota" style="margin-top:18px"><b>O que a varredura achou:</b> em colorretal, dois testes marcados como prioritários ao mesmo tempo — e "prioridade" só faz sentido se for um. Achou também três falsos positivos, que eram defeitos da própria auditoria, não do motor. Desde então, todo defeito corrigido ganha um teste que o fixa: o erro só pode custar tempo uma vez.</p>
+  </section>
+
+  <footer class="rodape">
+    Fontes no código: <code>server/public/tumors.js</code> (registro e regras) · <code>server/extracao.js</code> (leitura) · <code>docs/ARQUITETURA.md</code> (diretrizes, fonte e critério) · <code>server/test/auditoria-clinica.js</code> (varredura de invariantes).
+  </footer>
+
+</div>

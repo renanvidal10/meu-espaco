@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"/><style>
+:root{
+  --bg:#f2f6fa; --surface:#fff; --ink:#10202e; --muted:#4c6276; --faint:#627a8f;
+  --borda:#d3dfea; --acento:#0e6180; --acento-suave:#e2eef4;
+  --ia:#1f6f4a; --ia-suave:#e4f2ea; --ia-borda:#9ecdb5;
+  --med:#8a5a12; --med-suave:#f8f0dd; --med-borda:#dfc48a;
+  --fonte:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1600px;height:778px}
+body{background:var(--bg);color:var(--ink);font-family:var(--fonte);padding:46px 56px 40px;display:flex;flex-direction:column}
+
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:40px}
+.eyebrow{font-size:14px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:11px}
+.eyebrow::before{content:'';width:22px;height:4px;border-radius:999px;background:var(--acento)}
+h1{font-size:46px;line-height:1.05;letter-spacing:-.03em;margin-top:13px}
+.tese{font-size:19px;color:var(--muted);margin-top:11px;max-width:62ch;line-height:1.5}
+.tese b{color:var(--ink);font-weight:650}
+.legenda{display:flex;flex-direction:column;gap:9px;flex:none;padding-top:6px}
+.leg{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);white-space:nowrap}
+.pt{width:13px;height:13px;border-radius:4px;flex:none}
+.pt.med{background:var(--med)} .pt.ia{background:var(--ia)} .pt.cod{background:var(--acento)}
+
+/* ---- fluxo ---- */
+.fluxo{display:flex;align-items:stretch;gap:0;margin-top:34px}
+.passo{flex:1;min-width:0;display:flex;flex-direction:column}
+.seta{flex:none;width:34px;display:flex;align-items:center;justify-content:center;color:var(--borda);font-size:26px;padding-top:34px}
+.caixa{background:var(--surface);border:2px solid var(--borda);border-radius:16px;padding:17px 17px 19px;height:100%;display:flex;flex-direction:column}
+.caixa.ia{background:var(--ia-suave);border-color:var(--ia-borda)}
+.caixa.med{background:var(--med-suave);border-color:var(--med-borda)}
+.caixa.cod{border-color:var(--acento);border-width:2.5px}
+.quem{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:9px}
+.quem.med{color:var(--med)} .quem.ia{color:var(--ia)} .quem.cod{color:var(--acento)}
+.caixa h3{font-size:19px;letter-spacing:-.015em;line-height:1.2;margin-bottom:7px}
+.caixa p{font-size:13.5px;line-height:1.45;color:var(--muted)}
+.caixa .nums{margin-top:auto;padding-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--faint);line-height:1.5}
+
+/* ---- ligacoes ---- */
+.ligacoes{display:flex;gap:0;margin-top:0}
+.lig{flex:1;min-width:0;height:46px;position:relative}
+.lig.vazio{opacity:0}
+.lig::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%);
+  background:repeating-linear-gradient(to bottom,var(--acento) 0 5px,transparent 5px 10px);opacity:.55}
+.lig::after{content:'';position:absolute;left:50%;top:0;transform:translate(-50%,-1px) rotate(45deg);
+  width:8px;height:8px;border-top:2px solid var(--acento);border-left:2px solid var(--acento);opacity:.75}
+.espaco{flex:none;width:34px}
+
+/* ---- registro ---- */
+.registro{background:var(--surface);border:2.5px solid var(--acento);border-radius:18px;padding:20px 24px;display:flex;align-items:center;gap:26px}
+.registro .rotulo{flex:none}
+.registro .rotulo .tag{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--acento);display:block;margin-bottom:5px}
+.registro .rotulo code{font-family:var(--mono);font-size:25px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.registro .rotulo p{font-size:13px;color:var(--muted);margin-top:4px;max-width:30ch;line-height:1.4}
+.registro .divisor{width:1px;align-self:stretch;background:var(--borda);flex:none}
+.saidas{display:grid;grid-template-columns:repeat(3,1fr);gap:11px 22px;flex:1;min-width:0;max-width:760px}
+.saida{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;line-height:1.3}
+.saida::before{content:'';width:6px;height:6px;border-radius:999px;background:var(--acento);flex:none}
+.saida b{color:var(--ink);font-weight:600}
+
+/* ---- faixa final ---- */
+.faixa{margin-top:auto;padding-top:30px;display:flex;align-items:center;gap:22px}
+.faixa .marca{width:52px;height:52px;border-radius:14px;background:var(--acento);display:flex;align-items:center;justify-content:center;flex:none}
+.faixa .marca svg{width:32px;height:32px}
+.helice path{fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round}
+.helice path.atras{stroke:rgba(255,255,255,.45)}
+.faixa .dizer{flex:1;min-width:0}
+.faixa .dizer strong{font-size:20px;letter-spacing:-.015em;display:block}
+.faixa .dizer span{font-size:14.5px;color:var(--muted);display:block;margin-top:3px}
+.faixa .selos{display:flex;gap:10px;flex:none}
+.selo{background:var(--acento-suave);border:1px solid color-mix(in srgb,var(--acento) 28%,transparent);border-radius:11px;padding:9px 15px;text-align:center}
+.selo b{display:block;font-size:20px;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.selo span{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+</style></head><body>
+
+<div class="cab">
+  <div>
+    <div class="eyebrow">OncoGenYX · motor clínico</div>
+    <h1>Como a triagem decide</h1>
+    <p class="tese">Nenhum modelo de linguagem decide qual teste solicitar. A IA <b>lê o laudo e organiza o que está escrito nele</b>. A indicação sai de regras determinísticas, escritas a partir de diretrizes: mesma entrada, mesma saída, sempre.</p>
+  </div>
+  <div class="legenda">
+    <div class="leg"><span class="pt med"></span> Médico decide</div>
+    <div class="leg"><span class="pt ia"></span> IA lê e organiza</div>
+    <div class="leg"><span class="pt cod"></span> Regra determinística</div>
+  </div>
+</div>
+
+<div class="fluxo">
+  <div class="passo"><div class="caixa med">
+    <span class="quem med">Médico</span>
+    <h3>Descreve o caso</h3>
+    <p>Texto, PDF do laudo, foto ou ditado. Sem formato exigido.</p>
+  </div></div>
+  <div class="seta">→</div>
+
+  <div class="passo"><div class="caixa ia">
+    <span class="quem ia">IA</span>
+    <h3>Lê e estrutura</h3>
+    <p>Preenche um formulário fechado e cita o trecho literal que nomeia o órgão de origem.</p>
+    <div class="nums">histologia · grau<br>estadiamento · idade</div>
+  </div></div>
+  <div class="seta">→</div>
+
+  <div class="passo"><div class="caixa med">
+    <span class="quem med">Médico</span>
+    <h3>Confere e corrige</h3>
+    <p>Ponto de controle. A triagem usa o que está na tela, não o que a IA achou.</p>
+  </div></div>
+  <div class="seta">→</div>
+
+  <div class="passo"><div class="caixa cod">
+    <span class="quem cod">Regra</span>
+    <h3>Classifica</h3>
+    <p>Perguntas em ordem clínica, cada uma com saída própria. Sem modelo, sem busca, sem acaso.</p>
+    <div class="nums">6 estados possíveis<br>não só sim/não</div>
+  </div></div>
+  <div class="seta">→</div>
+
+  <div class="passo"><div class="caixa cod">
+    <span class="quem cod">Regra</span>
+    <h3>Entrega</h3>
+    <p>Testes com justificativa e fonte, programas de acesso e a solicitação assinável.</p>
+    <div class="nums">mesma origem para<br>a tela e o papel</div>
+  </div></div>
+</div>
+
+<div class="ligacoes">
+  <div class="lig vazio"></div><div class="espaco"></div>
+  <div class="lig"></div><div class="espaco"></div>
+  <div class="lig"></div><div class="espaco"></div>
+  <div class="lig"></div><div class="espaco"></div>
+  <div class="lig"></div>
+</div>
+
+<div class="registro">
+  <div class="rotulo">
+    <span class="tag">O cérebro é um arquivo só</span>
+    <code>tumors.js</code>
+    <p>7 subtipos: ovário, mama, próstata, colorretal, pulmão, pâncreas e endométrio.</p>
+  </div>
+  <div class="divisor"></div>
+  <div class="saidas">
+    <div class="saida"><b>Instrução de leitura</b></div>
+    <div class="saida"><b>Campos da revisão</b></div>
+    <div class="saida"><b>Motor de regras</b></div>
+    <div class="saida"><b>Tela de resultado</b></div>
+    <div class="saida"><b>Cards de programa</b></div>
+    <div class="saida"><b>Documento em PDF</b></div>
+  </div>
+</div>
+
+<div class="faixa">
+  <span class="marca"><svg class="helice" viewBox="0 0 24 24"><path d="M17.4 4.5L17.0 5.3L15.8 6.0L14.1 6.8L12.0 7.5L9.9 8.3L8.2 9.0L7.0 9.8L6.6 10.5L7.0 11.3L8.2 12.0L9.9 12.8L12.0 13.5L14.1 14.3L15.8 15.0L17.0 15.8L17.4 16.5L17.0 17.3L15.8 18.0L14.1 18.8L12.0 19.5"/><path class="atras" d="M6.6 4.5L7.0 5.3L8.2 6.0L9.9 6.8L12.0 7.5L14.1 8.3L15.8 9.0L17.0 9.8L17.4 10.5L17.0 11.3L15.8 12.0L14.1 12.8L12.0 13.5L9.9 14.3L8.2 15.0L7.0 15.8L6.6 16.5L7.0 17.3L8.2 18.0L9.9 18.8L12.0 19.5"/><path d="M6.6 4.5L7.0 5.3L8.2 6.0L9.9 6.8L12.0 7.5L14.1 8.3L15.8 9.0L17.0 9.8L17.4 10.5L17.0 11.3L15.8 12.0L14.1 12.8L12.0 13.5L9.9 14.3L8.2 15.0L7.0 15.8L6.6 16.5L7.0 17.3L8.2 18.0L9.9 18.8L12.0 19.5"/></svg></span>
+  <div class="dizer">
+    <strong>As diretrizes não são buscadas na hora.</strong>
+    <span>Cada uma foi lida, documentada com fonte e critério exato, e só então virou código — com um teste que a fixa. NCCN, ASCO, ESGO-ESTRO-ESP, AUA/SUO, EAU.</span>
+  </div>
+  <div class="selos">
+    <div class="selo"><b>67.284</b><span>combinações varridas</span></div>
+    <div class="selo"><b>262</b><span>testes automatizados</span></div>
+  </div>
+</div>
+
+</body></html>
