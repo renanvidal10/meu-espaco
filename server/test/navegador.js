@@ -1322,6 +1322,65 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- 13h2. o documento assinado não corrompe nem esvazia ---------- */
+  {
+    /* §81. Dois defeitos no PAPEL, que é onde menos se pode errar, e os dois
+     * invisíveis na tela:
+     *
+     * a) O nome do gene era destruído. A justificativa impressa emenda os
+     *    testes prévios numa frase e rebaixava a inicial — "BRCA germinativo
+     *    negativo" virava "bRCA germinativo negativo". O §47.6 já tinha
+     *    corrigido o toLowerCase() GLOBAL pelo mesmo motivo; sobrou o caso
+     *    mais comum, porque o texto quase sempre começa pelo gene. Some da
+     *    tela, porque a tela mostra a justificativa sem esse prefixo.
+     *
+     * b) "Editar campos" torna editável toda célula, inclusive a
+     *    justificativa clínica, e era possível apagá-la e baixar assim mesmo:
+     *    papel com a marca da plataforma, justificativa em branco e a
+     *    assinatura do médico embaixo. O §55 já estabeleceu a regra para o
+     *    nome do paciente ("documento assinado sem paciente não é um
+     *    rascunho"); faltava aplicá-la aqui. */
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('documento: ' + e.message));
+    await mockExtracao(p, {
+      tipo_tumor: 'Mama', subtipo_molecular: 'Triplo-negativo',
+      extensao_doenca: 'Inicial (operável)', idade: '44',
+      testes_previos: 'BRCA germinativo negativo em 2021 (Invitae)',
+      nome_paciente: 'Joana P. Lima',
+    });
+    await entrar(p);
+    await p.fill('#case-text', 'caso de mama');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('button:has-text("Rodar triagem")');
+    await p.waitForSelector('#screen-2.active');
+    await p.click('#verdict-next-btn');
+    await p.waitForSelector('#screen-3.active');
+    await p.fill('#patient-name', 'Joana P. Lima');
+    await p.waitForTimeout(300);
+    await p.locator('#programs-dynamic details.doc-preview-wrap').first().click();
+    await p.waitForTimeout(200);
+
+    const textoDoc = await p.locator('#programs-dynamic .doc-justif').first().innerText();
+    linha(ok(/BRCA/.test(textoDoc) && !/bRCA/.test(textoDoc),
+      `a justificativa impressa saiu com "${(/b?RCA\w*/i.exec(textoDoc) || ['?'])[0]}"`),
+      'o nome do gene chega inteiro ao documento assinado');
+
+    // (b) justificativa apagada à mão não pode virar PDF.
+    const barrou = await p.evaluate(() => {
+      let imprimiu = false;
+      window.print = () => { imprimiu = true; };
+      const alvo = document.querySelector('#programs-dynamic details.doc-preview-wrap');
+      const campo = alvo.querySelector('.doc-justif span');
+      campo.textContent = '   ';
+      downloadDoc(alvo.id);
+      return !imprimiu;
+    });
+    linha(ok(barrou, 'documento com justificativa clínica em branco foi para o papel'),
+      'justificativa apagada barra o download, como já acontece com o nome');
+    await p.close();
+  }
+
   /* ---------- 13i. a revelação ao rolar nunca esconde conteúdo ---------- */
   {
     /* §76. A revelação ao rolar é a única animação do app que trabalha

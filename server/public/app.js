@@ -1540,8 +1540,21 @@
       // O toLowerCase() servia para emendar a frase, e destruía nome de gene e
       // de laboratório no documento ASSINADO: "Painel BRCA1/2 (Invitae)" saía
       // "painel brca1/2 (invitae)". Só a primeira letra desce. §47.6
+      /* §81. A correção do §47.6 ficou pela metade, e o caso que sobrou é o
+       * MAIS comum: o texto de testes prévios quase sempre começa pelo nome
+       * do gene. "BRCA germinativo negativo em 2021" saía "bRCA germinativo
+       * negativo em 2021" no documento que o médico assina — e some na tela,
+       * porque a tela mostra `test.justify` sem este prefixo. Só aparece no
+       * papel, que é onde menos se pode errar.
+       * Agora a inicial só desce quando rebaixá-la não destrói nada: palavra
+       * que não é toda maiúscula, não tem maiúscula interna e não tem
+       * dígito. BRCA, MSI, MLH1, PD-L1 e DNA ficam intactos. */
+      const primeiraPalavra = String(testesPrevios).split(/\s+/)[0] || '';
+      const ehSigla = primeiraPalavra === primeiraPalavra.toUpperCase()
+        || /[A-Z]/.test(primeiraPalavra.slice(1))
+        || /\d/.test(primeiraPalavra);
       const previosNaFrase = testesPrevios
-        ? testesPrevios.charAt(0).toLowerCase() + testesPrevios.slice(1)
+        ? (ehSigla ? testesPrevios : testesPrevios.charAt(0).toLowerCase() + testesPrevios.slice(1))
         : 'sem teste molecular prévio relatado';
       const justificativa = `Caso com diagnóstico acima descrito, ${previosNaFrase}. ${test.justify}` +
         (test.kind === 'germinativo' && historico ? ` Histórico familiar relatado: ${historico}, reforça encaminhamento para aconselhamento genético.` : '');
@@ -1729,6 +1742,23 @@
       campo.scrollIntoView({ block: 'center' });
       return;
     }
+    /* §81. O mesmo raciocínio do §55, aplicado ao campo que o §55 esqueceu.
+     * "Editar campos" torna editável TODA célula do documento, inclusive a
+     * justificativa clínica — e era possível apagá-la por inteiro e baixar
+     * assim mesmo. Sai um papel com a marca da plataforma, o campo
+     * JUSTIFICATIVA CLÍNICA em branco e a assinatura do médico embaixo.
+     * Documento assinado sem justificativa não é um rascunho: é uma
+     * solicitação de exame sem a razão clínica que a sustenta. */
+    const alvoPreview = document.getElementById(wrapId);
+    const justif = alvoPreview && alvoPreview.querySelector('.doc-justif span');
+    if (justif && !justif.textContent.trim()) {
+      const detalhe = alvoPreview.closest('details');
+      if (detalhe) detalhe.open = true;
+      justif.scrollIntoView({ block: 'center' });
+      if (typeof justif.focus === 'function') justif.focus();
+      return;
+    }
+
     document.querySelectorAll('.doc-preview-wrap').forEach((el) => el.classList.remove('print-target'));
     const alvo = document.getElementById(wrapId);
     // Um <details> fechado não entra na impressão: sem esta linha o médico
