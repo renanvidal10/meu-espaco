@@ -1,0 +1,330 @@
+<title>Decisões de curadoria clínica</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: seis decisões, cada uma com a mesma anatomia — pergunta, o que o
+     motor faz hoje, o que cada corpo diz, o trade-off, a recomendação. A
+     repetição é proposital: comparar decisões exige que elas tenham a mesma
+     forma. */
+  :root {
+    --bg: #f2f6fa; --surface: #ffffff; --surface-2: #e9eff6;
+    --ink: #10202e; --ink-muted: #4c6276; --ink-faint: #627a8f;
+    --borda: #d3dfea; --acento: #0e6180; --acento-suave: #e2eef4;
+    --sim: #1f6f4a; --sim-suave: #e4f2ea;
+    --nao: #8a2f2f; --nao-suave: #f7e6e6;
+    --duvida: #8a5a12; --duvida-suave: #f8f0dd;
+    --fonte: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a1017; --surface: #121b23; --surface-2: #19242e;
+      --ink: #e8eef4; --ink-muted: #a8bccd; --ink-faint: #8aa0b4;
+      --borda: #24323f; --acento: #4fc3e8; --acento-suave: #13303d;
+      --sim: #6fd4a3; --sim-suave: #122a21;
+      --nao: #e88b8b; --nao-suave: #2d1818;
+      --duvida: #e2b562; --duvida-suave: #2b2213;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a1017; --surface: #121b23; --surface-2: #19242e;
+    --ink: #e8eef4; --ink-muted: #a8bccd; --ink-faint: #8aa0b4;
+    --borda: #24323f; --acento: #4fc3e8; --acento-suave: #13303d;
+    --sim: #6fd4a3; --sim-suave: #122a21;
+    --nao: #e88b8b; --nao-suave: #2d1818;
+    --duvida: #e2b562; --duvida-suave: #2b2213;
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--fonte);
+    font-size: 16px; line-height: 1.62;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0 72px;
+  }
+  .folha { max-width: 800px; margin: 0 auto; }
+
+  .topo { padding-block: 44px 10px; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content: ''; width: 18px; height: 3px; border-radius: 999px; background: var(--acento); flex: none; }
+  h1 { font-size: clamp(29px, 5.6vw, 42px); line-height: 1.08; letter-spacing: -.03em; margin: 14px 0 0; text-wrap: balance; }
+  .lede { font-size: clamp(16.5px, 2.2vw, 19px); color: var(--ink-muted); margin: 15px 0 0; max-width: 62ch; }
+  .lede b { color: var(--ink); font-weight: 650; }
+
+  h2 { font-size: clamp(20px, 3.2vw, 25px); letter-spacing: -.022em; margin: 0 0 8px; line-height: 1.22; text-wrap: balance; }
+  h3 { font-size: 13px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); margin: 20px 0 7px; font-weight: 700; }
+  p { margin: 0 0 13px; } p:last-child { margin-bottom: 0; }
+  section { padding-block: 38px 0; }
+  code { font-family: var(--mono); font-size: .88em; background: var(--surface-2); padding: 2px 5px; border-radius: 5px; }
+
+  .regra { background: var(--acento-suave); border: 1px solid color-mix(in srgb, var(--acento) 26%, transparent); border-radius: 14px; padding: 18px 20px; }
+  .regra p { font-size: 15px; color: var(--ink-muted); }
+  .regra p b { color: var(--ink); }
+
+  .aviso { border-left: 3px solid var(--duvida); background: var(--duvida-suave); border-radius: 0 10px 10px 0; padding: 14px 16px; font-size: 14.8px; color: var(--ink-muted); }
+  .aviso b { color: var(--duvida); }
+
+  .decisao { background: var(--surface); border: 1px solid var(--borda); border-radius: 16px; padding: 22px 23px; margin-bottom: 16px; }
+  .decisao-cab { display: flex; align-items: baseline; gap: 11px; flex-wrap: wrap; margin-bottom: 4px; }
+  .num { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--acento); background: var(--acento-suave); padding: 3px 9px; border-radius: 7px; }
+  .decisao p { font-size: 15px; color: var(--ink-muted); }
+  .decisao p b { color: var(--ink); font-weight: 620; }
+
+  .hoje { font-family: var(--mono); font-size: 13px; line-height: 1.6; background: var(--surface-2); border-radius: 9px; padding: 12px 14px; color: var(--ink); }
+
+  .envolve { overflow-x: auto; margin: 0 0 4px; }
+  .corpos { width: 100%; border-collapse: collapse; font-size: 14.2px; min-width: 460px; }
+  .corpos th { text-align: left; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); padding: 0 12px 7px 0; font-weight: 700; }
+  .corpos td { padding: 10px 12px 10px 0; border-top: 1px solid var(--borda); color: var(--ink-muted); vertical-align: top; }
+  .corpos td:first-child { color: var(--ink); font-weight: 650; white-space: nowrap; }
+  .corpos tr.soberano td { background: var(--acento-suave); }
+  .corpos tr.soberano td:first-child::after { content: ' ★'; color: var(--acento); }
+
+  .rec { margin-top: 18px; border-left: 3px solid var(--sim); background: var(--sim-suave); border-radius: 0 10px 10px 0; padding: 14px 16px; }
+  .rec .rot { font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--sim); display: block; margin-bottom: 5px; }
+  .rec p { font-size: 14.8px; }
+  .rec.manter { border-left-color: var(--acento); background: var(--acento-suave); }
+  .rec.manter .rot { color: var(--acento); }
+
+  .conferir { margin-top: 13px; font-size: 13.5px; color: var(--ink-faint); border-top: 1px solid var(--borda); padding-top: 11px; }
+  .conferir b { color: var(--ink-muted); }
+
+  .fontes { font-size: 13.5px; color: var(--ink-muted); }
+  .fontes a { color: var(--acento); }
+  .fontes li { margin-bottom: 7px; }
+  .rodape { margin-top: 46px; padding-top: 20px; border-top: 1px solid var(--borda); font-size: 13px; color: var(--ink-faint); }
+</style>
+
+<div class="folha">
+
+<header class="topo">
+  <div class="eyebrow">OncoGenYX · seis questões para a curadoria</div>
+  <h1>Decisões de curadoria clínica</h1>
+  <p class="lede">Seis pontos onde o motor faz uma coisa e existe diretriz dizendo outra. <b>Nenhum é defeito de código</b> — os defeitos já foram corrigidos. São escolhas de critério, e a escolha é sua. Este documento traz o que cada corpo diz, o que está em jogo nos dois lados, e a minha recomendação.</p>
+</header>
+
+<section>
+  <div class="regra">
+    <p><b>A regra de desempate que o projeto já adotou (§38.1):</b> onde houver divergência entre diretrizes, o <b>NCCN prevalece</b>. Sociedade específica entra como contexto na tela, nunca como gatilho concorrente — dois gatilhos para o mesmo exame produziriam resultados diferentes para o mesmo caso, dependendo de qual regra disparasse primeiro.</p>
+    <p>Esta regra pode ser revista. Mas se for, tem de ser revista <b>aqui</b>, e uma vez — não caso a caso, porque aí ela deixa de ser regra.</p>
+  </div>
+</section>
+
+<section>
+  <p class="aviso"><b>Limite desta pesquisa, dito antes de qualquer número.</b> As diretrizes primárias (NCCN, e o texto integral da ASCO-SSO) são de acesso restrito e não consegui abri-las daqui. O que está abaixo vem de <b>fontes secundárias</b> — resumos oficiais das sociedades, publicações de revisão e material para pacientes das próprias entidades. As posições estão consistentes entre fontes independentes, o que dá confiança razoável, mas <b>nenhuma decisão deve ser fechada sem conferir o texto primário</b>. Você tem acesso que eu não tenho. Marquei em cada item o que precisa ser confirmado na fonte.</p>
+</section>
+
+<section>
+  <h2>1 · Corte etário de mama — 50 ou 65 anos</h2>
+  <div class="decisao">
+    <div class="decisao-cab"><span class="num">§38.2</span><b>É a decisão de maior impacto das seis.</b></div>
+    <h3>O que o motor faz hoje</h3>
+    <p class="hoje">idade ≤ 50 → indica painel germinativo
+idade 51–65, luminal, inicial, sem história familiar → SEM INDICAÇÃO</p>
+
+    <h3>O que cada corpo diz</h3>
+    <div class="envolve"><table class="corpos">
+      <tr><th>Corpo</th><th>Posição</th><th>Quando</th></tr>
+      <tr class="soberano"><td>NCCN</td><td>Gatilho isolado de idade: <b>50 anos ou menos</b>. Acima disso, exige outro critério (triplo-negativo, masculino, história familiar, candidato a PARP)</td><td>BOPP v2.2026</td></tr>
+      <tr><td>ASCO-SSO</td><td>Oferecer BRCA1/2 a <b>todo paciente diagnosticado aos 65 anos ou menos</b>, estágio I–III ou IV de novo, independente de característica do tumor. Acima de 65, seletivo</td><td>JCO, jan/2024</td></tr>
+      <tr><td>ASBrS</td><td><b>Teste universal</b> — todo paciente com câncer de mama, sem corte etário</td><td>vigente</td></tr>
+    </table></div>
+    <p>A ASCO-SSO justifica o 65 por otimização estatística: foi a idade em que o equilíbrio entre sensibilidade e especificidade foi melhor, <b>independentemente das características do tumor</b>. Não é um número arbitrário — é um ponto de corte derivado de dados.</p>
+
+    <h3>O que está em jogo</h3>
+    <p><b>Adotando 65:</b> pacientes entre 51 e 65 passam a receber indicação. Mais portadoras identificadas, mais rastreamento em cascata na família, mais elegibilidade a inibidor de PARP. Em contrapartida, mais testes solicitados — e a cobertura do convênio é mais restrita que qualquer das duas diretrizes, então parte desses pedidos será negada e vira retrabalho para o médico.</p>
+    <p><b>Mantendo 50:</b> consistência com a regra de desempate, e alinhamento com o critério que as operadoras brasileiras mais provavelmente reconhecem. Em contrapartida, o produto deixa de indicar teste a um grupo que uma sociedade internacional relevante diz que deveria testar — e isso aparece numa auditoria, como apareceu.</p>
+
+    <div class="rec manter">
+      <span class="rot">Minha recomendação — manter 50, com uma mudança</span>
+      <p>Manter o gatilho em 50, por coerência com a regra de desempate, <b>mas parar de ser silencioso sobre isso</b>. Hoje o caso de 58 anos sai como "sem indicação", seco. Deveria sair com uma nota visível: <i>"o NCCN não indica por idade isolada acima de 50; a ASCO-SSO 2024 recomenda oferecer até 65 — avalie o caso"</i>.</p>
+      <p>Isso resolve o problema real, que não é o número: é o médico não saber que existe uma divergência. A decisão volta para quem assina, que é onde ela deve estar.</p>
+    </div>
+    <p class="conferir"><b>Confirmar na fonte:</b> a redação exata do NCCN BOPP vigente sobre idade isolada, e se a ASCO-SSO usa "deve ser oferecido" ou "pode ser considerado" — a força do verbo muda o peso.</p>
+  </div>
+</section>
+
+<section>
+  <h2>2 · Ascendência Ashkenazi em mama</h2>
+  <div class="decisao">
+    <div class="decisao-cab"><span class="num">§38.4</span><b>A mais fácil das seis.</b></div>
+    <h3>O que o motor faz hoje</h3>
+    <p class="hoje">próstata → campo existe e É GATILHO
+mama      → campo NÃO EXISTE</p>
+    <p>Assimetria interna, sem registro de que seja deliberada.</p>
+
+    <h3>O que cada corpo diz</h3>
+    <div class="envolve"><table class="corpos">
+      <tr><th>Corpo</th><th>Posição</th><th>Quando</th></tr>
+      <tr class="soberano"><td>NCCN</td><td>Ascendência Ashkenazi está entre os critérios independentes de teste. Em paciente <b>com</b> câncer de mama e ascendência Ashkenazi, <b>nenhuma história familiar adicional é necessária</b> para atender ao critério</td><td>BOPP vigente</td></tr>
+      <tr><td>NCCN (método)</td><td>Testar primeiro as <b>três variantes fundadoras</b> (185delAG e 5382insC em BRCA1; 6174delT em BRCA2); se negativas, considerar painel completo. Ascendência definida por <b>ao menos um avô</b></td><td>BOPP vigente</td></tr>
+    </table></div>
+
+    <div class="rec">
+      <span class="rot">Minha recomendação — implementar</span>
+      <p>Aqui <b>não há divergência entre corpos</b>. O NCCN, que é a nossa fonte soberana, já trata ascendência Ashkenazi como critério suficiente em paciente com câncer de mama. O motor simplesmente não coleta o dado.</p>
+      <p>É a correção de melhor relação custo-benefício das seis: um campo, um gatilho, e o critério passa a ser avaliado. E o campo já existe em próstata — é copiar o que está lá.</p>
+      <p><b>Ponto fino que vale decidir junto:</b> o NCCN manda testar as três fundadoras primeiro. Isso é instrução de <i>como</i> testar, não de <i>se</i> testar. O nosso produto indica o painel multigênico. Vale ou não acrescentar essa nota ao card?</p>
+    </div>
+    <p class="conferir"><b>Confirmar na fonte:</b> se a versão vigente mantém "ao menos um avô" como definição, e se a ordem fundadoras → painel ainda consta.</p>
+  </div>
+</section>
+
+<section>
+  <h2>3 · HER2 por imuno-histoquímica em endométrio seroso avançado</h2>
+  <div class="decisao">
+    <div class="decisao-cab"><span class="num">§38.5</span></div>
+    <h3>O que o motor faz hoje</h3>
+    <p class="hoje">Endométrio seroso IVB, pMMR → 1 teste: POLE e p53
+HER2 não aparece em lugar nenhum</p>
+
+    <h3>O que cada corpo diz</h3>
+    <div class="envolve"><table class="corpos">
+      <tr><th>Corpo</th><th>Posição</th><th>Quando</th></tr>
+      <tr class="soberano"><td>NCCN</td><td>Para seroso ou carcinossarcoma <b>avançado ou metastático</b>, teste de HER2 é <b>recomendado</b></td><td>Uterine Neoplasms, vigente</td></tr>
+      <tr><td>NCCN (conduta)</td><td>Carboplatina/paclitaxel <b>+ trastuzumabe</b> para seroso uterino HER2-positivo estágio III/IV ou recorrente. Carcinossarcoma entra em categoria mais fraca</td><td>idem</td></tr>
+      <tr><td>Definição</td><td>HER2-positivo = <b>IHQ 3+</b>, ou <b>2+ com amplificação de ERBB2 confirmada por FISH</b></td><td>critério dos ensaios</td></tr>
+    </table></div>
+
+    <h3>O que está em jogo</h3>
+    <p>Este é o item com <b>consequência terapêutica mais direta</b> dos seis: HER2 define se a paciente recebe trastuzumabe somado à quimioterapia. Não é refinamento de rastreio — é elegibilidade a tratamento.</p>
+    <p><b>A objeção legítima, e é de escopo:</b> HER2 por IHQ não é teste genético. O produto se apresenta como triagem de teste <i>genético</i>. Incluir biomarcador por imuno-histoquímica alarga a promessa. Essa é a decisão real aqui — não "a diretriz pede?" (pede), mas "é isto que nós somos?".</p>
+
+    <div class="rec">
+      <span class="rot">Minha recomendação — incluir, como nota e não como card</span>
+      <p>Incluir, mas <b>sem alargar o escopo do produto</b>: HER2 não vira um card de teste ao lado do painel genético. Vira uma <b>nota de ação</b> no resultado — o mesmo padrão que o motor já usa para a metilação de MLH1 em colorretal.</p>
+      <p>Redação sugerida: <i>"Seroso avançado: avalie HER2 por imuno-histoquímica — define elegibilidade a trastuzumabe. Não é teste genético e não entra neste pedido."</i></p>
+      <p>Assim o médico recebe a informação que muda a conduta, e o produto continua dizendo com precisão o que é e o que não é.</p>
+    </div>
+    <p class="conferir"><b>Confirmar na fonte:</b> a categoria de evidência atual para carcinossarcoma (uma fonte indica 2B, mais fraca que seroso), e se trastuzumabe-deruxtecana mudou o quadro na versão vigente.</p>
+  </div>
+</section>
+
+<section>
+  <h2>4 · PD-L1 no pulmão metastático</h2>
+  <div class="decisao">
+    <div class="decisao-cab"><span class="num">§38.6</span><b>Idêntico em forma ao item 3 — e já resolvido em outro lugar do motor.</b></div>
+    <h3>O que o motor faz hoje</h3>
+    <p class="hoje">Pulmão ressecável   → card NOMEIA PD-L1
+Pulmão metastático  → painel amplo, 9 genes, PD-L1 AUSENTE</p>
+    <p>Mesma assimetria interna do item 2 — e aqui é mais estranha, porque PD-L1 é <b>mais</b> decisivo na doença metastática que na ressecável.</p>
+
+    <h3>O que cada corpo diz</h3>
+    <div class="envolve"><table class="corpos">
+      <tr><th>Corpo</th><th>Posição</th><th>Quando</th></tr>
+      <tr class="soberano"><td>NCCN</td><td>Estabelecer subtipo histológico e fazer teste de biomarcadores <b>antes de iniciar terapia sistêmica</b></td><td>NSCLC v4.2026</td></tr>
+      <tr><td>NCCN</td><td>Sem driver acionável, o <b>nível de PD-L1 guia a escolha</b> de primeira linha. Imunoterapia isolada é opção quando expressão ≥50%</td><td>idem</td></tr>
+      <tr><td>Método</td><td>PD-L1 é <b>proteína, detectada por imuno-histoquímica</b> — não é capturado por painel de sequenciamento. São exames separados</td><td>—</td></tr>
+      <tr><td>Rótulo</td><td>Pembrolizumabe exige teste <b>aprovado pela agência regulatória</b> — não serve qualquer anticorpo</td><td>bula</td></tr>
+    </table></div>
+
+    <div class="rec">
+      <span class="rot">Minha recomendação — nomear, pelo mesmo mecanismo do item 3</span>
+      <p>O card do painel amplo lista nove genes e dá a impressão de cobrir o que precisa ser pedido. <b>Não cobre</b> — e o médico que confia no card pode iniciar primeira linha sem PD-L1, que é justamente o que define a conduta quando não há driver.</p>
+      <p>Nota de ação, com a ressalva do método: <i>"PD-L1 é imuno-histoquímica e não entra no painel genômico — precisa ser pedido à parte, antes da primeira linha."</i></p>
+      <p>Se você aprovar os itens 3 e 4 juntos, eles são a <b>mesma implementação</b> aplicada duas vezes.</p>
+    </div>
+    <p class="conferir"><b>Confirmar na fonte:</b> a redação da v4.2026 sobre obrigatoriedade, e se há exigência de ensaio específico que valha mencionar.</p>
+  </div>
+</section>
+
+<section>
+  <h2>5 · Redundância de painéis em colorretal dMMR</h2>
+  <div class="decisao">
+    <div class="decisao-cab"><span class="num">§38.7</span><b>Aqui as fontes não convergem — e isso é a resposta.</b></div>
+    <h3>O que o motor faz hoje</h3>
+    <p class="hoje">dMMR, 42 anos, metastático → 3 testes
+  · painel multigênico  [PRIORITÁRIO]
+  · painel de Lynch
+  · somático
++ nota: "faça metilação de MLH1 ANTES do germinativo"</p>
+    <p>Três problemas distintos empilhados: o multigênico já contém os genes de Lynch; o selo de prioridade está num teste que a nota manda adiar; e a metilação de MLH1, que é o passo um, <b>não é emitida como pedido nenhum</b>.</p>
+
+    <h3>O que cada corpo diz</h3>
+    <div class="envolve"><table class="corpos">
+      <tr><th>Corpo</th><th>Posição</th><th>Quando</th></tr>
+      <tr class="soberano"><td>NCCN</td><td>Distingue formalmente <b>painel multigênico</b> (mais de um gene) de <b>teste síndrome-específico</b> (só uma síndrome)</td><td>Genetics/Colorectal</td></tr>
+      <tr><td>NCCN</td><td>Com perda de MLH1: <b>BRAF V600E e/ou metilação do promotor</b> primeiro. BRAF mutado → provavelmente esporádico. BRAF selvagem e sem metilação → germinativo</td><td>idem</td></tr>
+      <tr><td>NSGC / CGA-ICC</td><td><b>Dados insuficientes</b> para recomendar um teste sobre o outro, ou os dois juntos</td><td>—</td></tr>
+      <tr><td>Prática corrente</td><td>Painel multigênico é <b>geralmente preferido</b> a testes sequenciais de gene único</td><td>—</td></tr>
+    </table></div>
+
+    <div class="rec">
+      <span class="rot">Minha recomendação — unificar, e emitir o passo um</span>
+      <p>Três mudanças, e só a primeira é de critério:</p>
+      <p><b>(a) Unificar os dois painéis germinativos.</b> As sociedades não dizem que ambos devem ser pedidos — dizem que não há dado para preferir um ao outro, e a prática favorece o multigênico, que já contém Lynch. Dois pedidos sobrepostos custam dinheiro e fila em oncogenética sem acrescentar gene nenhum. <b>Esta parte é sua decisão.</b></p>
+      <p><b>(b) Emitir a metilação de MLH1 como teste de verdade</b>, com amostra e ordem. Hoje o passo que a nota chama de primeiro não tem card, não tem amostra e não entra no pedido impresso — o médico lê "faça antes" e não tem o que assinar. <b>Isto é defeito, não critério.</b></p>
+      <p><b>(c) O selo de prioridade segue a ordem clínica</b>, não o contrário. Hoje ele contradiz a nota do mesmo resultado. <b>Também é defeito.</b></p>
+      <p>Se você aprovar só (b) e (c), eu já corrijo — não dependem de curadoria.</p>
+    </div>
+    <p class="conferir"><b>Confirmar na fonte:</b> o algoritmo vigente do NCCN para perda de MLH1 — especificamente se BRAF e metilação são alternativas ou sequenciais, e em que ponto o germinativo entra em paciente jovem.</p>
+  </div>
+</section>
+
+<section>
+  <h2>6 · Inferir grau a partir do texto da histologia, em ovário</h2>
+  <div class="decisao">
+    <div class="decisao-cab"><span class="num">§38.8</span><b>A única das seis que não é pergunta de diretriz.</b></div>
+    <h3>O que o motor faz hoje</h3>
+    <p class="hoje">histologia "Carcinoma seroso de alto grau", campo grau vazio
+  → estado PROVISÓRIO
+  → documento assinado imprime:
+     "Carcinoma seroso DE ALTO GRAU ... com GRAU A CONFIRMAR"</p>
+    <p>A mesma frase afirma e pede para confirmar a mesma coisa.</p>
+
+    <h3>O que a patologia diz</h3>
+    <div class="envolve"><table class="corpos">
+      <tr><th>Corpo</th><th>Posição</th><th>Quando</th></tr>
+      <tr><td>WHO</td><td>Carcinoma seroso de ovário tem <b>duas categorias apenas</b>: baixo grau e alto grau. O grau é parte do <b>nome da entidade</b>, não um atributo separado</td><td>5ª ed., 2020</td></tr>
+      <tr><td>Base molecular</td><td>Alto grau: instabilidade cromossômica alta, TP53 mutado. Baixo grau: KRAS, BRAF, ERBB2. São <b>doenças diferentes</b>, não graus de uma</td><td>—</td></tr>
+      <tr><td>Desfecho</td><td>O sistema de dois níveis separa populações com sobrevida distinta (GOG-158)</td><td>—</td></tr>
+    </table></div>
+
+    <h3>Os dois lados, honestamente</h3>
+    <p><b>A favor de inferir:</b> "seroso de alto grau" não é uma inferência — é o nome da doença. Pedir confirmação de algo que o próprio texto afirma é fricção sem ganho, e produz a frase contraditória no papel.</p>
+    <p><b>Contra inferir:</b> o campo de grau existe para vir do laudo patológico, e o próprio motor instrui "nunca deduza o grau a partir do estágio". Abrir exceção para deduzir de prosa enfraquece a regra. E há o caso de borda: <i>"seroso, provavelmente de alto grau"</i> ou <i>"favorece alto grau"</i> — aí já é inferência de verdade.</p>
+
+    <div class="rec">
+      <span class="rot">Minha recomendação — inferir, com três travas</span>
+      <p>Ler o grau da histologia <b>apenas quando o texto nomeia a entidade de forma inequívoca</b>: "seroso de alto grau", "HGSC", "high-grade serous", "seroso de baixo grau", "LGSC".</p>
+      <p><b>(1)</b> Qualquer modalizador — "provavelmente", "favorece", "sugestivo de", "?" — <b>não</b> infere; mantém o campo pendente.<br>
+      <b>(2)</b> O grau inferido aparece na tela <b>marcado como inferido</b>, do mesmo jeito que a leitura da IA já marca o que inferiu.<br>
+      <b>(3)</b> O documento diz de onde veio: <i>"alto grau, conforme a histologia informada"</i> — nunca afirma sem dizer a origem.</p>
+      <p>Independentemente da sua decisão, <b>a frase contraditória no documento é defeito e eu corrijo de qualquer forma</b>. Hoje o papel afirma e desmente na mesma linha.</p>
+    </div>
+    <p class="conferir"><b>Confirmar:</b> se na sua prática os laudos brasileiros nomeiam a entidade com essa consistência, ou se o grau costuma vir em campo separado. Esta é pergunta de realidade de laudo, não de diretriz — e você tem o dado, eu não.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Resumo para decidir</h2>
+  <div class="envolve"><table class="corpos">
+    <tr><th>#</th><th>Questão</th><th>Minha recomendação</th><th>Depende de</th></tr>
+    <tr><td>1</td><td>Mama: 50 ou 65</td><td>Manter 50 + nota visível da divergência</td><td>Você</td></tr>
+    <tr><td>2</td><td>Ashkenazi em mama</td><td><b>Implementar</b> — não há divergência</td><td>Você (fácil)</td></tr>
+    <tr><td>3</td><td>HER2 em endométrio</td><td>Incluir como nota, não como card</td><td>Você (escopo)</td></tr>
+    <tr><td>4</td><td>PD-L1 em pulmão</td><td>Nomear, mesma implementação do 3</td><td>Você (escopo)</td></tr>
+    <tr><td>5</td><td>Colorretal dMMR</td><td>Unificar painéis (seu) + emitir metilação e corrigir prioridade (meu)</td><td>Misto</td></tr>
+    <tr><td>6</td><td>Grau pela histologia</td><td>Inferir com três travas; a frase contraditória eu corrijo de todo jeito</td><td>Você</td></tr>
+  </table></div>
+  <p class="aviso" style="margin-top:20px"><b>O processo, para fechar o ciclo:</b> você decide; eu registro a decisão no <code>docs/ARQUITETURA.md</code> §38 com a fonte e o critério exato; só então o código muda, com teste de regressão. É a regra do projeto — <b>diretriz primeiro, código depois</b> —, e ela nasceu de um erro causado por implementar antes de levantar o critério.</p>
+</section>
+
+<section>
+  <h2>Fontes</h2>
+  <ul class="fontes">
+    <li><a href="https://ascopost.com/issues/march-10-2024/asco-and-sso-publish-new-guideline-on-germline-testing-in-breast-cancer/">ASCO Post — nova diretriz ASCO-SSO de teste germinativo em mama (mar/2024)</a> · <a href="https://www.guidelinecentral.com/guideline/3352537/">Resumo da diretriz ASCO-SSO</a> · <a href="https://link.springer.com/article/10.1245/s10434-024-15638-6">Comentário em Annals of Surgical Oncology sobre a atualização</a></li>
+    <li><a href="https://www.nccn.org/patients/guidelines/content/PDF/genetics-patient.pdf">NCCN — teste genético em mama, ovário, pâncreas e próstata (versão para pacientes)</a> · <a href="https://www2.tri-kobe.org/nccn/guideline/gynecological/english/genetic_familial.pdf">NCCN Genetic/Familial High-Risk Assessment: Breast and Ovarian</a></li>
+    <li><a href="https://www.nccn.org/patients/guidelines/content/PDF/uterine-patient.pdf">NCCN — câncer uterino, endometrial e sarcoma (2026, versão para pacientes)</a> · <a href="https://www.mdpi.com/1648-9144/60/12/2012">Revisão: câncer endometrial seroso HER2-positivo, prática atual</a> · <a href="https://www.nrgoncology.org/Home/News/Post/testing-the-addition-of-trastuzumab-or-trastuzumabpertuzumab-to-the-usual-chemotherapy-for-her2-positive-uterine-serous-or-carcinosarcoma-nrg-gy026/">NRG-GY026 (ensaio em curso)</a></li>
+    <li><a href="https://jnccn.org/view/journals/jnccn/24/4/article-e260017.xml?print=">NCCN NSCLC v4.2026 (JNCCN)</a> · <a href="https://www.nccn.org/patients/guidelines/content/PDF/lung-metastatic-patient.pdf">NCCN — pulmão não pequenas células metastático (2026, versão para pacientes)</a> · <a href="https://jnccn.org/view/journals/jnccn/19/5.5/article-p610.xml">JNCCN — recomendações de biomarcadores em NSCLC</a></li>
+    <li><a href="https://www2.tri-kobe.org/nccn/guideline/colorectal/english/genetics_colon.pdf">NCCN — genética do câncer colorretal</a> · <a href="https://www.giejournal.org/article/S0016-5107%2814%2901839-2/fulltext">US Multi-Society Task Force — consenso sobre Lynch</a> · <a href="https://journals.sagepub.com/doi/10.1177/03008916241312530">Metilação do promotor de MLH1 e Lynch: quando testar epimutação constitucional</a></li>
+    <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/2745605">Definição do ponto de corte entre seroso de baixo e alto grau</a> · <a href="https://scholarworks.indianapolis.iu.edu/items/5e4158b1-2101-401b-af38-654d8925eb65">Reclassificação do carcinoma seroso de ovário pelo sistema de dois níveis (GOG-158)</a></li>
+  </ul>
+</section>
+
+<footer class="rodape">
+  Levantamento feito em 20/10/2026. As diretrizes primárias são de acesso restrito e não foram abertas diretamente — as posições acima vêm de fontes secundárias consistentes entre si, e precisam de confirmação no texto primário antes de qualquer mudança de regra. Nenhuma regra do motor foi alterada por este documento.
+</footer>
+
+</div>
