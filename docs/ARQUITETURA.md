@@ -4818,10 +4818,22 @@ tem três papéis e só esses: `aiplatform.user`, `cloudsql.client` e
 ### 85.4 Contato de privacidade (decidido em 20/10/2026)
 
 **Decisão do dono:** o encarregado de dados (LGPD art. 41) é o próprio Renan
-Vidal, e-mail renan.lvidal@gmail.com. O art. 41, §1º pede identidade e contato
-divulgados de forma clara, de preferência no site. Por isso aparecem em dois
-lugares: no rodapé da tela de entrada (público, antes do login) e em "Minha
-conta > Seus dados pessoais". Trava: `test/privacidade.test.js`.
+Vidal, e-mail renan.lvidal@gmail.com.
+
+**Onde aparece (revisto no mesmo dia, a pedido do dono):** a primeira versão
+pôs nome, cargo e e-mail no rodapé da tela de entrada e em "Minha conta". O
+dono recusou: produto profissional não mostra o nome pessoal do responsável
+solto na tela. Ficou **só o e-mail, sem nome nem cargo, na última linha do
+Aviso de Privacidade** ("Pedidos sobre seus dados pessoais: ..."), que é onde
+os sites costumam pôr. O art. 41, §1º pede identidade e contato públicos;
+o nome do encarregado entra no texto completo da política de privacidade
+(rascunho da equipe LGPD), não na interface. Trava: `test/privacidade.test.js`
+falha se o contato voltar à entrada ou a Minha conta, ou se nome ou cargo
+aparecerem na tela.
+
+**Sugestão para quando houver domínio:** trocar o Gmail pessoal por um
+endereço de função, como `privacidade@` + domínio, que pode ser só um
+redirecionamento para o mesmo Gmail. Assim o e-mail pessoal não fica público.
 
 **Defeito de teste corrigido junto:** os arquivos de teste sorteavam porta numa
 faixa fixa, e a faixa da Gena incluía a 5000, que o macOS ocupa com o AirPlay
