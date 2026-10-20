@@ -1722,7 +1722,8 @@ test('todo teste germinativo aceita sangue ou saliva (§91)', () => {
 });
 
 test('Fleury e Dasa vêm depois da Life Genomics, e só onde foram verificados (§92)', () => {
-  const COBERTURA_DASA = ['ovario', 'mama', 'colorretal', 'pancreas', 'prostata'];
+  // Endométrio por declaração do dono em 20/10/2026 (§92.1), não por página.
+  const COBERTURA_DASA = ['ovario', 'mama', 'colorretal', 'pancreas', 'prostata', 'endometrio'];
   const COBERTURA_FLEURY = ['ovario', 'prostata', 'mama', 'pancreas', 'colorretal', 'endometrio'];
   germinativosDeTodos().forEach(({ id, teste }) => {
     const nomes = TUMORS.ordenarProgramas(teste.programs).map((p) => p.name);
@@ -1732,10 +1733,10 @@ test('Fleury e Dasa vêm depois da Life Genomics, e só onde foram verificados (
     assert.deepStrictEqual(nomes.filter((n) => esperado.includes(n) || /Genômica|Genomics/.test(n)), esperado,
       `${id}/${teste.id}: ordem ${nomes.join(' > ')}`);
   });
-  // Endométrio não tem painel nomeado da Dasa: não pode aparecer por analogia.
-  const { resultado } = triar('endometrio', { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'dMMR / MSI-alto' });
-  const progs = resultado.tests.flatMap((t) => t.programs || []).map((p) => p.name);
-  assert.ok(!progs.includes('Dasa Genômica'), 'Dasa apareceu no endométrio sem verificação');
+  // A cobertura da Dasa é exatamente a registrada: nenhum tumor a mais
+  // entra por analogia sem passar pelo §92.1.
+  const dasa = germinativosDeTodos().flatMap(({ teste }) => teste.programs).find((p) => p.name === 'Dasa Genômica');
+  assert.deepStrictEqual([...dasa.cobertura].sort(), [...COBERTURA_DASA].sort(), 'cobertura da Dasa mudou sem registro no §92.1');
   // Laboratório não aparece em teste somático.
   const { resultado: ov } = triar('ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' });
   const hrd = ov.tests.find((t) => t.id === 'hrd');

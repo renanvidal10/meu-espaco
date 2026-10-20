@@ -5203,10 +5203,18 @@ endométrio. **Endereço:** a página desse painel.
 A página de Oncologia (oncogenética) descreve o painel de mama e ovário
 hereditário, e há páginas de exame para os painéis hereditários de colorretal,
 pâncreas e próstata. **Cobertura:** ovário, mama, colorretal, pâncreas e
-próstata. **Endométrio fica de fora:** não há painel de Lynch ou de endométrio
-nomeado, e a lista de genes dos painéis da Dasa é carregada só no navegador e
-não pôde ser lida. Incluir endométrio pelo painel colorretal seria analogia.
-**Endereço:** a página de Oncologia, que reúne os painéis.
+próstata, todos **por verificação documental**. **Endereço:** a página de
+Oncologia, que reúne os painéis.
+
+**Endométrio: por declaração do dono, não por verificação documental.** O site
+da Dasa não nomeia painel de Lynch ou de endométrio, e a lista de genes dos
+painéis só carrega no navegador e não pôde ser lida. Por isso a Dasa ficou
+inicialmente fora do endométrio. O dono decidiu em 20/10/2026: *"Pode colocar o
+Dasa sim. Ao entrar em contato eles vão orientar. Eles fazem tudo igual ao
+outro. Então pode considerar sim."* A Dasa entrou no germinativo de endométrio,
+na mesma ordem (Life, Fleury, Dasa). É a única associação de laboratório deste
+registro que se apoia em declaração do dono, e não em página conferida: fica
+dito aqui, no comentário do registro e no campo `fonte`, para quem auditar.
 
 **Como aparecem.** Iguais à Life Genomics: nome e "Abrir portal", sem selo de
 parceria (§89). Entram pela mesma garantia que liga a Life a todo teste
@@ -5218,8 +5226,9 @@ pediu. A regra anterior ordenava os laboratórios por nome e colocaria a Dasa
 primeiro. Como a `ORDEM_INDUSTRIA` (§56.3), é escolha de produto e não ranking
 clínico.
 
-**Travas:** `regras.test.js` exige a ordem, a cobertura de cada laboratório,
-a ausência da Dasa no endométrio e a ausência de laboratório no HRD somático;
+**Travas:** `regras.test.js` exige a ordem, a cobertura de cada laboratório
+(exatamente a registrada, para nenhum tumor entrar sem passar por aqui) e a
+ausência de laboratório no HRD somático;
 o navegador confere a ordem na tela de programas.
 
 ### 92.2 O cartão centrado

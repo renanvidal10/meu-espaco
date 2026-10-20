@@ -481,13 +481,14 @@
     tipo: 'laboratorio',
     note: 'Painéis hereditários por tumor: mama e ovário, colorretal, pâncreas e próstata. Material: sangue ou swab oral.',
     url: 'https://dasagenomica.com/areas-de-atuacao/oncologia/',
-    // Só os tumores com painel hereditário NOMEADO no site oficial. Endométrio
-    // fica de fora: não há painel de Lynch ou de endométrio nomeado, e a lista
-    // de genes do painel colorretal não é legível fora do navegador.
-    cobertura: ['ovario', 'mama', 'colorretal', 'pancreas', 'prostata'],
+    // Ovário, mama, colorretal, pâncreas e próstata: painel hereditário
+    // NOMEADO no site oficial. Endométrio: por DECLARAÇÃO DO DONO em
+    // 20/10/2026, não por verificação documental (o site não nomeia painel de
+    // Lynch ou de endométrio). Ver ARQUITETURA §92.1.
+    cobertura: ['ovario', 'mama', 'colorretal', 'pancreas', 'prostata', 'endometrio'],
     amostra: 'sangue',
     verificadoEm: '2026-10-20',
-    fonte: 'dasagenomica.com: página de Oncologia (painel de câncer de mama e ovário hereditário), e as páginas dos exames Painel NGS Câncer Colorretal Hereditário Ampliado, Painel NGS para Câncer de Pâncreas Hereditário e Painel NGS para Câncer de Próstata Hereditário. A página Sobre declara: "Fazemos parte da Dasa".',
+    fonte: 'dasagenomica.com: página de Oncologia (painel de câncer de mama e ovário hereditário), e as páginas dos exames Painel NGS Câncer Colorretal Hereditário Ampliado, Painel NGS para Câncer de Pâncreas Hereditário e Painel NGS para Câncer de Próstata Hereditário. A página Sobre declara: "Fazemos parte da Dasa". Endométrio por declaração do dono em 20/10/2026 ("Eles fazem tudo igual ao outro"), sem página nomeada.',
   };
 
   /* §92. Ordem dos laboratórios, escolhida pelo dono (Life, depois Fleury,
