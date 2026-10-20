@@ -10,7 +10,7 @@ Branch: `claude/login-com-senha-d75125`. Nada foi publicado e nada foi enviado a
 
 **Etapa 3 (Google Cloud em São Paulo, §86):** implementada nesta branch, aguardando o dono.
 - Commit e50b2c3 (frase do áudio) trazido por cherry-pick (86da829).
-- `server/ia.js`: Vertex AI (padrão em produção, região southamerica-east1) ou API direta (padrão fora de produção), por `IA_PROVEDOR`.
+- `server/ia.js`: Vertex AI (padrão em produção, porta `us`) ou API direta (padrão fora de produção), por `IA_PROVEDOR`.
 - Consentimento separado para o e-mail no cadastro (LGPD art. 33, VIII), gravado em `consentimento_email_em`.
 - `server/Dockerfile` e `.dockerignore`; `TRUST_PROXY` configurável.
 - `docs/roteiro-google-cloud.md`: passo a passo do dono.
@@ -18,8 +18,11 @@ Branch: `claude/login-com-senha-d75125`. Nada foi publicado e nada foi enviado a
 
 **Contato de privacidade (20/10/2026):** só o e-mail renan.lvidal@gmail.com, sem nome nem cargo, na última linha do Aviso de Privacidade; retirado da entrada e de Minha conta a pedido do dono (ARQUITETURA.md §85.4). Testes: 359 passando, três rodadas seguidas; navegador e telas do login ok.
 
-## Ressalva importante (ARQUITETURA.md §86.2)
-A documentação do Google se contradiz sobre o Claude em São Paulo: a página de regiões lista, as fichas dos modelos não. O passo 5 do roteiro testa na conta real. Se falhar, a saída é `VERTEX_REGIAO=us` (EUA, sob o contrato do Google com cláusulas da ANPD), decisão do dono.
+## Andamento na conta real (feito pelo coordenador com o dono)
+Conta de faturamento ativa (BRL, sem créditos de avaliação), projeto `oncogenyx-br`, orçamento de alerta R$ 200, APIs ligadas, Claude Opus 5 liberado no Model Garden. Próximo passo do roteiro: 4.1 e o teste do passo 5.
+
+## Claude fora do Brasil (ARQUITETURA.md §86.8, 20/10/2026)
+O Google oferece o Claude Opus 5 só em `global`, `us` e `eu`. Decidido `us`: laudo processado nos EUA sob o contrato do Google com as cláusulas da ANPD; servidor, banco e cofres em São Paulo. Roteiro e código ajustados (padrão `VERTEX_REGIAO=us`). Domínio próprio no site: começar com `.run.app`; depois Firebase Hosting (grátis, limite de 60 s) ou balanceador (US$ 18 a 25 por mês), conforme o tempo de leitura medido.
 
 ## Não verificado (sem conta, de propósito)
 - Chamada real ao Vertex (passo 5 do roteiro).

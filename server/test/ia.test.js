@@ -25,9 +25,9 @@ test('sem IA_PROVEDOR: API direta em desenvolvimento, Vertex em produção', () 
   assert.strictEqual(avaliar({ NODE_ENV: 'production' }, 'ia.PROVEDOR'), 'vertex');
 });
 
-test('Vertex padrão: São Paulo e o mesmo modelo de antes', () => {
+test('Vertex padrão: multirregião dos EUA e o mesmo modelo de antes', () => {
   const r = avaliar({ IA_PROVEDOR: 'vertex', VERTEX_PROJETO: 'p' }, '{ regiao: ia.REGIAO, modelo: ia.MODELO, problemas: ia.problemasDeConfiguracao() }');
-  assert.strictEqual(r.regiao, 'southamerica-east1');
+  assert.strictEqual(r.regiao, 'us');
   assert.strictEqual(r.modelo, 'claude-opus-5');
   assert.deepStrictEqual(r.problemas, []);
 });
@@ -49,16 +49,16 @@ test('carregar ia.js com Vertex não procura credencial do Google antes da prime
   // A biblioteca do Vertex busca credencial ao nascer; sem credencial, isso
   // virava exceção solta no boot da máquina do dev.
   const r = avaliar({ IA_PROVEDOR: 'vertex', VERTEX_PROJETO: 'p' }, 'ia.descricao()');
-  assert.match(r, /Vertex AI \(southamerica-east1\)/);
+  assert.match(r, /Vertex AI \(us\)/);
 });
 
-test('o cliente do Vertex aponta para o endpoint de São Paulo, com o modelo na URL', async () => {
+test('o cliente do Vertex aponta para a multirregião dos EUA, com o modelo na URL', async () => {
   // Monta o pedido sem enviar: a biblioteca troca o fetch por este espião.
   const saida = execFileSync(process.execPath, ['-e', `
     const { AnthropicVertex } = require('@anthropic-ai/vertex-sdk');
     let url = null, corpo = null, cab = null;
     const c = new AnthropicVertex({
-      projectId: 'meu-projeto', region: 'southamerica-east1',
+      projectId: 'meu-projeto', region: 'us',
       authClient: { getRequestHeaders: async () => new Headers({ authorization: 'Bearer token-falso' }) },
       fetch: async (u, init) => { url = String(u); corpo = JSON.parse(init.body); cab = new Headers(init.headers).get('authorization'); return new Response(JSON.stringify({ id: 'x', type: 'message', role: 'assistant', content: [{ type: 'text', text: 'ok' }], model: 'claude-opus-5', stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }), { status: 200, headers: { 'content-type': 'application/json' } }); },
     });
@@ -66,8 +66,13 @@ test('o cliente do Vertex aponta para o endpoint de São Paulo, com o modelo na 
       .then(() => console.log(JSON.stringify({ url, corpo, cab })));
   `], { cwd: path.join(__dirname, '..'), encoding: 'utf8' });
   const { url, corpo, cab } = JSON.parse(saida.trim().split('\n').pop());
-  assert.strictEqual(url, 'https://southamerica-east1-aiplatform.googleapis.com/v1/projects/meu-projeto/locations/southamerica-east1/publishers/anthropic/models/claude-opus-5:rawPredict');
+  assert.strictEqual(url, 'https://aiplatform.us.rep.googleapis.com/v1/projects/meu-projeto/locations/us/publishers/anthropic/models/claude-opus-5:rawPredict');
   assert.strictEqual(corpo.anthropic_version, 'vertex-2023-10-16');
   assert.strictEqual(corpo.model, undefined, 'no Vertex o modelo vai na URL, não no corpo');
   assert.strictEqual(cab, 'Bearer token-falso', 'a credencial do Google não foi aplicada');
+});
+
+test('região fora de us, eu e global gera aviso (o Opus 5 não existe em São Paulo)', () => {
+  const a = avaliar({ IA_PROVEDOR: 'vertex', VERTEX_PROJETO: 'p', VERTEX_REGIAO: 'southamerica-east1' }, 'ia.avisos()');
+  assert.match(a.join(' '), /só é oferecido em us, eu e global/);
 });

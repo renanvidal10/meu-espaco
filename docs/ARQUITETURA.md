@@ -4840,3 +4840,48 @@ faixa fixa, e a faixa da Gena incluía a 5000, que o macOS ocupa com o AirPlay
 (confirmado com `lsof`). Quando o sorteio caía nela, 30 testes falhavam sem
 relação com o que testavam. Agora a porta é pedida ao sistema
 (`test/porta.js`).
+
+### 86.8 Confirmado: o Claude não roda em São Paulo; porta `us` (20/10/2026)
+
+**Fato novo.** Ao liberar o Claude Opus 5 no Model Garden da conta real
+(projeto `oncogenyx-br`), o coordenador viu que o seletor de local da página de
+preços só oferece `global`, `us` e `eu`. Isso confirma as fichas dos modelos e
+encerra a dúvida de §86.2: **o laudo não é processado no Brasil.** Servidor,
+banco e cofres continuam em São Paulo.
+
+**Decisão técnica: porta `us` (multirregião dos EUA), não `global`.**
+- As duas ficam sob o mesmo contrato do Google Cloud, cujo aditivo de
+  tratamento de dados traz as cláusulas-padrão da ANPD (Res. CD/ANPD 19/2024)
+  para transferência internacional (plano LGPD §3.1). O problema legal que
+  motivou a mudança (enviar dado de saúde aos EUA sem essas cláusulas) fica
+  resolvido nas duas.
+- `us` processa nos EUA; `global` processa em qualquer país com capacidade
+  livre. Com `us`, o Aviso de Privacidade pode dizer com precisão "processado
+  nos Estados Unidos"; com `global`, não há como dizer o país. Transparência
+  (LGPD art. 9º) pesa mais que os 10% a mais do endpoint fixo.
+- `us` tem cota própria (1.000 pedidos por minuto na ficha do Opus 5), muito
+  acima do uso da fase beta.
+
+**Código.** `VERTEX_REGIAO` passou a ter `us` como padrão; `global` continua
+recusado em produção sem `PERMITIR_REGIAO_GLOBAL=sim`; região fora de
+`us`, `eu` e `global` gera aviso no boot. URL conferida pela própria
+biblioteca: `https://aiplatform.us.rep.googleapis.com/v1/projects/.../locations/us/...`
+(`test/ia.test.js`).
+
+**Texto da tela.** O Aviso de Privacidade dizia "enviados à Anthropic, nos
+Estados Unidos". Passou a "enviados ao Claude, modelo de IA da Anthropic,
+processado nos Estados Unidos", que é verdade nos dois caminhos (Vertex `us`
+e API direta). O texto completo da política, que deve citar o Google como
+operador, é da equipe LGPD.
+
+**O que deixa de valer.** A frase "processado no Brasil" do plano LGPD §3.2
+item 2 e de §86. Vale: "servidor e dados das contas no Brasil; leitura do
+laudo nos EUA, sob contrato do Google com as cláusulas da ANPD".
+
+**Domínio próprio no site** (resposta ao coordenador): o mapeamento de domínio
+do Cloud Run não existe em `southamerica-east1` (só em dez regiões, e em
+pré-lançamento). O Firebase Hosting aceita São Paulo e é grátis, mas corta
+pedidos em 60 segundos (documentação do Firebase), e a leitura de laudo longo
+pode passar disso. O balanceador de carga do Google funciona, por cerca de
+US$ 18 a 25 por mês. Recomendação: começar com o endereço `.run.app` e decidir
+depois da bateria de laudos reais medir o tempo de leitura pelo Vertex.

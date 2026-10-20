@@ -2,10 +2,12 @@
 
 // Quem responde pela leitura de laudo e pela Gena (ARQUITETURA.md §86).
 //
-//   IA_PROVEDOR=vertex     Claude pelo Vertex AI do Google, na região
-//                          VERTEX_REGIAO (padrão southamerica-east1), sob o
-//                          contrato do Google Cloud, que já traz as cláusulas
-//                          da ANPD. É o caminho de produção.
+//   IA_PROVEDOR=vertex     Claude pelo Vertex AI do Google, no endpoint
+//                          VERTEX_REGIAO (padrão "us", multirregião dos EUA),
+//                          sob o contrato do Google Cloud, que já traz as
+//                          cláusulas-padrão da ANPD para a transferência. É o
+//                          caminho de produção. O Claude Opus 5 não existe em
+//                          southamerica-east1 (só global, us e eu; §86.2).
 //   IA_PROVEDOR=anthropic  API direta da Anthropic (EUA), com
 //                          ANTHROPIC_API_KEY. Fica para desenvolvimento, para
 //                          a suíte de testes (o stub fala esse protocolo) e
@@ -23,7 +25,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 const PROVEDOR = String(process.env.IA_PROVEDOR || (IS_PRODUCTION ? 'vertex' : 'anthropic')).trim().toLowerCase();
 const MODELO = String(process.env.IA_MODELO || 'claude-opus-5').trim();
-const REGIAO = String(process.env.VERTEX_REGIAO || 'southamerica-east1').trim();
+const REGIAO = String(process.env.VERTEX_REGIAO || 'us').trim();
 const PROJETO = String(process.env.VERTEX_PROJETO || '').trim();
 
 // Padrão do SDK: 600 s por tentativa, 3 tentativas: até 30 minutos com a
@@ -48,7 +50,7 @@ function problemasDeConfiguracao() {
     // processado (documentação do Vertex). Em produção ele só entra se alguém
     // pedir com todas as letras.
     if (IS_PRODUCTION && REGIAO === 'global' && process.env.PERMITIR_REGIAO_GLOBAL !== 'sim') {
-      out.push('VERTEX_REGIAO=global não garante onde o laudo é processado. Use southamerica-east1 (ou defina PERMITIR_REGIAO_GLOBAL=sim de propósito).');
+      out.push('VERTEX_REGIAO=global não garante em que país o laudo é processado. Use us (ou defina PERMITIR_REGIAO_GLOBAL=sim de propósito).');
     }
   }
   return out;
@@ -62,8 +64,8 @@ function avisos() {
   if (PROVEDOR === 'anthropic' && IS_PRODUCTION) {
     out.push('IA pela API direta da Anthropic em produção: o laudo é processado nos EUA (ver ARQUITETURA.md §86).');
   }
-  if (PROVEDOR === 'vertex' && REGIAO !== 'southamerica-east1') {
-    out.push(`IA pelo Vertex na região ${REGIAO}, fora de São Paulo.`);
+  if (PROVEDOR === 'vertex' && !['us', 'eu', 'global'].includes(REGIAO)) {
+    out.push(`VERTEX_REGIAO=${REGIAO}: o Claude Opus 5 só é oferecido em us, eu e global; confira se o modelo existe nessa região.`);
   }
   return out;
 }
