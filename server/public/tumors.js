@@ -1486,7 +1486,7 @@
           nivel: 'acao',
           tag: 'Fora do painel genético',
           title: 'Avalie HER2 por imuno-histoquímica',
-          body: 'Em seroso ou carcinossarcoma avançado, HER2 define elegibilidade a trastuzumabe somado à quimioterapia e a anticorpo conjugado anti-HER2, com taxa de resposta alta nos tumores de expressão forte. É imuno-histoquímica — não é teste genético, não sai no painel e não entra neste pedido. Positivo = IHQ 3+, ou 2+ com amplificação de ERBB2 confirmada por FISH.',
+          body: 'Em seroso ou carcinossarcoma avançado, HER2 define elegibilidade a trastuzumabe somado à quimioterapia e a anticorpo conjugado anti-HER2, com taxa de resposta alta nos tumores de expressão forte. É imuno-histoquímica: não é teste genético, não sai no painel e não entra neste pedido. Positivo = IHQ 3+, ou 2+ com amplificação de ERBB2 confirmada por FISH.',
         });
       }
 

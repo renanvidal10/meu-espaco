@@ -4531,3 +4531,34 @@ confirmar** no laudo". A mesma frase afirmava e desmentia.
 > sistema de dois níveis para carcinoma seroso. Reclassificação do GOG-158
 > pelo sistema de dois níveis: separa populações com sobrevida distinta.
 > Base molecular distinta entre alto e baixo grau.
+
+## 84. Regra de escrita: sem travessão como pontuação
+
+**Decisão do dono.** O texto do produto e as comunicações não usam travessão
+nem hífen como sinal de pontuação (" — ", " – ", " - "). É a marca mais
+reconhecível de texto gerado por IA e foge da linguagem do OncoGenYX. Origem:
+o dono já havia pedido o slogan sem o hífen ("Apoio à decisão genética do seu
+paciente. Qual teste solicitar e por quê.") e depois fixou como regra geral.
+
+**Vale para:** textos novos na tela, no documento assinado, nas notas
+clínicas, nos metadados de compartilhamento e nas respostas ao dono.
+
+**Como reescrever:** dois-pontos para explicar, vírgula para aposto, ponto para
+separar ideias, parênteses para o acessório.
+
+**Não é afetado:** hífen dentro de palavra (imuno-histoquímica, pós-operatório,
+anti-HER2), siglas e nomes próprios com hífen (PD-L1, T-DXd, BRCA1/2) e
+intervalos numéricos.
+
+**Estado atual (honestidade):** o texto antigo ainda contém travessões
+(centenas de ocorrências em `tumors.js`, `app.js`, `index.html`). A regra vale
+daqui para a frente; a limpeza do acervo existente é uma tarefa própria, a ser
+feita com teste automático que impeça a volta.
+
+## 38.6.1 Posição da nota de HER2 (decidida)
+
+Decisão do dono: a nota fica no bloco "O que solicitar", acima dos cartões de
+teste, com o rótulo "Fora do painel genético". Portanto o nível `acao` passa a
+ter dois usos legítimos: avisos que mudam a ordem do pedido (metilação de MLH1)
+e exames paralelos de alta consequência terapêutica (HER2 em endométrio,
+PD-L1 em pulmão metastático).
