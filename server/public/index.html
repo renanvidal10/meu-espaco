@@ -533,6 +533,15 @@
     </div>
     <div id="verdict-notes"></div>
 
+    <!-- §88, 20/10/2026: pedido do dono. Os botões de voltar e de seguir
+         para os programas vêm logo depois do resultado, ACIMA das regras de
+         leitura e do aviso legal: a próxima ação importa mais que o texto de
+         referência. -->
+    <div class="foot-nav foot-nav-resultado">
+      <button class="ghost" type="button" onclick="goTo(1)">← Voltar</button>
+      <button class="primary" type="button" id="verdict-next-btn" onclick="goTo(3)">Ver programas de acesso →</button>
+    </div>
+
     <!-- Regras que valem para QUALQUER resultado, em qualquer tumor. Vieram
          dos pareceres externos e são de segurança, não de conveniência: as
          três descrevem situações em que um resultado é lido como mais
@@ -561,10 +570,6 @@
       Esta triagem indica <strong>qual exame solicitar e por quê</strong>, com base em diretrizes clínicas nacionais e internacionais vigentes. Não constitui recomendação terapêutica nem substitui aconselhamento genético: casos com critério para síndrome hereditária devem ser encaminhados ao especialista.
     </div>
 
-    <div class="foot-nav">
-      <button class="ghost" type="button" onclick="goTo(1)">← Voltar</button>
-      <button class="primary" type="button" id="verdict-next-btn" onclick="goTo(3)">Ver programas de acesso →</button>
-    </div>
   </section>
 
   <!-- SCREEN 4, PROGRAMAS -->

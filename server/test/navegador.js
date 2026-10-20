@@ -1731,6 +1731,16 @@ async function rodar(nome, dispositivo) {
     const rotulo = tela.linhas.some((l) => /Vai assim no pedido/i.test(l.texto));
     linha(ok(!repetida.length && !rotulo, `justificativa na tela de resultado: ${repetida.join(', ')} rótulo=${rotulo}`),
       'a justificativa do pedido não se repete na tela de resultado');
+    /* §88, 20/10/2026, pedido do dono: os botões de voltar e de seguir
+     * para os programas ficam logo abaixo do resultado e ACIMA das regras de
+     * leitura ("Como ler qualquer resultado") e do aviso legal. */
+    const ordem = await p.evaluate(() => {
+      const topo = (sel) => { const e = document.querySelector('#screen-2 ' + sel); return e ? e.getBoundingClientRect().top : null; };
+      return { painel: topo('#resultado-painel'), botoes: topo('.foot-nav'), regras: topo('.regras-gerais'), aviso: topo('.disclaimer') };
+    });
+    linha(ok(ordem.painel < ordem.botoes && ordem.botoes < ordem.regras && ordem.regras < ordem.aviso,
+      `ordem na tela: ${JSON.stringify(ordem)}`),
+    'os botões vêm logo depois do resultado, acima de "Como ler"');
     linha(ok(tela.linhas[1] && tela.linhas[1].titulo === 'Painel germinativo multigênico',
       `título do painel: "${tela.linhas[1] && tela.linhas[1].titulo}"`),
     'nome longo com genes vira título curto e linha de genes');

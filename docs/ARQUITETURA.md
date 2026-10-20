@@ -5034,6 +5034,14 @@ veredito e os testes que ela governa, aberta.
 **Triagem que não concluiu** usa o mesmo painel em tom de cautela, com "!" no
 lugar do número.
 
+**Ordem da tela (20/10/2026, pedido do dono).** *"Os dois botões de voltar
+e o seguir para frente, para ele ver os programas, subam, estejam acima dessa
+barra laranja."* A barra "← Voltar" e "Ver programas de acesso →" saiu do fim
+da tela e veio para logo depois do resultado (e das notas de contexto, quando
+houver). "Como ler qualquer resultado" e o aviso legal ficam abaixo: são
+referência, e a próxima ação importa mais. Trava no navegador: painel, botões,
+"Como ler" e aviso legal, nessa ordem.
+
 ### 88.2 As travas
 
 - novo teste de navegador compara o que o motor devolve com o que a tela tem,
