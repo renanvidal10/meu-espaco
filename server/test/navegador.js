@@ -821,6 +821,73 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
+  /* ---------- §87. o pedido cabe em meia folha, e nunca em duas ---------- *
+   * O dono imprimiu o pedido e recebeu duas folhas, com a assinatura sozinha
+   * na segunda. Este teste imprime de verdade (o PDF que o Chromium gera é o
+   * mesmo caminho do "Salvar como PDF") e confere três coisas:
+   *   1. caso comum: o papel ocupa no máximo meia folha A4;
+   *   2. nome e justificativa longos: continua UMA folha só;
+   *   3. a assinatura está na mesma folha do resto.
+   * Só no desktop: page.pdf() é igual nos dois contextos e a medida é do papel,
+   * não da tela.
+   * -------------------------------------------------------------------- */
+  if (!dispositivo.isMobile) {
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('folha: ' + e.message));
+    await mockExtracao(p, { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IVC', idade: '61' });
+    await entrar(p);
+    await p.fill('#case-text', 'caso');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('#screen-1 button:has-text("Rodar")');
+    await p.waitForSelector('#screen-2.active');
+    await p.click('#verdict-next-btn');
+    await p.waitForSelector('#screen-3.active');
+    await p.fill('#patient-name', 'Maria Aparecida dos Santos Oliveira');
+    await p.dispatchEvent('#patient-name', 'input');
+
+    const { getDocumentProxy } = await import('unpdf');
+    async function imprimir(longo) {
+      await p.evaluate((longo) => {
+        const alvo = document.querySelector('#programs-dynamic details.doc-preview-wrap');
+        if (longo) {
+          alvo.querySelector('.doc-name').textContent =
+            'Maria Aparecida Conceição dos Santos de Albuquerque Cavalcanti Oliveira';
+          const j = alvo.querySelector('.doc-justif span');
+          j.textContent = (j.textContent + ' ').repeat(5).trim();
+        }
+        alvo.open = true;
+        alvo.classList.add('print-target');
+        document.body.classList.add('printing');
+      }, longo);
+      // Medida no papel: altura do documento com a mídia de impressão.
+      await p.emulateMedia({ media: 'print' });
+      const alturaMm = await p.evaluate(() => {
+        const papel = document.querySelector('.print-target .doc-preview');
+        return papel.getBoundingClientRect().height * 25.4 / 96;
+      });
+      const pdf = await p.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true });
+      await p.emulateMedia({ media: 'screen' });
+      const doc = await getDocumentProxy(new Uint8Array(pdf));
+      const ultima = await doc.getPage(doc.numPages);
+      const textoUltima = (await ultima.getTextContent()).items.map((i) => i.str).join(' ');
+      return { paginas: doc.numPages, alturaMm, assinaturaNaUltima: /Assinatura e carimbo/.test(textoUltima), textoUltima };
+    }
+
+    // Meia A4 = 148,5mm; menos a margem de cima da folha (14mm) sobram 134mm
+    // de área útil. "Com folga": o teste pede 120mm.
+    const comum = await imprimir(false);
+    linha(ok(comum.paginas === 1 && comum.alturaMm <= 120,
+      `caso comum: ${comum.paginas} folha(s), papel com ${Math.round(comum.alturaMm)}mm (limite 120mm)`),
+    `pedido comum cabe em meia folha (${Math.round(comum.alturaMm)}mm)`);
+
+    const longo = await imprimir(true);
+    linha(ok(longo.paginas === 1 && longo.assinaturaNaUltima,
+      `nome e justificativa longos: ${longo.paginas} folha(s), assinatura na folha certa=${longo.assinaturaNaUltima}`),
+    `nome e justificativa longos: uma folha, com a assinatura (${Math.round(longo.alturaMm)}mm)`);
+    await p.close();
+  }
+
   /* ---------- corrigir o subtipo não pode apagar o que é comum ---------- */
   {
     const p = await ctx.newPage();

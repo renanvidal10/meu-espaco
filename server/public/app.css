@@ -1918,8 +1918,8 @@
     align-items: baseline;
     gap: 6px 16px;
     flex-wrap: wrap;
-    padding-bottom: 12px;
-    margin-bottom: 18px;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
     border-bottom: 1px solid #e4e9ee;
   }
   .doc-preview .doc-head .doc-marca {
@@ -1931,37 +1931,48 @@
     text-transform: uppercase; letter-spacing: 0.06em;
     text-align: right;
   }
-  .doc-preview .doc-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: var(--fs-xs);
-    padding: 8px 0;
+  /* §87. Meia folha A4. Eram seis linhas de "rótulo à esquerda, valor à
+     direita" com filete entre elas, a justificativa numa caixa colorida e a
+     assinatura a 34px de distância: no celular cada linha virava duas e o
+     papel passava para a segunda folha, com a assinatura sozinha nela.
+     Agora: grade de duas colunas, rótulo pequeno ACIMA do valor (lê-se como
+     formulário, não como tabela), o teste em destaque e a assinatura presa
+     ao bloco, que não se parte entre folhas. */
+  .doc-preview .doc-grade {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 8px 24px;
   }
-  .doc-preview .doc-row .k { color: #6b6b6b; }
-  .doc-preview .doc-row .v { font-weight: 600; text-align: right; }
+  .doc-preview .doc-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: var(--fs-xs); line-height: 1.4; }
+  .doc-preview .doc-row.largo { grid-column: 1 / -1; }
+  .doc-preview .doc-row .k { font-size: var(--fs-2xs); color: #6b6b6b; }
+  .doc-preview .doc-row .v { font-weight: 600; color: #1c1c1c; }
+  /* O teste é o que o laboratório procura primeiro: um degrau acima, e um
+     filete separando o que é do paciente do que é pedido. */
+  .doc-preview .doc-row.doc-teste .v { font-size: var(--fs-sm); font-weight: 700; color: #0b4a62; }
+  .doc-preview .doc-pedido { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e4e9ee; }
   .doc-preview .doc-justif {
-    margin-top: 16px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e4e9ee;
     font-size: var(--fs-xs);
-    line-height: 1.65;
+    line-height: 1.5;
     color: #2a2a2a;
   }
-  .doc-preview .doc-justif .label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.06em; color: #6b6b6b; margin-bottom: 5px; }
+  .doc-preview .doc-justif .label { font-size: var(--fs-2xs); color: #6b6b6b; margin-bottom: 2px; }
   .doc-preview .doc-sign {
-    margin-top: 34px;
-    padding-top: 14px;
+    width: min(100%, 300px);
+    /* 44px acima da linha: o espaço de uma assinatura e de um carimbo. */
+    margin: 44px 0 0 auto;
+    padding-top: 6px;
     border-top: 1px solid #1c1c1c;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
     font-size: var(--fs-2xs);
     color: #6b6b6b;
-  }
-  .doc-preview .doc-row + .doc-row { border-top: 1px solid #f0f3f6; }
-  .doc-preview .doc-justif {
-    background: #f6f9fb;
-    border-left: 3px solid #0e6180;
-    padding: 13px 15px;
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    text-align: center;
   }
   /* ===================== GENA — assistente flutuante ===================== */
   .gena { position: fixed; right: 20px; bottom: 20px; z-index: 90; }
@@ -2452,12 +2463,14 @@
        e o texto quebra palavra a palavra - fica ilegível justamente no
        documento que o médico vai assinar. */
     .case-banner { flex-direction: column; align-items: flex-start; gap: 6px; }
+    /* Na tela estreita a coluna da direita teria ~90px: "Sangue periférico"
+       quebraria palavra a palavra. Uma coluna só na tela; o papel continua
+       em duas (regra de impressão). */
+    .doc-preview .doc-grade { grid-template-columns: minmax(0, 1fr); }
+    .doc-preview { padding: 26px 22px 28px; }
     .program-row { flex-direction: column; align-items: flex-start; gap: 12px; }
     .program-row .who { width: 100%; }
     .program-row a.link { width: 100%; justify-content: center; min-height: 44px; }
-    .doc-preview .doc-row { flex-direction: column; gap: 2px; }
-    .doc-preview .doc-row .v { text-align: left; }
-    .doc-preview .doc-sign { flex-direction: column; align-items: flex-start; gap: 6px; }
   }
 
   /* Recuos de área segura: valem em qualquer largura, porque o iPhone em
@@ -2584,8 +2597,20 @@
       position: static !important;
       display: block !important;
       height: 3px !important;
-      margin-bottom: 18px !important;
+      margin-bottom: 10px !important;
     }
+    /* §87. A folha não se parte: se um dia a justificativa crescer além de
+       uma página, o bloco inteiro desce junto, e a assinatura nunca fica
+       sozinha na folha seguinte. A grade de duas colunas vale também no
+       papel impresso pelo celular. */
+    body.printing .doc-preview { break-inside: avoid; page-break-inside: avoid; }
+    /* O recuo da tela (main, tela, card) não tem razão de ser no papel: a
+       margem é a da folha. */
+    body.printing main,
+    body.printing .screen.active,
+    body.printing .program-card { padding: 0 !important; margin: 0 !important; }
+    body.printing .doc-preview .doc-sign { break-before: avoid; page-break-before: avoid; }
+    body.printing .doc-preview .doc-grade { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important; }
     body.printing .doc-actions { display: none !important; }
     body.printing details.doc-preview-wrap > summary { display: none !important; }
     body.printing .doc-preview { box-shadow: none !important; }
