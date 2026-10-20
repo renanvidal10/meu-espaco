@@ -3,9 +3,11 @@
 Branch: `claude/login-com-senha-d75125`, partiu de 17a65bd (confirmado). Nada foi publicado.
 
 ## Estado
-ETAPA 1 em andamento. Mapeamento e pesquisa feitos (abaixo). FALTA: escrever `docs/proposta-login.md` (parte do dono + parte técnica) e entregar o resumo com as decisões. Não mexer em código antes da aprovação.
+ETAPA 1 CONCLUÍDA em 20/10/2026: `docs/proposta-login.md` escrito (parte A para o dono, parte B técnica), com os 15 requisitos da Equipe 2 (`equipe2-requisitos-login.md` na pasta compartilhada) incorporados. NIST conferido na fonte (15 caracteres sem segundo fator, até 100 falhas, AAL2 24 h e 1 h de inatividade, e-mail proibido como segundo fator). Neon São Paulo confirmado. Render Starter US$ 7/mês confirmado em fontes secundárias.
 
-**Próxima ação exata:** escrever `docs/proposta-login.md` a partir das seções "Achados" e "Proposta em rascunho" deste arquivo; conferir na fonte os itens marcados (conferir); commit; resumo ao dono.
+Divergências com a Equipe 2, explicadas na proposta (A.6): inatividade de 1 h como padrão (ela sugeriu 30 min; proposta deixa cada organização escolher 30) e segundo fator só por aplicativo (ela citou código por e-mail, que o NIST proíbe).
+
+**Próxima ação exata:** AGUARDAR a aprovação do dono às 7 decisões da seção A.6. Depois: registrar a decisão como nova seção em `docs/ARQUITETURA.md`, implementar a Fase 1 (parte B.3) na branch, com os testes de B.6 e as regressões D1 a D7, rodar `npm test`, mostrar as telas e pedir aprovação antes de qualquer publicação.
 
 ## Achados no código (conferidos em 19/10/2026)
 - `server/index.js`: `AUTH_MODE` simples (nome + CRM, sem senha) ou completo (cadastro por e-mail, link de 60 min, senha, login, esqueci a senha). Completo em produção exige `RESEND_API_KEY`.
