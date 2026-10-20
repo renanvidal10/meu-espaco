@@ -1640,12 +1640,20 @@ async function rodar(nome, dispositivo) {
       const corte = d.indexOf('. ');
       const partes = corte > 0 ? [d.slice(0, corte + 1), d.slice(corte + 2)] : [d];
       partes.forEach((parte, n) => { if (parte && !linhaTela.texto.includes(parte)) faltas.push(`${teste.id}: descrição, parte ${n + 1}`); });
-      for (const campo of ['stat', 'justify', 'sample']) {
+      for (const campo of ['stat', 'sample']) {
         if (teste[campo] && !linhaTela.texto.includes(norm(teste[campo]))) faltas.push(`${teste.id}: ${campo}`);
       }
     });
     linha(ok(faltas.length === 0, `informação do registro ausente da tela: ${faltas.join(' | ')}`),
-      'nome, descrição, evidência, amostra e justificativa estão todos na tela');
+      'nome, descrição, evidência e amostra estão todos na tela');
+    /* §63.2, revisto em 20/10/2026 por decisão do dono: a justificativa do
+     * pedido NÃO aparece na tela de resultado. Ela mora no pedido impresso e
+     * na prévia "Ver documento" da tela de programas. */
+    const repetida = esperado.tests.filter((teste, i) => teste.justify && tela.linhas[i]
+      && tela.linhas[i].texto.includes(teste.justify.replace(/\s+/g, ' ').trim())).map((t) => t.id);
+    const rotulo = tela.linhas.some((l) => /Vai assim no pedido/i.test(l.texto));
+    linha(ok(!repetida.length && !rotulo, `justificativa na tela de resultado: ${repetida.join(', ')} rótulo=${rotulo}`),
+      'a justificativa do pedido não se repete na tela de resultado');
     linha(ok(tela.linhas[1] && tela.linhas[1].titulo === 'Painel germinativo multigênico',
       `título do painel: "${tela.linhas[1] && tela.linhas[1].titulo}"`),
     'nome longo com genes vira título curto e linha de genes');

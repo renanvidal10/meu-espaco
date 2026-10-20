@@ -1952,12 +1952,10 @@
           <p>${esc(cabeca)}</p>
           ${test.stat ? `<p class="step-evid">${ICONE_EVIDENCIA}<span>${esc(test.stat)}</span></p>` : ''}
           ${cauda ? `<p class="step-cauda">${esc(cauda)}</p>` : ''}
-          ${/* §63.2. test.justify vai IMPRESSO no pedido, acima da
-                assinatura. Quem assina lê antes. */''}
-          ${test.justify ? `<div class="justificativa-assinada">
-            <span class="rotulo">Vai assim no pedido, acima da sua assinatura</span>
-            <p>${esc(test.justify)}</p>
-          </div>` : ''}
+          ${/* §63.2, revisto em 20/10/2026: a caixa "Vai assim no pedido"
+                saiu desta tela por decisão do dono. A justificativa continua
+                no pedido impresso e na prévia "Ver documento" dos programas,
+                onde o médico a lê antes de baixar. */''}
         </div>
       </details>`;
     }).join('');

@@ -3618,6 +3618,13 @@ só**. Eram dois degraus num card que já tinha seis: ordem, título, descriçã
 
 ### 63.2 O médico assinava uma justificativa que nunca tinha lido
 
+> **Revisto em 20/10/2026, decisão do dono.** A caixa "Vai assim no pedido,
+> acima da sua assinatura" saiu da tela de resultado (*"Tire a caixa da
+> justificativa só da tela de resultado. No pedido impresso ela continua."*).
+> A justificativa segue impressa no pedido (§35.2: é o que laboratório e
+> convênio leem) e visível antes de baixar, na prévia "Ver documento" da tela
+> de programas. O texto abaixo fica como histórico.
+
 `test.justify` é o texto que vai **impresso no pedido**, no campo
 "Justificativa clínica", logo acima da assinatura e do CRM. Ele não aparecia em
 lugar nenhum da tela — o médico só o encontraria abrindo a prévia do documento
@@ -5008,7 +5015,7 @@ médico ver que tem 2 testes indicados"*.
 | trilho vertical com seis degraus por teste | uma linha por teste, que abre no toque |
 | sobrelinha "TUMORAL · SOMÁTICO · PRIORIDADE" | selo "Prioridade" + tipo + amostra numa linha |
 | nome de 88 caracteres em quatro linhas | nome curto + linha de genes (o que estava entre parênteses) |
-| descrição, "Por que este teste", pílula de evidência e amostra, todos abertos | fechada: nome, prioridade, tipo, amostra; aberta: descrição, evidência, porquê e o texto que vai no pedido |
+| descrição, "Por que este teste", pílula de evidência e amostra, todos abertos | fechada: nome, prioridade, tipo, amostra; aberta: descrição, evidência e porquê (a caixa da justificativa saiu em 20/10/2026, ver §63.2) |
 
 **A contagem repete o número do título, de propósito.** O §57.3 tirou o selo
 quando o título já trazia o número. O dono pediu o destaque, e há uma razão a

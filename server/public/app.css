@@ -1379,22 +1379,8 @@
   .test-step .step-body > .step-evid { display: flex; gap: 8px; font-size: var(--fs-xs); color: var(--ink-muted); line-height: 1.45; }
   .test-step .step-evid .ic { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--accent); }
   .test-step .step-body > .step-cauda { font-size: var(--fs-xs); color: var(--ink-muted); }
-  /* §63.2. A justificativa que vai impressa, acima da assinatura. */
-  .justificativa-assinada {
-    margin-top: 10px;
-    border-left: 2px solid var(--accent-soft-border);
-    background: var(--surface-2);
-    border-radius: 0 var(--r-sm) var(--r-sm) 0;
-    padding: 10px 13px;
-  }
-  .justificativa-assinada .rotulo {
-    display: block;
-    font-size: var(--fs-2xs); font-weight: 700;
-    text-transform: uppercase; letter-spacing: .06em;
-    color: var(--ink-faint); margin-bottom: 5px;
-  }
-  .justificativa-assinada p { font-size: var(--fs-xs); color: var(--ink); margin: 0; line-height: 1.5; }
-  .test-step .justificativa-assinada { margin-top: 4px; }
+  /* O último parágrafo aberto não soma margem ao respiro do painel. */
+  .test-step .step-body > :last-child { margin-bottom: 0; }
   .test-steps[hidden] { display: none; }
   /* A nota que muda a ordem do pedido mora DENTRO do painel, entre o
      veredito e os testes que ela governa (§54). */
