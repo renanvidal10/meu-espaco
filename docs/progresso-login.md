@@ -25,7 +25,15 @@ Concluídos no Cloud Shell pelo coordenador (20/10/2026): 6.1 (conta de serviço
 
 **Passo 5 falhou com 429:** num projeto novo, a cota do Claude Opus 5 é **zero** em us, eu e global. As cotas "US multi-region, base_model: anthropic-claude-opus" (pedidos, tokens de entrada e de saída por minuto) aparecem como ajustáveis. Roteiro ganhou o passo 5.1: pedir 60 pedidos/min, 500.000 tokens de entrada/min e 50.000 de saída/min na porta `us`, com justificativa em inglês pronta. O site e o login podem ir ao ar antes; só a leitura e a Gena esperam a cota.
 
-**Próximos passos do roteiro:** 5.1 (pedir a cota, dono), 7 (domínio e Resend, dono), 8 (Cloud Run), 9 (conferir). Depois da cota aprovada: repetir o passo 5 e rodar a bateria de laudos reais pelo Vertex.
+**Passo 5.1 feito pelo coordenador (20/10/2026):** três pedidos de cota na porta `us` (US multi-region, base_model anthropic-claude-opus):
+- tokens de entrada por minuto, 500.000: caso 066b8613-db26-48d6-955f-727671e94b61;
+- tokens de saída por minuto, 50.000: caso 99649348-d788-44f0-985a-28333c2a2544;
+- pedidos por minuto, 60: caso 8c258795-9393-4e9e-9a66-b176a9c466b1.
+Aguardando a resposta do Google por e-mail.
+
+**Teste do dono antes do domínio:** possível, pelo Resend em modo de teste (só entrega ao e-mail do dono da conta Resend). Caminho descrito no roteiro, seção 6.5.
+
+**Próximos passos do roteiro:** 6.5 (teste mínimo, sem domínio), depois 7 (domínio e Resend), 8 (Cloud Run definitivo) e 9 (conferir). Depois da cota aprovada: repetir o passo 5 e rodar a bateria de laudos reais pelo Vertex.
 
 ## Claude fora do Brasil (ARQUITETURA.md §86.8, 20/10/2026)
 O Google oferece o Claude Opus 5 só em `global`, `us` e `eu`. Decidido `us`: laudo processado nos EUA sob o contrato do Google com as cláusulas da ANPD; servidor, banco e cofres em São Paulo. Roteiro e código ajustados (padrão `VERTEX_REGIAO=us`). Domínio próprio no site: começar com `.run.app`; depois Firebase Hosting (grátis, limite de 60 s) ou balanceador (US$ 18 a 25 por mês), conforme o tempo de leitura medido.

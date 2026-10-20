@@ -230,6 +230,45 @@ Resposta esperada: quatro linhas começando com `guardado:`.
 
 ---
 
+## 6.5 Caminho mínimo para o senhor testar, antes do domínio
+
+**Dá para testar a versão nova sem domínio próprio?** Sim, com uma limitação. O Resend, enquanto não tem domínio verificado, funciona em "modo de teste": manda e-mail a partir de um endereço dele (`onboarding@resend.dev`) e **só entrega para o e-mail do dono da conta Resend**. Se o senhor criar a conta Resend com o seu e-mail, recebe o link de confirmação e consegue fazer o caminho inteiro do médico. Outra pessoa que se cadastrar nessa fase não recebe o e-mail, então este teste é só do senhor.
+
+O programa já está preparado: sem a variável `MAIL_FROM`, ele usa justamente o endereço de teste do Resend.
+
+**O que precisa estar pronto, nesta ordem:**
+
+1. **O código no GitHub, numa branch que o Render não publica** (coordenador, com a sua autorização).
+   - Esta branch de trabalho, `claude/login-com-senha-d75125`, é enviada ao GitHub com esse mesmo nome.
+   - O Render publica só a branch `claude/oncology-genetic-screening-tool-81w16p`; antes do envio, o coordenador confere no painel do Render (Settings > Branch) que é essa mesmo, para o site atual não mudar.
+   - Nada vai para `main` nem para a branch do Render.
+2. **Conta no Resend** (o senhor).
+   - Abra **resend.com** e crie a conta **com o mesmo e-mail que vai ser o do administrador** (o seu).
+   - **Não** precisa adicionar domínio agora.
+   - Em **API Keys > Create API Key**, crie uma chave com **Sending access** e copie (começa com `re_`; só aparece uma vez).
+3. **Colar a chave no cofre:** o bloco do passo 7.3.
+4. **Ligar o Cloud Run ao GitHub:** passo 8.1, escolhendo a branch `claude/login-com-senha-d75125`. A primeira publicação aparece com erro vermelho, como esperado.
+5. **Entregar as configurações:** o bloco do passo 8.2, **com duas diferenças**:
+   - apague o trecho `,MAIL_FROM=OncoGenYX <acesso@seudominio.com.br>` (sem ele, o e-mail sai pelo endereço de teste do Resend);
+   - em `ADMIN_EMAILS=`, ponha o mesmo e-mail da conta Resend.
+6. **Conferir:** passo 9, itens 1 a 5. O e-mail de confirmação chega com remetente `onboarding@resend.dev`; **se não aparecer em alguns minutos, procure no lixo eletrônico**.
+
+**O que funciona e o que não funciona neste teste:**
+
+| Funciona | Ainda não |
+|---|---|
+| Criar acesso, confirmar e-mail, entrar, sair, esqueci a senha, trocar senha | E-mail para qualquer pessoa além do senhor |
+| Minha conta, baixar dados, excluir conta, conferência de CRM | Leitura de laudo e Gena, **até o Google aprovar a cota do Claude** (passo 5.1) |
+| Banco de dados em São Paulo, contas que não somem mais | Endereço com o domínio do OncoGenYX (seção 9.1) |
+
+**Depois do teste, para abrir aos médicos:** registrar o domínio e verificá-lo no Resend (passos 7.1 e 7.2) e colocar o `MAIL_FROM` com o domínio de volta. Comando, depois de colar o bloco 4.1:
+
+```bash
+gcloud run services update oncogenyx --region="$REGIAO" --update-env-vars="MAIL_FROM=OncoGenYX <acesso@seudominio.com.br>"
+```
+
+Não precisa refazer nada do resto. Antes de chamar médicos, também é preciso a cota aprovada e a bateria de laudos reais pelo Google.
+
 ## 7. Domínio e e-mail (fora do Google)
 
 O e-mail de confirmação e de "esqueci a senha" precisa sair de um endereço do OncoGenYX, senão cai no lixo eletrônico. Para isso são precisos um domínio (o "endereço" na internet) e o Resend (o "carteiro").
