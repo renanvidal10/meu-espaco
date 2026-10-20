@@ -4,6 +4,7 @@
 // auditoria — a descrição diz qual, para que ninguém remova por engano.
 
 const { tokenDaResposta } = require('./sessao.js');
+const { portaLivre } = require('./porta.js');
 const test = require('node:test');
 const assert = require('node:assert');
 const { spawn } = require('node:child_process');
@@ -34,7 +35,7 @@ test.before(async () => {
   stub = criarStub();
   const portaStub = await stub.ouvir(0);
   const dataFile = arquivoDeDadosTemporario('seg');
-  const porta = 5200 + Math.floor(Math.random() * 400);
+  const porta = portaLivre();
   base = `http://127.0.0.1:${porta}`;
 
   app = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], {

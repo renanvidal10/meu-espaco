@@ -4,6 +4,7 @@
 // com o cenário real que o produziu — a descrição diz qual.
 
 const { tokenDaResposta } = require('./sessao.js');
+const { portaLivre } = require('./porta.js');
 const test = require('node:test');
 const assert = require('node:assert');
 const { spawn } = require('node:child_process');
@@ -31,7 +32,7 @@ async function esperarSaude(url, tentativas = 60) {
 
 function subir(env = {}) {
   const dataFile = arquivoDeDadosTemporario('rob');
-  const porta = 5600 + Math.floor(Math.random() * 300);
+  const porta = portaLivre();
   const proc = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], {
     env: {
       ...process.env,

@@ -16,6 +16,8 @@ Branch: `claude/login-com-senha-d75125`. Nada foi publicado e nada foi enviado a
 - `docs/roteiro-google-cloud.md`: passo a passo do dono.
 - Testes: `npm test` 356 passando; `test/navegador.js` 178 verificações; contraste, acessibilidade e `test/login-telas.js` passando.
 
+**Contato de privacidade (20/10/2026):** Renan Vidal, renan.lvidal@gmail.com, no rodapé da entrada e em Minha conta (ARQUITETURA.md §85.4). Testes: 359 passando, três rodadas seguidas; navegador e telas do login ok.
+
 ## Ressalva importante (ARQUITETURA.md §86.2)
 A documentação do Google se contradiz sobre o Claude em São Paulo: a página de regiões lista, as fichas dos modelos não. O passo 5 do roteiro testa na conta real. Se falhar, a saída é `VERTEX_REGIAO=us` (EUA, sob o contrato do Google com cláusulas da ANPD), decisão do dono.
 

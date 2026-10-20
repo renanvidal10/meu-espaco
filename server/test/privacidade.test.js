@@ -19,3 +19,16 @@ test('a tela não promete que o áudio do ditado fica no aparelho', () => {
 test('a tela avisa que o áudio é transcrito nos servidores do fabricante', () => {
   assert.match(HTML, /transcrevem o áudio nos servidores do Google e da Microsoft/);
 });
+
+// LGPD art. 41, §1º: identidade e contato do encarregado divulgados de forma
+// clara, de preferência no site. Decisão do dono (20/10/2026): o encarregado é
+// o próprio Renan Vidal. Precisa estar visível antes do login (rodapé da
+// entrada) e dentro de "Minha conta".
+test('o contato do encarregado aparece na entrada e em Minha conta', () => {
+  const entrada = HTML.slice(HTML.indexOf('id="gate"'), HTML.indexOf('class="topbar"'));
+  const conta = HTML.slice(HTML.indexOf('id="conta"'), HTML.indexOf('id="conferencia"'));
+  for (const [onde, trecho] of [['entrada', entrada], ['Minha conta', conta]]) {
+    assert.match(trecho, /Renan Vidal, encarregado/, `${onde}: falta o nome do encarregado`);
+    assert.match(trecho, /href="mailto:renan\.lvidal@gmail\.com"/, `${onde}: falta o e-mail do encarregado`);
+  }
+});

@@ -4814,3 +4814,17 @@ tem três papéis e só esses: `aiplatform.user`, `cloudsql.client` e
   roteiro, comparando o IP de "Minha conta" com o IP real do dono.
 - A bateria de extração contra a IA real (§42) precisa rodar de novo pelo
   Vertex antes de liberar aos médicos, como pede o plano LGPD.
+
+### 85.4 Contato de privacidade (decidido em 20/10/2026)
+
+**Decisão do dono:** o encarregado de dados (LGPD art. 41) é o próprio Renan
+Vidal, e-mail renan.lvidal@gmail.com. O art. 41, §1º pede identidade e contato
+divulgados de forma clara, de preferência no site. Por isso aparecem em dois
+lugares: no rodapé da tela de entrada (público, antes do login) e em "Minha
+conta > Seus dados pessoais". Trava: `test/privacidade.test.js`.
+
+**Defeito de teste corrigido junto:** os arquivos de teste sorteavam porta numa
+faixa fixa, e a faixa da Gena incluía a 5000, que o macOS ocupa com o AirPlay
+(confirmado com `lsof`). Quando o sorteio caía nela, 30 testes falhavam sem
+relação com o que testavam. Agora a porta é pedida ao sistema
+(`test/porta.js`).

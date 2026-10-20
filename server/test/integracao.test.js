@@ -7,6 +7,7 @@
 // imagem, ditado (que vira texto), combinações — e as saídas de erro.
 
 const { tokenDaResposta } = require('./sessao.js');
+const { portaLivre } = require('./porta.js');
 const test = require('node:test');
 const assert = require('node:assert');
 const { spawn } = require('node:child_process');
@@ -46,7 +47,7 @@ test.before(async () => {
   const portaStub = await stub.ouvir(0);
 
   const dataFile = arquivoDeDadosTemporario('int');
-  const porta = 4300 + Math.floor(Math.random() * 500);
+  const porta = portaLivre();
   base = `http://127.0.0.1:${porta}`;
 
   app = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], {

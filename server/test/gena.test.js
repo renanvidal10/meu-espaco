@@ -8,6 +8,7 @@
 // simulados, que verificam o processamento da resposta em cada situação real.
 
 const { tokenDaResposta } = require('./sessao.js');
+const { portaLivre } = require('./porta.js');
 const test = require('node:test');
 const assert = require('node:assert');
 const { spawn } = require('node:child_process');
@@ -67,7 +68,7 @@ test.before(async () => {
   stub = criarStubConversa();
   const portaStub = await stub.ouvir(0);
   const dataFile = arquivoDeDadosTemporario('gena');
-  const porta = 4800 + Math.floor(Math.random() * 400);
+  const porta = portaLivre();
   base = `http://127.0.0.1:${porta}`;
 
   app = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], {

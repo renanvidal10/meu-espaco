@@ -12,6 +12,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { arquivoDeDadosTemporario } = require('./temporario.js');
 const { tokenDaResposta } = require('./sessao.js');
+const { portaLivre } = require('./porta.js');
 
 const ADMIN = 'renan@exemplo.com.br';
 const SENHA = 'Gaveta azul!';
@@ -20,18 +21,8 @@ let app;
 let base;
 let dataFile;
 
-// Porta livre de verdade, pedida ao sistema. Sorteio numa faixa colidia com
-// os outros servidores da suíte rodando em paralelo, e a colisão aparecia como
-// "o servidor não subiu" num teste que não tinha nada a ver com porta.
-function portaLivreSincrona() {
-  const { execFileSync } = require('node:child_process');
-  return Number(execFileSync(process.execPath, ['-e',
-    "const s=require('net').createServer().listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close();})"],
-  { encoding: 'utf8' }).trim());
-}
-
 function subir(env = {}, arquivo) {
-  const porta = portaLivreSincrona();
+  const porta = portaLivre();
   const proc = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], {
     env: {
       ...process.env,
