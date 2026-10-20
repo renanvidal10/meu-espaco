@@ -3056,6 +3056,10 @@ tipo de melhoria que introduz um bug que só aparece em máquina lenta.
 
 ## 53. O corte de 78 caracteres escondia o critério de exclusão (v1.22)
 
+> **Substituído em 20/10/2026 pelo §89.** Por decisão do dono, a tela de
+> programas não mostra mais critério de elegibilidade, nem recolhido. O texto
+> abaixo fica como histórico.
+
 O card de programa mostrava um resumo do critério de elegibilidade cortado em
 78 caracteres, com reticências. Para o programa de ovário, o texto completo é:
 
@@ -3853,6 +3857,10 @@ trecho marcado esteja com largura cheia, opacidade cheia e sem recorte.
 **Provada**: devolvendo o `clip-path`, ela reprova.
 
 ### 67.3 Os destaques são decisão do registro, não da tela
+
+> **Substituído em 20/10/2026 pelo §89.** O marca-texto saiu junto com o
+> critério: a tela de programas não mostra elegibilidade. Os `destaques`
+> continuam no registro, só para a auditoria interna.
 
 `destaques` é um campo do programa em `tumors.js`, com os trechos exatos que
 **negam** o encaminhamento.
