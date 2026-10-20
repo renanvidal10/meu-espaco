@@ -15,6 +15,7 @@
 // 100% verde justamente por essa lacuna.
 
 require('dotenv').config();
+const { tokenDaResposta } = require('./sessao.js');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -58,7 +59,7 @@ async function subirServidor() {
     env: {
       ...process.env,
       PORT: String(porta),
-      NODE_ENV: 'production', // sem os atalhos de teste — é o caminho real
+      NODE_ENV: 'production', PERMITIR_MODO_SIMPLES: 'sim', // sem os atalhos de teste — é o caminho real
       DATA_FILE: arquivoDeDadosTemporario('real'),
       DATABASE_URL: '',
       RESEND_API_KEY: '',
@@ -84,9 +85,9 @@ async function autenticar(base) {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name: 'Renan Vidal', crm: '339324' }),
   });
-  const j = await r.json();
-  if (!j.token) throw new Error('autenticação falhou: ' + JSON.stringify(j));
-  return j.token;
+  const token = tokenDaResposta(r);
+  if (!token) throw new Error('autenticação falhou: ' + JSON.stringify(await r.json()));
+  return token;
 }
 
 /* ====================================================================== *

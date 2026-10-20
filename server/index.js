@@ -113,6 +113,33 @@ if (IS_PRODUCTION && AUTH_MODE === 'completo' && !mailer.isConfigured()) {
   process.exit(1);
 }
 
+// §85. O login com senha em produção depende de quatro coisas, e faltar
+// qualquer uma delas é falha que aparece semanas depois e em silêncio:
+//   DATABASE_URL  sem banco, as contas com senha somem a cada publicação;
+//   APP_ORIGIN    os links dos e-mails seriam montados a partir de cabeçalho
+//                 do cliente (§80);
+//   CHAVE_CIFRA   os tokens do Plaud ficariam em texto puro no banco;
+//   ADMIN_EMAILS  ninguém conseguiria conferir CRM (só avisa: o site funciona).
+if (IS_PRODUCTION && AUTH_MODE === 'completo') {
+  const faltando = ['DATABASE_URL', 'APP_ORIGIN', 'CHAVE_CIFRA'].filter((v) => !process.env[v]);
+  if (faltando.length) {
+    console.error(`ERRO: AUTH_MODE=completo em produção exige ${faltando.join(', ')}.`);
+    process.exit(1);
+  }
+  if (!process.env.ADMIN_EMAILS) {
+    console.warn('AVISO: ADMIN_EMAILS vazio. Nenhum CRM novo poderá ser conferido.');
+  }
+}
+
+// §85. O modo simples deixa entrar qualquer nome com qualquer CRM. Em
+// produção ele só sobe se alguém pedir com todas as letras: esquecer a
+// variável AUTH_MODE não pode deixar a porta aberta.
+if (IS_PRODUCTION && AUTH_MODE === 'simples' && process.env.PERMITIR_MODO_SIMPLES !== 'sim') {
+  console.error('ERRO: AUTH_MODE=simples não é permitido em produção.');
+  console.error('Use AUTH_MODE=completo, ou defina PERMITIR_MODO_SIMPLES=sim para uma demonstração consciente.');
+  process.exit(1);
+}
+
 // Padrão do SDK: 600 s por tentativa, 3 tentativas — até 30 minutos com a
 // requisição do médico pendurada e ~180 MB de buffers presos. 90 s cobre laudo
 // longo; travamento não. maxRetries 1 porque cada retentativa é chamada paga, e
@@ -186,6 +213,11 @@ const {
 
 /* ============================ AUTENTICAÇÃO ============================ */
 
+// Versão dos Termos de Uso e do Aviso de Privacidade aceitos no cadastro
+// (requisito 8 da equipe LGPD). Mudou o texto, muda a versão.
+const TERMOS_VERSAO = process.env.TERMOS_VERSAO || '2026-10-20';
+const LIBERACAO_PROVISORIA_MS = 48 * 60 * 60 * 1000;   // §85.1, decisão 2
+
 // No modo simples as rotas de email/senha ficam desligadas: deixá-las de pé
 // prometeria ao médico um email de recuperação que ninguém enviaria.
 function requireFullAuthMode(req, res, next) {
@@ -195,11 +227,8 @@ function requireFullAuthMode(req, res, next) {
   next();
 }
 
-// Formato livre porque o CRM brasileiro varia por conselho regional (número,
-// UF, com ou sem separador) - validar demais barraria médico real. Usado nos
-// dois pontos que aceitam CRM: o acesso e a edição de perfil.
 // Um aviso com `recuperado: true` diz que deu certo por outro caminho. Usá-lo
-// como texto do erro produzia telas de falha escritas "lido normalmente —
+// como texto do erro produzia telas de falha escritas "lido normalmente,
 // nenhuma ação necessária", com a instrução útil escondida no segundo aviso.
 function mensagemDeFalha(avisos) {
   const falhas = (avisos || []).filter((a) => !a.recuperado);
@@ -217,6 +246,9 @@ function limparNome(valor) {
     .trim();
 }
 
+// Formato livre no modo simples porque o CRM brasileiro varia por conselho
+// regional (número, UF, com ou sem separador): validar demais barraria médico
+// real. O modo completo pede número e UF em campos separados (§85).
 function crmValido(crm) {
   return /^[A-Za-z0-9][A-Za-z0-9 .\/-]{2,29}$/.test(crm);
 }
@@ -229,6 +261,112 @@ function crmIdentity(crm) {
   return `crm-${slug}@acesso.oncogenyx`;
 }
 
+/* §80. O endereço do próprio serviço, montado a partir do pedido quando não
+ * há APP_ORIGIN configurado.
+ *
+ * `host` e `x-forwarded-proto` são CABEÇALHOS DO CLIENTE. Quem fala com o
+ * processo escolhe o valor deles. Este valor é interpolado dentro de
+ * atributos HTML da página entregue (canonical, og:url, og:image) e dentro do
+ * link de redefinição de senha, ou seja, dois lugares onde um valor
+ * escolhido por terceiro é desastre:
+ *
+ *   Host: x"><script>...</script><b a="   -> script executado no domínio do médico
+ *   X-Forwarded-Proto: javascript        -> href javascript:
+ *   Host: servidor-do-atacante           -> token de senha entregue ao atacante
+ *
+ * Então: formato validado, e o que não casar é descartado em vez de
+ * remendado. Host inválido cai para caminho relativo (string vazia), que
+ * produz href="/", correto e inofensivo. Protocolo inválido vira https.
+ *
+ * Isto não substitui definir APP_ORIGIN em produção, que continua sendo o
+ * certo (e é exigido no boot do modo completo); é a rede para quando ela não
+ * estiver lá. */
+const HOST_VALIDO = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,252}[A-Za-z0-9])?(?::\d{1,5})?$/;
+
+function appOrigin(req) {
+  if (process.env.APP_ORIGIN) return process.env.APP_ORIGIN.replace(/\/$/, '');
+  const protoBruto = String(req.get('x-forwarded-proto') || req.protocol || '')
+    .split(',')[0].trim().toLowerCase();
+  const proto = (protoBruto === 'http' || protoBruto === 'https') ? protoBruto : 'https';
+  const host = String(req.get('host') || '').trim();
+  if (!HOST_VALIDO.test(host)) return '';
+  return `${proto}://${host}`;
+}
+
+/* §85. Pedido que altera estado vindo de outra origem é recusado.
+ *
+ * O cookie de sessão é SameSite=Strict, que já não acompanha pedido nascido
+ * em outro site. Esta conferência é a segunda tranca: navegador moderno manda
+ * `Origin` em todo POST, e se ele não for o do próprio OncoGenYX o pedido não
+ * passa. Sem `Origin` (scripts de operação, testes) segue, porque nesse caso
+ * não há navegador de vítima carregando cookie. */
+function origemConfere(req, res, next) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const origem = req.get('origin');
+  if (!origem) return next();
+  if (process.env.APP_ORIGIN && origem === appOrigin(req)) return next();
+  try {
+    if (!process.env.APP_ORIGIN && new URL(origem).host === req.get('host')) return next();
+  } catch { /* Origin malformado cai na recusa abaixo */ }
+  return res.status(403).json({ error: 'Pedido recusado: ele não partiu da página do OncoGenYX.' });
+}
+app.use('/api', origemConfere);
+
+// "::ffff:" é o prefixo que o Node põe em IPv4 recebido por socket IPv6. No
+// registro de acesso e em "Minha conta" fica só o endereço que o médico
+// reconhece.
+const ipDe = (req) => (req.ip ? String(req.ip).replace(/^::ffff:/, '') : null);
+const contexto = (req) => ({ ip: ipDe(req), agente: auth.resumirAgente(req.get('user-agent')) });
+
+async function evento(req, tipo, userId, detalhe) {
+  const { ip, agente } = contexto(req);
+  await store.registrarEvento({ userId: userId || null, tipo, ip, agente, detalhe: detalhe || null });
+}
+
+async function entrar(req, res, user, via) {
+  await store.touchLogin(user.id);
+  const token = await auth.issueSession(user.id, contexto(req));
+  auth.definirCookieDeSessao(req, res, token);
+  await evento(req, 'login_ok', user.id, via ? { via } : null);
+  // O token vai SÓ no cookie HttpOnly. Antes ele vinha também no corpo e a
+  // página o guardava em localStorage, ao alcance de qualquer script injetado
+  // (§85, defeito D5).
+  res.json({ ok: true, user: auth.publicUser(user) });
+}
+
+// E-mail que não segura a resposta: o tempo de resposta não pode denunciar se
+// a conta existe, e uma falha do provedor fica no log em vez de virar erro
+// para quem só pediu um link.
+function enviarDepois(promessa, oQue) {
+  Promise.resolve(promessa).catch((e) => console.error(`Falha ao enviar e-mail (${oQue}):`, e.message));
+}
+
+function emailsDosAdmins() {
+  return String(process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+}
+
+function avisarAdmins(req, medico) {
+  const lista = emailsDosAdmins();
+  if (!lista.length) return;
+  enviarDepois(mailer.sendNovoCadastroAdmin({ to: lista, medico, origem: appOrigin(req) }), 'aviso ao administrador');
+}
+
+// Link de desenvolvimento: sem provedor de e-mail, devolve o link na resposta
+// para o fluxo não travar na máquina do dev. Em produção não sai nunca: além
+// de entregar o token a quem pedir, só aparece quando a conta existe, virando
+// oráculo de enumeração de cadastro (e o boot já exige RESEND_API_KEY).
+function linkDeDev(url) {
+  return (!mailer.isConfigured() && !IS_PRODUCTION) ? url : undefined;
+}
+
+function mascararEmail(email) {
+  const [local, dominio] = String(email).split('@');
+  if (!dominio) return '';
+  return `${local.slice(0, 2)}${'•'.repeat(Math.max(1, Math.min(6, local.length - 2)))}@${dominio}`;
+}
+
+/* ---------- modo simples (§17): nome + CRM ---------- */
+
 app.post('/api/auth/acesso', async (req, res, next) => {
   try {
     if (AUTH_MODE !== 'simples') {
@@ -240,8 +378,6 @@ app.post('/api/auth/acesso', async (req, res, next) => {
 
     if (name.length < 3) return res.status(400).json({ error: 'Informe seu nome completo.' });
     if (name.length > 120) return res.status(400).json({ error: 'Nome longo demais.' });
-    // Formato livre porque o CRM brasileiro varia por conselho regional
-    // (número, UF, com ou sem separador) - validar demais barraria médico real.
     if (!crmValido(crm)) {
       return res.status(400).json({ error: 'Informe um CRM válido (números e, se quiser, a UF).' });
     }
@@ -267,146 +403,146 @@ app.post('/api/auth/acesso', async (req, res, next) => {
       user = { ...user, name, crm };
     }
 
-    await store.touchLogin(user.id);
-    const session = await auth.issueSession(user.id);
-    res.json({ ok: true, token: session, user: auth.publicUser(user) });
+    await entrar(req, res, user, 'simples');
   } catch (err) {
     next(err);
   }
 });
 
-// Resposta deliberadamente idêntica exista ou não a conta: a tela de login não
-// pode virar um oráculo que confirma "este médico usa a plataforma".
-const NEUTRAL_RESET_RESPONSE = {
-  ok: true,
-  message: 'Se este email estiver cadastrado, você receberá um link para definir a senha em instantes.',
-};
+/* ---------- modo completo (§85): cadastro, confirmação, entrada ---------- */
 
-/* §80. O endereço do próprio serviço, montado a partir do pedido quando não
- * há APP_ORIGIN configurado.
- *
- * `host` e `x-forwarded-proto` são CABEÇALHOS DO CLIENTE. Quem fala com o
- * processo escolhe o valor deles. Este valor é interpolado dentro de
- * atributos HTML da página entregue (canonical, og:url, og:image) e dentro do
- * link de redefinição de senha — ou seja, dois lugares onde um valor
- * escolhido por terceiro é desastre:
- *
- *   Host: x"><script>...</script><b a="   -> script executado no domínio do médico
- *   X-Forwarded-Proto: javascript        -> href javascript:
- *   Host: servidor-do-atacante           -> token de senha entregue ao atacante
- *
- * Então: formato validado, e o que não casar é descartado em vez de
- * remendado. Host inválido cai para caminho relativo (string vazia), que
- * produz href="/" — correto e inofensivo. Protocolo inválido vira https.
- *
- * Isto não substitui definir APP_ORIGIN em produção, que continua sendo o
- * certo; é a rede para quando ela não estiver lá. */
-const HOST_VALIDO = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,252}[A-Za-z0-9])?(?::\d{1,5})?$/;
+const MSG_FALHA_LOGIN = 'CRM, estado ou senha incorretos.';
 
-function appOrigin(req) {
-  if (process.env.APP_ORIGIN) return process.env.APP_ORIGIN.replace(/\/$/, '');
-  const protoBruto = String(req.get('x-forwarded-proto') || req.protocol || '')
-    .split(',')[0].trim().toLowerCase();
-  const proto = (protoBruto === 'http' || protoBruto === 'https') ? protoBruto : 'https';
-  const host = String(req.get('host') || '').trim();
-  if (!HOST_VALIDO.test(host)) return '';
-  return `${proto}://${host}`;
+// Comparação de senha com custo constante: quando o CRM não tem conta, roda
+// um scrypt de mentira para a resposta demorar o mesmo que uma senha errada.
+let hashDeMentira = null;
+async function custoConstante(password) {
+  if (!hashDeMentira) hashDeMentira = await auth.hashPassword(crypto.randomBytes(12).toString('hex') + 'A!');
+  await auth.verifyPassword(password, hashDeMentira);
 }
 
-async function deliverResetLink({ req, user, isFirstAccess }) {
-  const token = await auth.issueResetToken(user.id);
-  const url = `${appOrigin(req)}/?definir-senha=${token}`;
-  const result = await mailer.sendPasswordSetup({ to: user.email, name: user.name, url, isFirstAccess });
-  // Sem provedor de email configurado (dev), devolve o link para o fluxo não travar.
-  // Em produção isso nunca acontece: o boot já exige a chave via /api/health.
-  // devUrl é auxílio de desenvolvimento. Em produção não sai nunca: além de
-  // entregar o token a quem pedir, só aparece quando a conta existe, virando
-  // oráculo de enumeração de cadastro.
-  return { delivered: result.delivered, devUrl: result.delivered || IS_PRODUCTION ? null : url };
+function minutos(ms) {
+  const m = Math.ceil(ms / 60000);
+  return m <= 1 ? '1 minuto' : `${m} minutos`;
 }
 
-// Cadastro/primeiro acesso: cria a conta e dispara o link de definição de senha.
-app.post('/api/auth/register', requireFullAuthMode, async (req, res, next) => {
+function lerCadastro(body) {
+  return {
+    name: limparNome(body.name),
+    crm: auth.normalizarCrm(body.crm),
+    uf: auth.normalizarUf(body.uf),
+    email: auth.normalizeEmail(body.email),
+    password: typeof body.password === 'string' ? body.password : '',
+  };
+}
+
+app.post('/api/auth/cadastro', requireFullAuthMode, async (req, res, next) => {
   try {
-    const email = auth.normalizeEmail(req.body.email);
-    const name = String(req.body.name || '').trim();
-    const crm = String(req.body.crm || '').trim();
+    const d = lerCadastro(req.body || {});
+    if (d.name.length < 3) return res.status(400).json({ error: 'Informe seu nome completo.' });
+    if (d.name.length > 120) return res.status(400).json({ error: 'Nome longo demais.' });
+    if (!d.crm) return res.status(400).json({ error: 'Informe o número do CRM (só os números).' });
+    if (!d.uf) return res.status(400).json({ error: 'Escolha o estado do seu CRM.' });
+    if (!auth.isValidEmail(d.email)) return res.status(400).json({ error: 'Informe um e-mail válido.' });
+    if (req.body.aceite !== true) {
+      return res.status(400).json({ error: 'Para criar a conta, é preciso aceitar os Termos de Uso e o Aviso de Privacidade.' });
+    }
+    const invalida = auth.validatePassword(d.password, { nome: d.name, email: d.email, crm: d.crm });
+    if (invalida) return res.status(400).json({ error: invalida });
 
-    if (!auth.isValidEmail(email)) return res.status(400).json({ error: 'Informe um email válido.' });
-    if (name.length < 3) return res.status(400).json({ error: 'Informe seu nome completo.' });
-    if (crm.length < 3) return res.status(400).json({ error: 'Informe seu CRM.' });
-
-    const limit = auth.rateLimit(`register:${req.ip}`, { max: 5, windowMs: 60 * 60 * 1000 });
-    if (!limit.allowed) {
-      return res.status(429).json({ error: 'Muitas tentativas. Tente novamente mais tarde.' });
+    const limite = await auth.dentroDoLimite(`cadastro-ip:${req.ip}`, { max: 10, janelaMs: 60 * 60 * 1000 });
+    if (!limite.permitido) {
+      return res.status(429).json({ error: 'Muitos cadastros feitos a partir desta rede. Tente de novo em uma hora.' });
     }
 
-    const existing = await store.findUserByEmail(email);
-    if (existing) {
-      // Conta já existe: não confirmamos isso. Se ainda não tem senha, é um
-      // primeiro acesso interrompido — reenviamos o link em vez de barrar.
-      if (!existing.password_hash) {
-        const out = await deliverResetLink({ req, user: existing, isFirstAccess: true });
-        return res.json({ ...NEUTRAL_RESET_RESPONSE, devUrl: out.devUrl });
-      }
-      return res.json(NEUTRAL_RESET_RESPONSE);
+    // Resposta idêntica exista ou não a conta: a tela de cadastro não pode
+    // virar um jeito de descobrir quem usa a plataforma. Quem já tem conta
+    // recebe um e-mail avisando da tentativa.
+    const neutra = {
+      ok: true,
+      email: d.email,
+      message: `Enviamos um link de confirmação para ${d.email}. Abra o e-mail e toque em "Confirmar meu e-mail" para entrar.`,
+    };
+    const origem = appOrigin(req);
+
+    const porEmail = await store.findUserByEmail(d.email);
+    if (porEmail) {
+      enviarDepois(mailer.sendCadastroRepetido({ to: porEmail.email, name: porEmail.name, origem, motivo: 'email' }), 'cadastro repetido');
+      await evento(req, 'cadastro_repetido', porEmail.id, { motivo: 'email' });
+      return res.json(neutra);
+    }
+    const porCrm = await store.findUserByCrm(d.crm, d.uf);
+    if (porCrm) {
+      enviarDepois(mailer.sendCadastroRepetido({ to: porCrm.email, name: porCrm.name, origem, motivo: 'crm' }), 'cadastro repetido');
+      await evento(req, 'cadastro_repetido', porCrm.id, { motivo: 'crm' });
+      return res.json(neutra);
     }
 
-    const user = await store.createUser({ id: crypto.randomUUID(), email, name, crm });
-    const out = await deliverResetLink({ req, user, isFirstAccess: true });
-    res.json({ ...NEUTRAL_RESET_RESPONSE, devUrl: out.devUrl });
+    const user = await store.createAccount({
+      id: crypto.randomUUID(),
+      email: d.email,
+      name: d.name,
+      crm: d.crm,
+      crm_uf: d.uf,
+      password_hash: await auth.hashPassword(d.password),
+      liberado_ate: new Date(Date.now() + LIBERACAO_PROVISORIA_MS),
+      termos_versao: TERMOS_VERSAO,
+    });
+    // null = outra requisição criou a mesma conta entre a busca e a inserção.
+    if (!user) return res.json(neutra);
+
+    await evento(req, 'cadastro', user.id, { termos: TERMOS_VERSAO });
+    const token = await auth.issueResetToken(user.id, 'confirmar_email');
+    const url = `${origem}/?confirmar-email=${token}`;
+    enviarDepois(mailer.sendConfirmacao({ to: user.email, name: user.name, url, origem }), 'confirmação');
+    res.json({ ...neutra, devUrl: linkDeDev(url) });
   } catch (err) {
     next(err);
   }
 });
 
-// Pedido de redefinição (também cobre "esqueci minha senha").
-app.post('/api/auth/request-reset', requireFullAuthMode, async (req, res, next) => {
+app.post('/api/auth/reenviar-confirmacao', requireFullAuthMode, async (req, res, next) => {
   try {
     const email = auth.normalizeEmail(req.body.email);
-    if (!auth.isValidEmail(email)) return res.status(400).json({ error: 'Informe um email válido.' });
+    if (!auth.isValidEmail(email)) return res.status(400).json({ error: 'Informe um e-mail válido.' });
+    const neutra = { ok: true, message: `Se houver uma conta aguardando confirmação em ${email}, um link novo chega em instantes.` };
 
-    const limit = auth.rateLimit(`reset:${email}`, { max: 5, windowMs: 60 * 60 * 1000 });
-    if (!limit.allowed) {
-      return res.status(429).json({ error: 'Muitos pedidos para este email. Aguarde alguns minutos.' });
+    const porEmail = await auth.dentroDoLimite(`reenvio:${email}`, { max: 5, janelaMs: 60 * 60 * 1000 });
+    const porIp = await auth.dentroDoLimite(`reenvio-ip:${req.ip}`, { max: 30, janelaMs: 60 * 60 * 1000 });
+    if (!porEmail.permitido || !porIp.permitido) {
+      return res.status(429).json({ error: 'Muitos pedidos de reenvio. Aguarde alguns minutos e confira também a caixa de spam.' });
     }
 
     const user = await store.findUserByEmail(email);
-    if (!user) return res.json(NEUTRAL_RESET_RESPONSE);
-
-    const out = await deliverResetLink({ req, user, isFirstAccess: !user.password_hash });
-    res.json({ ...NEUTRAL_RESET_RESPONSE, devUrl: out.devUrl });
+    if (!user || !user.crm_uf || user.email_verificado_em) return res.json(neutra);
+    const token = await auth.issueResetToken(user.id, 'confirmar_email');
+    const origem = appOrigin(req);
+    const url = `${origem}/?confirmar-email=${token}`;
+    enviarDepois(mailer.sendConfirmacao({ to: user.email, name: user.name, url, origem }), 'confirmação');
+    res.json({ ...neutra, devUrl: linkDeDev(url) });
   } catch (err) {
     next(err);
   }
 });
 
-// Define a senha a partir do token do email e já entrega a sessão.
-app.post('/api/auth/set-password', requireFullAuthMode, async (req, res, next) => {
+app.post('/api/auth/confirmar-email', requireFullAuthMode, async (req, res, next) => {
   try {
-    const token = String(req.body.token || '');
-    const password = String(req.body.password || '');
-
-    const invalid = auth.validatePassword(password);
-    if (invalid) return res.status(400).json({ error: invalid });
-
-    const reset = await auth.consumeResetToken(token);
+    const reset = await auth.consumeResetToken(req.body.token, 'confirmar_email');
     if (!reset) {
-      return res.status(400).json({ error: 'Este link expirou ou já foi usado. Peça um novo link de acesso.' });
+      return res.status(400).json({
+        error: 'Este link de confirmação expirou ou já foi usado. Entre com CRM e senha: se o e-mail ainda não estiver confirmado, mostramos como pedir um link novo.',
+      });
     }
-
-    const user = await store.findUserById(reset.user_id);
+    let user = await store.findUserById(reset.user_id);
     if (!user) return res.status(400).json({ error: 'Conta não encontrada.' });
-
-    await store.setUserPassword(user.id, auth.hashPassword(password));
-    // Quem redefine a senha em geral o faz porque perdeu o acesso ou suspeita
-    // de invasão. Sem revogar as sessões antigas, o invasor continua logado
-    // depois da troca — a tela diz que a conta foi protegida e ela não foi.
-    // A função existia em store.js e não era chamada de lugar nenhum.
-    await store.deleteSessionsByUser(user.id);
-    await store.touchLogin(user.id);
-    const session = await auth.issueSession(user.id);
-    res.json({ ok: true, token: session, user: auth.publicUser(user) });
+    if (!user.email_verificado_em) {
+      const agora = new Date();
+      await store.updateUser(user.id, { email_verificado_em: agora });
+      user = { ...user, email_verificado_em: agora.toISOString() };
+      await evento(req, 'email_confirmado', user.id);
+      if (user.crm_status === 'pendente') avisarAdmins(req, user);
+    }
+    await entrar(req, res, user, 'confirmacao');
   } catch (err) {
     next(err);
   }
@@ -414,30 +550,163 @@ app.post('/api/auth/set-password', requireFullAuthMode, async (req, res, next) =
 
 app.post('/api/auth/login', requireFullAuthMode, async (req, res, next) => {
   try {
-    const email = auth.normalizeEmail(req.body.email);
-    const password = String(req.body.password || '');
-    if (!auth.isValidEmail(email) || !password) {
-      return res.status(400).json({ error: 'Informe email e senha.' });
+    const crm = auth.normalizarCrm(req.body.crm);
+    const uf = auth.normalizarUf(req.body.uf);
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
+    if (!crm || !uf || !password) return res.status(400).json({ error: 'Informe o CRM, o estado e a senha.' });
+
+    // Teto folgado por IP, só contra automação: um hospital inteiro sai pelo
+    // mesmo endereço e não pode ser barrado por um colega distraído.
+    const porIp = await auth.dentroDoLimite(`login-ip:${req.ip}`, { max: 100, janelaMs: 15 * 60 * 1000 });
+    if (!porIp.permitido) {
+      return res.status(429).json({ error: 'Muitas tentativas de entrada a partir desta rede. Aguarde 15 minutos.' });
     }
 
-    const limit = auth.rateLimit(`login:${req.ip}:${email}`, { max: 8, windowMs: 15 * 60 * 1000 });
-    if (!limit.allowed) {
-      return res.status(429).json({
-        error: `Muitas tentativas de login. Tente novamente em ${Math.ceil(limit.retryAfterSec / 60)} minutos.`,
+    // Contador por CONTA (CRM+UF), não por IP+e-mail: antes, quem trocava de
+    // IP tentava senhas sem limite contra o mesmo médico (§85, defeito D3).
+    // A chave existe para CRM sem conta também, então a espera não denuncia
+    // quem tem cadastro.
+    const chave = `login:${crm}/${uf}`;
+    const espera = await auth.esperaDaConta(chave);
+    if (espera > 0) {
+      return res.status(429).json({ error: `Muitas tentativas com senha errada. Aguarde ${minutos(espera)} e tente de novo, ou use "Esqueci minha senha".` });
+    }
+
+    const user = await store.findUserByCrm(crm, uf);
+    let certa = false;
+    if (user && user.password_hash) certa = await auth.verifyPassword(password, user.password_hash);
+    else await custoConstante(password);
+
+    if (!certa) {
+      const f = await auth.falhaNaConta(chave);
+      await evento(req, 'login_falha', user ? user.id : null, user ? null : { conta: 'inexistente' });
+      if (f.desativar && user && user.password_hash) {
+        // Na 50ª falha seguida a senha é desativada e só volta por "esqueci a
+        // senha". Nunca uma trava definitiva da conta: senão qualquer um
+        // tranca um médico de propósito digitando senha errada.
+        await store.setUserPassword(user.id, null);
+        await store.deleteSessionsByUser(user.id);
+        await evento(req, 'senha_desativada', user.id);
+        enviarDepois(mailer.sendSenhaDesativada({ to: user.email, name: user.name, origem: appOrigin(req) }), 'senha desativada');
+      }
+      const proxima = auth.esperaDepoisDe(f.falhas);
+      const aviso = proxima > 0 ? ` Por segurança, aguarde ${minutos(proxima)} antes de tentar de novo.` : '';
+      return res.status(401).json({ error: MSG_FALHA_LOGIN + aviso });
+    }
+
+    if (!user.email_verificado_em) {
+      // Só chega aqui quem acertou a senha: dizer que falta confirmar o
+      // e-mail não revela nada a terceiros.
+      return res.status(403).json({
+        error: 'Falta confirmar o seu e-mail. Abra a mensagem que enviamos no cadastro e toque em "Confirmar meu e-mail".',
+        codigo: 'email_nao_confirmado',
+        email: user.email,
+        emailMascarado: mascararEmail(user.email),
       });
     }
 
+    await auth.acertoNaConta(chave);
+    if (auth.precisaRefazerHash(user.password_hash)) {
+      await store.setUserPassword(user.id, await auth.hashPassword(password));
+    }
+    await entrar(req, res, user, 'senha');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Resposta deliberadamente idêntica exista ou não a conta: a tela não pode
+// virar um oráculo que confirma "este médico usa a plataforma".
+const NEUTRAL_RESET_RESPONSE = {
+  ok: true,
+  message: 'Se este e-mail estiver cadastrado, você receberá em instantes um link para criar uma nova senha. Ele vale por 30 minutos.',
+};
+
+app.post('/api/auth/esqueci', requireFullAuthMode, async (req, res, next) => {
+  try {
+    const email = auth.normalizeEmail(req.body.email);
+    if (!auth.isValidEmail(email)) return res.status(400).json({ error: 'Informe um e-mail válido.' });
+
+    const porEmail = await auth.dentroDoLimite(`esqueci:${email}`, { max: 5, janelaMs: 60 * 60 * 1000 });
+    const porIp = await auth.dentroDoLimite(`esqueci-ip:${req.ip}`, { max: 30, janelaMs: 60 * 60 * 1000 });
+    if (!porEmail.permitido || !porIp.permitido) {
+      return res.status(429).json({ error: 'Muitos pedidos para este e-mail. Aguarde alguns minutos e confira também a caixa de spam.' });
+    }
+
     const user = await store.findUserByEmail(email);
-    // Mesma mensagem para email inexistente, senha errada e conta sem senha
-    // definida: nenhuma delas revela em qual dos casos o atacante caiu.
-    const genericFail = { error: 'Email ou senha incorretos.' };
+    if (!user || !user.crm_uf) return res.json(NEUTRAL_RESET_RESPONSE);
 
-    if (!user || !user.password_hash) return res.status(401).json(genericFail);
-    if (!auth.verifyPassword(password, user.password_hash)) return res.status(401).json(genericFail);
+    const token = await auth.issueResetToken(user.id, 'redefinir_senha');
+    const origem = appOrigin(req);
+    const url = `${origem}/?nova-senha=${token}`;
+    enviarDepois(mailer.sendRedefinicao({ to: user.email, name: user.name, url, origem }), 'redefinição');
+    res.json({ ...NEUTRAL_RESET_RESPONSE, devUrl: linkDeDev(url) });
+  } catch (err) {
+    next(err);
+  }
+});
 
-    await store.touchLogin(user.id);
-    const session = await auth.issueSession(user.id);
-    res.json({ ok: true, token: session, user: auth.publicUser(user) });
+async function trocarSenha(req, user, novaSenha, tipoEvento) {
+  await store.setUserPassword(user.id, await auth.hashPassword(novaSenha));
+  // Quem troca a senha em geral o faz porque perdeu o acesso ou suspeita de
+  // invasão. Sem revogar as sessões antigas, o invasor continua logado
+  // depois da troca: a tela diz que a conta foi protegida e ela não foi.
+  await store.deleteSessionsByUser(user.id);
+  await auth.acertoNaConta(`login:${user.crm}/${user.crm_uf}`);
+  await evento(req, tipoEvento, user.id);
+  enviarDepois(mailer.sendSenhaAlterada({ to: user.email, name: user.name, origem: appOrigin(req) }), 'senha alterada');
+}
+
+app.post('/api/auth/nova-senha', requireFullAuthMode, async (req, res, next) => {
+  try {
+    const token = String(req.body.token || '');
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
+    const expirado = { error: 'Este link expirou ou já foi usado. Peça um novo em "Esqueci minha senha".' };
+
+    // Lê o link SEM gastar, valida a senha com o nome e o CRM do dono da
+    // conta, e só então gasta: digitar uma senha fraca não queima o link.
+    const pendente = await auth.findResetToken(token, 'redefinir_senha');
+    if (!pendente) return res.status(400).json(expirado);
+    let user = await store.findUserById(pendente.user_id);
+    if (!user) return res.status(400).json(expirado);
+
+    const invalida = auth.validatePassword(password, { nome: user.name, email: user.email, crm: user.crm });
+    if (invalida) return res.status(400).json({ error: invalida });
+
+    const reset = await auth.consumeResetToken(token, 'redefinir_senha');
+    if (!reset) return res.status(400).json(expirado);
+
+    await trocarSenha(req, user, password, 'senha_redefinida');
+    // Abrir o link do e-mail prova que o e-mail é dele.
+    if (!user.email_verificado_em) {
+      const agora = new Date();
+      await store.updateUser(user.id, { email_verificado_em: agora });
+      user = { ...user, email_verificado_em: agora.toISOString() };
+    }
+    await entrar(req, res, user, 'nova_senha');
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/auth/trocar-senha', requireFullAuthMode, auth.requireAuth(), async (req, res, next) => {
+  try {
+    const atual = typeof req.body.atual === 'string' ? req.body.atual : '';
+    const nova = typeof req.body.nova === 'string' ? req.body.nova : '';
+    const user = req.user;
+
+    const chave = `login:${user.crm}/${user.crm_uf}`;
+    const espera = await auth.esperaDaConta(chave);
+    if (espera > 0) return res.status(429).json({ error: `Muitas tentativas com senha errada. Aguarde ${minutos(espera)}.` });
+    if (!user.password_hash || !(await auth.verifyPassword(atual, user.password_hash))) {
+      await auth.falhaNaConta(chave);
+      return res.status(400).json({ error: 'A senha atual não confere.' });
+    }
+    const invalida = auth.validatePassword(nova, { nome: user.name, email: user.email, crm: user.crm });
+    if (invalida) return res.status(400).json({ error: invalida });
+
+    await trocarSenha(req, user, nova, 'senha_trocada');
+    await entrar(req, res, user, 'troca_de_senha');
   } catch (err) {
     next(err);
   }
@@ -445,7 +714,22 @@ app.post('/api/auth/login', requireFullAuthMode, async (req, res, next) => {
 
 app.post('/api/auth/logout', async (req, res, next) => {
   try {
-    await auth.revokeSession(auth.bearerToken(req));
+    const token = auth.bearerToken(req);
+    const user = token ? await auth.resolveSession(token) : null;
+    await auth.revokeSession(token);
+    auth.limparCookieDeSessao(req, res);
+    if (user) await evento(req, 'logout', user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/auth/sair-de-todos', auth.requireAuth(), async (req, res, next) => {
+  try {
+    await store.deleteSessionsByUser(req.user.id);
+    auth.limparCookieDeSessao(req, res);
+    await evento(req, 'sessoes_encerradas', req.user.id);
     res.json({ ok: true });
   } catch (err) {
     next(err);
@@ -456,18 +740,179 @@ app.get('/api/auth/me', auth.requireAuth(), (req, res) => {
   res.json({ user: auth.publicUser(req.user) });
 });
 
+/* ---------- Minha conta (direitos do titular, LGPD art. 18) ---------- */
+
+app.get('/api/auth/conta', auth.requireAuth(), async (req, res, next) => {
+  try {
+    const sessoes = await store.listarSessoes(req.user.id);
+    const acessos = await store.listarEventos(req.user.id, 15);
+    res.json({
+      user: auth.publicUser(req.user),
+      criadaEm: req.user.created_at,
+      sessoes: sessoes.map((s) => ({
+        atual: s.token_hash === req.user._sessao,
+        criadaEm: s.created_at,
+        ultimoUso: s.ultimo_uso_em,
+        agente: s.agente,
+      })),
+      acessos: acessos.map((e) => ({ tipo: e.tipo, em: e.criado_em, ip: e.ip, agente: e.agente })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/api/auth/meus-dados', auth.requireAuth(), async (req, res, next) => {
+  try {
+    const u = req.user;
+    const sessoes = await store.listarSessoes(u.id);
+    const eventos = await store.listarEventos(u.id, 1000);
+    const plaudConectado = Boolean(await store.getPlaudTokens(u.id).catch(() => null));
+    const dados = {
+      geradoEm: new Date().toISOString(),
+      aviso: 'Dados da sua conta no OncoGenYX. Nenhum caso de paciente é guardado pela plataforma, por isso nenhum aparece aqui.',
+      conta: {
+        nome: u.name,
+        email: u.email,
+        crm: u.crm,
+        uf: u.crm_uf || null,
+        situacaoDoCrm: u.crm_status || null,
+        crmConferidoEm: u.crm_conferido_em || null,
+        emailConfirmadoEm: u.email_verificado_em || null,
+        termosAceitos: u.termos_versao ? { versao: u.termos_versao, em: u.termos_aceitos_em } : null,
+        criadaEm: u.created_at,
+        ultimaEntrada: u.last_login_at,
+      },
+      plaudConectado,
+      sessoesAbertas: sessoes.map((s) => ({ criadaEm: s.created_at, ultimoUso: s.ultimo_uso_em, ip: s.ip, aparelho: s.agente })),
+      registroDeAcessos: eventos.map((e) => ({ tipo: e.tipo, em: e.criado_em, ip: e.ip, aparelho: e.agente })),
+    };
+    res.set('Content-Disposition', 'attachment; filename="meus-dados-oncogenyx.json"');
+    res.set('Cache-Control', 'no-store');
+    res.type('application/json').send(JSON.stringify(dados, null, 2));
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.patch('/api/auth/me', auth.requireAuth(), async (req, res, next) => {
   try {
     // Mesma validação do acesso: este nome vai impresso na solicitação de exame
     // que o médico assina. Sem teto, 5000 caracteres quebram o layout do
     // documento; sem limpeza, sequências de controle sujam o log do servidor.
     const name = limparNome(req.body.name);
-    const crm = String(req.body.crm || '').trim().replace(/\s+/g, ' ');
     if (name.length < 3) return res.status(400).json({ error: 'Informe seu nome completo.' });
     if (name.length > 120) return res.status(400).json({ error: 'Nome longo demais.' });
-    if (!crmValido(crm)) return res.status(400).json({ error: 'Informe um CRM válido (números e, se quiser, a UF).' });
-    await store.updateUserProfile(req.user.id, { name, crm });
-    res.json({ ok: true, user: { ...auth.publicUser(req.user), name, crm } });
+
+    if (!req.user.crm_uf) {
+      const crm = String(req.body.crm || '').trim().replace(/\s+/g, ' ');
+      if (!crmValido(crm)) return res.status(400).json({ error: 'Informe um CRM válido (números e, se quiser, a UF).' });
+      await store.updateUserProfile(req.user.id, { name, crm });
+      return res.json({ ok: true, user: { ...auth.publicUser(req.user), name, crm } });
+    }
+
+    // Conta conferida que muda nome ou CRM volta para a conferência: foi o
+    // par nome+CRM que o administrador conferiu no CFM, e é ele que sai
+    // impresso no documento. A liberação provisória recomeça só para quem já
+    // tinha sido conferido; conta pendente ou recusada não ganha prazo novo
+    // trocando o nome.
+    const crm = req.body.crm === undefined ? req.user.crm : auth.normalizarCrm(req.body.crm);
+    const uf = req.body.uf === undefined ? req.user.crm_uf : auth.normalizarUf(req.body.uf);
+    if (!crm) return res.status(400).json({ error: 'Informe o número do CRM (só os números).' });
+    if (!uf) return res.status(400).json({ error: 'Escolha o estado do seu CRM.' });
+
+    const mudouCrm = crm !== req.user.crm || uf !== req.user.crm_uf;
+    const mudouNome = name !== req.user.name;
+    if (!mudouCrm && !mudouNome) return res.json({ ok: true, user: auth.publicUser(req.user) });
+
+    if (mudouCrm) {
+      const outro = await store.findUserByCrm(crm, uf);
+      if (outro && outro.id !== req.user.id) {
+        return res.status(409).json({ error: 'Este CRM já está ligado a outra conta. Se ele é seu, fale com o suporte do OncoGenYX.' });
+      }
+    }
+
+    const campos = { name, crm, crm_uf: uf };
+    if (req.user.crm_status !== 'pendente') {
+      campos.crm_status = 'pendente';
+      campos.crm_conferido_em = null;
+      campos.crm_conferido_por = null;
+      if (req.user.crm_status === 'ativo') campos.liberado_ate = new Date(Date.now() + LIBERACAO_PROVISORIA_MS);
+    }
+    await store.updateUser(req.user.id, campos);
+    await evento(req, 'perfil_alterado', req.user.id, { campos: [mudouNome && 'nome', mudouCrm && 'crm'].filter(Boolean) });
+    const atualizado = await store.findUserById(req.user.id);
+    if (atualizado.email_verificado_em) avisarAdmins(req, atualizado);
+    res.json({ ok: true, user: auth.publicUser(atualizado) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.delete('/api/auth/conta', auth.requireAuth(), async (req, res, next) => {
+  try {
+    const u = req.user;
+    if (u.crm_uf) {
+      const senha = typeof req.body.password === 'string' ? req.body.password : '';
+      if (!u.password_hash || !(await auth.verifyPassword(senha, u.password_hash))) {
+        return res.status(400).json({ error: 'A senha não confere. Para excluir a conta, digite a sua senha atual.' });
+      }
+    }
+    // O registro de acesso fica pelos 6 meses que o Marco Civil exige, com o
+    // CRM anotado: é o único jeito de ele continuar servindo para o fim legal
+    // depois que a conta deixa de existir (LGPD art. 16, I).
+    await evento(req, 'conta_excluida', u.id, { crm: u.crm, uf: u.crm_uf || null });
+    await store.deleteUser(u.id);
+    if (u.crm_uf) await auth.acertoNaConta(`login:${u.crm}/${u.crm_uf}`);
+    auth.limparCookieDeSessao(req, res);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- conferência de CRM pelo administrador (§85.1, decisão 1) ---------- */
+
+function contaParaAdmin(u) {
+  return {
+    id: u.id,
+    name: u.name,
+    crm: u.crm,
+    uf: u.crm_uf,
+    email: u.email,
+    status: u.crm_status,
+    criadaEm: u.created_at,
+    liberadoAte: u.liberado_ate,
+    conferidoEm: u.crm_conferido_em,
+  };
+}
+
+app.get('/api/admin/conferencias', auth.requireAuth(), auth.requireAdmin(), async (req, res, next) => {
+  try {
+    const { pendentes, decididas } = await store.listarContasParaConferencia();
+    res.set('Cache-Control', 'no-store');
+    res.json({ pendentes: pendentes.map(contaParaAdmin), decididas: decididas.map(contaParaAdmin) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/admin/conferencias/:id', auth.requireAuth(), auth.requireAdmin(), async (req, res, next) => {
+  try {
+    const decisao = req.body.decisao;
+    if (!['ativo', 'recusado'].includes(decisao)) return res.status(400).json({ error: 'Decisão inválida.' });
+    const alvo = await store.findUserById(String(req.params.id));
+    if (!alvo || !alvo.crm_uf) return res.status(404).json({ error: 'Conta não encontrada.' });
+
+    await store.updateUser(alvo.id, { crm_status: decisao, crm_conferido_em: new Date(), crm_conferido_por: req.user.id });
+    await evento(req, decisao === 'ativo' ? 'crm_conferido' : 'crm_recusado', alvo.id, { por: req.user.id });
+    await evento(req, 'admin_acao', req.user.id, { alvo: alvo.id, decisao });
+    const origem = appOrigin(req);
+    const envio = decisao === 'ativo'
+      ? mailer.sendCrmLiberado({ to: alvo.email, name: alvo.name, origem })
+      : mailer.sendCrmRecusado({ to: alvo.email, name: alvo.name, origem });
+    enviarDepois(envio, 'resultado da conferência');
+    res.json({ ok: true, conta: contaParaAdmin(await store.findUserById(alvo.id)) });
   } catch (err) {
     next(err);
   }
@@ -529,6 +974,7 @@ app.get('/api/plaud/callback', async (req, res) => {
 
     const tokens = await plaud.exchangeCode({ req, code: String(req.query.code) });
     await store.savePlaudTokens(userId, tokens);
+    await evento(req, 'plaud_conectado', userId);
     back('conectado');
   } catch (err) {
     console.error('Erro no callback do Plaud:', err);
@@ -539,6 +985,7 @@ app.get('/api/plaud/callback', async (req, res) => {
 app.post('/api/plaud/disconnect', auth.requireAuth(), async (req, res, next) => {
   try {
     await store.deletePlaudTokens(req.user.id);
+    await evento(req, 'plaud_desconectado', req.user.id);
     res.json({ ok: true });
   } catch (err) {
     next(err);
@@ -652,7 +1099,7 @@ function montarContextoDaTela(contexto) {
     + `Trate como dado confirmado e fale a partir dele. Se ele corrigir algo aqui, a correção dele vale.`;
 }
 
-app.post('/api/chat', auth.requireAuth(), tetoDeGasto('chat', 120), async (req, res, next) => {
+app.post('/api/chat', auth.requireAuth(), auth.requireCrmLiberado(), tetoDeGasto('chat', 120), async (req, res, next) => {
   try {
     const history = Array.isArray(req.body.messages) ? req.body.messages : [];
     if (!history.length) return res.status(400).json({ error: 'Conversa vazia.' });
@@ -710,7 +1157,7 @@ function tetoDeGasto(nome, max) {
   };
 }
 
-app.post('/api/extract', auth.requireAuth(), tetoDeGasto('extract', 40), reservaDeMemoria, upload.array('files', 3), async (req, res) => {
+app.post('/api/extract', auth.requireAuth(), auth.requireCrmLiberado(), tetoDeGasto('extract', 40), reservaDeMemoria, upload.array('files', 3), async (req, res) => {
   // Fora do try: sem isso, os avisos por arquivo (qual anexo foi descartado e
   // por quê) desapareciam quando a chamada falhava, e o médico reenviava os
   // mesmos arquivos ruins sem nunca saber quais eram o problema.
@@ -1060,6 +1507,8 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/config', (req, res) => {
   res.json({
     authMode: AUTH_MODE,
+    ufs: auth.UFS,
+    termosVersao: TERMOS_VERSAO,
     ephemeralAccounts: !store.usingPostgres,
     emailEnabled: mailer.isConfigured(),
     plaudEnabled: plaud.isConfigured(),

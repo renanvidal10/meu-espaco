@@ -123,15 +123,21 @@
         </p>
       </form>
 
-      <!-- ENTRAR -->
-      <form class="gate-view" id="view-login" onsubmit="return doLogin(event)">
+      <!-- ENTRAR (modo completo, §85): CRM + UF + senha -->
+      <form class="gate-view" id="view-login" onsubmit="return doLogin(event)" novalidate>
         <h1>Entrar na plataforma</h1>
-        <p class="gate-sub">Acesse com o email cadastrado no seu registro profissional.</p>
+        <p class="gate-sub">Use o seu CRM e a senha que você criou no cadastro.</p>
 
-        <label class="fld">
-          <span class="fld-label">Email profissional</span>
-          <input id="login-email" type="email" autocomplete="username" required placeholder="voce@clinica.com.br" />
-        </label>
+        <div class="fld-linha">
+          <label class="fld fld-crm">
+            <span class="fld-label">CRM</span>
+            <input id="login-crm" type="text" inputmode="numeric" autocomplete="username" required placeholder="123456" maxlength="9" />
+          </label>
+          <label class="fld fld-uf">
+            <span class="fld-label">Estado</span>
+            <select id="login-uf" required aria-label="Estado do CRM"><option value="">UF</option></select>
+          </label>
+        </div>
 
         <label class="fld">
           <span class="fld-label">Senha</span>
@@ -152,76 +158,116 @@
       </form>
 
       <!-- CRIAR ACESSO -->
-      <form class="gate-view" id="view-register" onsubmit="return doRegister(event)">
+      <form class="gate-view" id="view-register" onsubmit="return doRegister(event)" novalidate>
         <h1>Criar acesso</h1>
-        <p class="gate-sub">Enviamos um link para você definir sua senha. Depois disso, o acesso é sempre por email e senha.</p>
+        <p class="gate-sub">Uma vez só. Seu nome e seu CRM saem impressos nas solicitações que você gerar, e o CRM é conferido no Conselho Federal de Medicina.</p>
 
         <label class="fld">
           <span class="fld-label">Nome completo</span>
-          <input id="reg-name" type="text" autocomplete="name" required placeholder="Dra. Ana Ferreira" />
+          <input id="reg-name" type="text" autocomplete="name" required placeholder="Dra. Ana Ribeiro" maxlength="120" />
+        </label>
+
+        <div class="fld-linha">
+          <label class="fld fld-crm">
+            <span class="fld-label">CRM</span>
+            <input id="reg-crm" type="text" inputmode="numeric" autocomplete="off" required placeholder="123456" maxlength="9" />
+          </label>
+          <label class="fld fld-uf">
+            <span class="fld-label">Estado</span>
+            <select id="reg-uf" required aria-label="Estado do CRM"><option value="">UF</option></select>
+          </label>
+        </div>
+
+        <label class="fld">
+          <span class="fld-label">E-mail</span>
+          <input id="reg-email" type="email" autocomplete="email" required placeholder="voce@clinica.com.br" maxlength="254" />
+          <span class="fld-help">Para confirmar a conta e, se um dia precisar, criar uma senha nova.</span>
         </label>
 
         <label class="fld">
-          <span class="fld-label">CRM</span>
-          <input id="reg-crm" type="text" required placeholder="52-1198 / RJ" />
-          <span class="fld-help">Aparece nos documentos de solicitação que você gerar.</span>
+          <span class="fld-label">Senha</span>
+          <span class="pw-wrap">
+            <input id="reg-password" type="password" autocomplete="new-password" required placeholder="Crie uma senha" oninput="conferirRegras('reg-password', 'reg-regras')" aria-describedby="reg-regras" />
+            <button type="button" class="pw-toggle" onclick="togglePw('reg-password', this)" aria-label="Mostrar senha">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </span>
+          <ul class="pw-regras" id="reg-regras" aria-live="polite">
+            <li data-regra="tamanho"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Pelo menos 8 caracteres</li>
+            <li data-regra="maiuscula"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Uma letra maiúscula</li>
+            <li data-regra="especial"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Um caractere especial, como ! @ # ou espaço</li>
+          </ul>
         </label>
 
-        <label class="fld">
-          <span class="fld-label">Email profissional</span>
-          <input id="reg-email" type="email" autocomplete="username" required placeholder="voce@clinica.com.br" />
+        <label class="aceite">
+          <input type="checkbox" id="reg-aceite" required />
+          <span>Li e aceito os Termos de Uso e o <button type="button" class="linklike inline" onclick="abrirPrivacidade()">Aviso de Privacidade</button>.</span>
         </label>
 
-        <button class="primary gate-submit" type="submit" id="reg-submit">Criar acesso e receber link</button>
+        <button class="primary gate-submit" type="submit" id="reg-submit">Criar acesso</button>
 
         <div class="gate-links">
           <button type="button" class="linklike" onclick="showView('login')">Já tenho acesso</button>
         </div>
       </form>
 
-      <!-- ESQUECI A SENHA -->
-      <form class="gate-view" id="view-forgot" onsubmit="return doForgot(event)">
-        <h1>Redefinir senha</h1>
-        <p class="gate-sub">Informe seu email cadastrado. Enviamos um link válido por 60 minutos.</p>
+      <!-- CONFIRA SEU E-MAIL (depois do cadastro, ou ao entrar sem ter confirmado) -->
+      <div class="gate-view" id="view-enviado">
+        <span class="gate-selo" aria-hidden="true">
+          <svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        </span>
+        <h1>Confira seu e-mail</h1>
+        <p class="gate-sub" id="enviado-texto">Enviamos um link de confirmação. Abra o e-mail e toque em "Confirmar meu e-mail" para entrar.</p>
+        <p class="gate-dica">Não chegou em alguns minutos? Procure na caixa de spam ou de promoções.</p>
 
-        <label class="fld">
-          <span class="fld-label">Email profissional</span>
-          <input id="forgot-email" type="email" autocomplete="username" required placeholder="voce@clinica.com.br" />
-        </label>
-
-        <button class="primary gate-submit" type="submit" id="forgot-submit">Enviar link de redefinição</button>
+        <button class="ghost gate-submit" type="button" id="enviado-reenviar" onclick="reenviarConfirmacao()">Enviar o e-mail de novo</button>
 
         <div class="gate-links">
-          <button type="button" class="linklike" onclick="showView('login')">Voltar para o login</button>
+          <button type="button" class="linklike" onclick="showView('login')">Voltar para a entrada</button>
+        </div>
+      </div>
+
+      <!-- ESQUECI A SENHA -->
+      <form class="gate-view" id="view-forgot" onsubmit="return doForgot(event)" novalidate>
+        <h1>Criar uma nova senha</h1>
+        <p class="gate-sub">Informe o e-mail do seu cadastro. Enviamos um link que vale por 30 minutos.</p>
+
+        <label class="fld">
+          <span class="fld-label">E-mail</span>
+          <input id="forgot-email" type="email" autocomplete="email" required placeholder="voce@clinica.com.br" />
+        </label>
+
+        <button class="primary gate-submit" type="submit" id="forgot-submit">Enviar o link</button>
+
+        <div class="gate-links">
+          <button type="button" class="linklike" onclick="showView('login')">Voltar para a entrada</button>
         </div>
       </form>
 
-      <!-- DEFINIR SENHA (via link do email) -->
-      <form class="gate-view" id="view-set" onsubmit="return doSetPassword(event)">
-        <h1 id="set-title">Defina sua senha</h1>
-        <p class="gate-sub">Escolha uma senha com pelo menos 10 caracteres. Prefira uma frase que só você lembre.</p>
+      <!-- NOVA SENHA (via link do e-mail) -->
+      <form class="gate-view" id="view-set" onsubmit="return doSetPassword(event)" novalidate>
+        <h1>Crie sua nova senha</h1>
+        <p class="gate-sub">Depois de salvar, você já entra. Qualquer outra entrada aberta com a senha antiga é encerrada.</p>
 
         <label class="fld">
           <span class="fld-label">Nova senha</span>
           <span class="pw-wrap">
-            <input id="set-password" type="password" autocomplete="new-password" required minlength="10" placeholder="Mínimo de 10 caracteres" oninput="scorePassword()" />
+            <input id="set-password" type="password" autocomplete="new-password" required placeholder="Crie uma senha" oninput="conferirRegras('set-password', 'set-regras')" aria-describedby="set-regras" />
             <button type="button" class="pw-toggle" onclick="togglePw('set-password', this)" aria-label="Mostrar senha">
               <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </span>
-          <span class="pw-meter" aria-hidden="true"><i id="pw-bar"></i></span>
-          <span class="fld-help" id="pw-hint">Use no mínimo 10 caracteres.</span>
+          <ul class="pw-regras" id="set-regras" aria-live="polite">
+            <li data-regra="tamanho"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Pelo menos 8 caracteres</li>
+            <li data-regra="maiuscula"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Uma letra maiúscula</li>
+            <li data-regra="especial"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Um caractere especial, como ! @ # ou espaço</li>
+          </ul>
         </label>
 
-        <label class="fld">
-          <span class="fld-label">Confirme a senha</span>
-          <input id="set-password2" type="password" autocomplete="new-password" required placeholder="Repita a senha" />
-        </label>
-
-        <button class="primary gate-submit" type="submit" id="set-submit">Definir senha e entrar</button>
+        <button class="primary gate-submit" type="submit" id="set-submit">Salvar e entrar</button>
 
         <div class="gate-links">
-          <button type="button" class="linklike" onclick="showView('login')">Voltar para o login</button>
+          <button type="button" class="linklike" onclick="showView('login')">Voltar para a entrada</button>
         </div>
       </form>
 
@@ -230,7 +276,7 @@
       </p>
       <details class="gate-legal gate-mais" id="gate-beta-note" style="display:none;">
         <summary>Sobre esta versão</summary>
-        <span>A sessão é temporária e pode ser reiniciada entre versões. Se o acesso deixar de funcionar, basta entrar de novo com nome e CRM.</span>
+        <span id="gate-beta-texto">A sessão é temporária e pode ser reiniciada entre versões. Se o acesso deixar de funcionar, basta entrar de novo com nome e CRM.</span>
       </details>
     </main>
 
@@ -251,8 +297,10 @@
     <span class="instalar-rotulo">Instalar app</span>
   </button>
   <div class="doctor-chip">
-    <span id="doctor-chip-text">-</span>
-    <span class="avatar" id="doctor-chip-avatar">--</span>
+    <button class="chip-conta" type="button" onclick="abrirConta()" aria-label="Minha conta" title="Minha conta">
+      <span id="doctor-chip-text">-</span>
+      <span class="avatar" id="doctor-chip-avatar">--</span>
+    </button>
     <button class="chip-signout" type="button" onclick="signOut()" aria-label="Sair da conta" title="Sair">
       <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
     </button>
@@ -272,6 +320,13 @@
 <p id="anuncio-tela" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 
 <main id="conteudo-principal">
+  <!-- §85. Situação da conferência do CRM: só aparece enquanto ela não
+       terminou ou foi recusada. -->
+  <div class="aviso-crm" id="aviso-crm" role="status" hidden>
+    <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    <span id="aviso-crm-texto"></span>
+    <button type="button" class="linklike" onclick="abrirConta()">Detalhes</button>
+  </div>
 
   <!-- SCREEN 1, INGESTÃO -->
   <section class="screen active" id="screen-0">
@@ -553,6 +608,141 @@
   </section>
 
 </main>
+
+<!-- ===================== MINHA CONTA (§85) ===================== -->
+<!-- Direitos do titular (LGPD art. 18) num lugar só: ver e corrigir os dados,
+     ver de onde a conta foi usada, sair dos outros aparelhos, baixar os
+     dados e excluir a conta. -->
+<div class="modal-fundo" id="conta" role="dialog" aria-modal="true" aria-labelledby="ct-titulo">
+  <div class="modal modal-largo">
+    <div class="modal-topo">
+      <h2 id="ct-titulo">Minha conta</h2>
+      <button class="modal-x" type="button" onclick="fecharConta()" aria-label="Fechar">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="conta-alerta" id="ct-alerta" role="status" hidden></div>
+
+    <section class="conta-bloco" aria-labelledby="ct-dados-t">
+      <h3 id="ct-dados-t">Seus dados</h3>
+      <dl class="conta-dados">
+        <div><dt>Nome</dt><dd id="ct-nome">-</dd></div>
+        <div><dt>CRM</dt><dd id="ct-crm">-</dd></div>
+        <div class="so-completo"><dt>E-mail</dt><dd id="ct-email">-</dd></div>
+        <div class="so-completo"><dt>Conferência do CRM</dt><dd><span class="selo" id="ct-situacao">-</span></dd></div>
+      </dl>
+      <p class="conta-nota so-completo" id="ct-situacao-nota" hidden></p>
+
+      <details class="conta-acao" id="ct-editar">
+        <summary>Corrigir nome ou CRM</summary>
+        <form class="conta-form" onsubmit="return salvarPerfil(event)" novalidate>
+          <label class="fld">
+            <span class="fld-label">Nome completo</span>
+            <input id="ct-in-nome" type="text" autocomplete="name" maxlength="120" required />
+          </label>
+          <div class="fld-linha so-completo">
+            <label class="fld fld-crm">
+              <span class="fld-label">CRM</span>
+              <input id="ct-in-crm" type="text" inputmode="numeric" maxlength="9" />
+            </label>
+            <label class="fld fld-uf">
+              <span class="fld-label">Estado</span>
+              <select id="ct-in-uf" aria-label="Estado do CRM"><option value="">UF</option></select>
+            </label>
+          </div>
+          <label class="fld so-simples">
+            <span class="fld-label">CRM</span>
+            <input id="ct-in-crm-livre" type="text" maxlength="30" />
+          </label>
+          <p class="fld-help so-completo">Se o seu CRM já foi conferido, a mudança passa por uma nova conferência. Você continua usando normalmente por 48 horas.</p>
+          <button class="primary compacto" type="submit" id="ct-salvar">Salvar</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="conta-bloco so-completo" aria-labelledby="ct-seg-t">
+      <h3 id="ct-seg-t">Segurança</h3>
+
+      <details class="conta-acao" id="ct-senha">
+        <summary>Trocar a senha</summary>
+        <form class="conta-form" onsubmit="return trocarSenha(event)" novalidate>
+          <label class="fld">
+            <span class="fld-label">Senha atual</span>
+            <input id="ct-senha-atual" type="password" autocomplete="current-password" required />
+          </label>
+          <label class="fld">
+            <span class="fld-label">Nova senha</span>
+            <input id="ct-senha-nova" type="password" autocomplete="new-password" required oninput="conferirRegras('ct-senha-nova', 'ct-regras')" aria-describedby="ct-regras" />
+            <ul class="pw-regras" id="ct-regras" aria-live="polite">
+              <li data-regra="tamanho"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Pelo menos 8 caracteres</li>
+              <li data-regra="maiuscula"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Uma letra maiúscula</li>
+              <li data-regra="especial"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Um caractere especial, como ! @ # ou espaço</li>
+            </ul>
+          </label>
+          <button class="primary compacto" type="submit" id="ct-senha-salvar">Trocar a senha</button>
+        </form>
+      </details>
+
+      <div class="conta-sub">
+        <strong>Aparelhos com a conta aberta</strong>
+        <ul class="conta-lista" id="ct-sessoes"></ul>
+        <button class="ghost compacto" type="button" onclick="sairDeTodos()">Sair de todos os aparelhos</button>
+      </div>
+    </section>
+
+    <section class="conta-bloco" aria-labelledby="ct-acessos-t">
+      <h3 id="ct-acessos-t">Últimos acessos</h3>
+      <p class="conta-nota">Guardamos data, hora e endereço de internet de cada entrada por 6 meses, como manda o Marco Civil da Internet. Se algo aqui não foi você, troque a senha.</p>
+      <ul class="conta-lista" id="ct-acessos"></ul>
+    </section>
+
+    <section class="conta-bloco" aria-labelledby="ct-lgpd-t">
+      <h3 id="ct-lgpd-t">Seus dados pessoais</h3>
+      <p class="conta-nota">Nenhum caso de paciente é guardado. A conta guarda só o que está acima.</p>
+      <div class="conta-botoes">
+        <button class="ghost compacto" type="button" onclick="baixarMeusDados()">Baixar meus dados</button>
+      </div>
+      <details class="conta-acao perigo" id="ct-excluir">
+        <summary>Excluir minha conta</summary>
+        <form class="conta-form" onsubmit="return excluirConta(event)" novalidate>
+          <p class="conta-nota">A conta, as entradas abertas e a conexão com o Plaud são apagadas na hora e não há como desfazer. O registro de acessos fica guardado pelos 6 meses que a lei exige e depois some.</p>
+          <label class="fld so-completo">
+            <span class="fld-label">Digite sua senha para confirmar</span>
+            <input id="ct-excluir-senha" type="password" autocomplete="current-password" />
+          </label>
+          <button class="perigo compacto" type="submit" id="ct-excluir-btn">Excluir minha conta</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="conta-bloco" id="ct-admin" hidden aria-labelledby="ct-admin-t">
+      <h3 id="ct-admin-t">Administração</h3>
+      <button class="primary compacto" type="button" onclick="abrirConferencia()">Conferir CRMs <span class="contador" id="ct-admin-n"></span></button>
+    </section>
+  </div>
+</div>
+
+<!-- ===================== CONFERÊNCIA DE CRM (§85.1, decisão 1) ===================== -->
+<div class="modal-fundo" id="conferencia" role="dialog" aria-modal="true" aria-labelledby="cf-titulo">
+  <div class="modal modal-largo">
+    <div class="modal-topo">
+      <h2 id="cf-titulo">Conferência de CRM</h2>
+      <button class="modal-x" type="button" onclick="fecharConferencia()" aria-label="Fechar">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <p class="modal-sub">Para cada médico: abra o portal do CFM, procure pelo CRM e pelo estado, e confira se o nome bate e se a situação é "Ativo".</p>
+
+    <div class="conta-alerta" id="cf-alerta" role="status" hidden></div>
+    <ul class="conferencia-lista" id="cf-pendentes"></ul>
+
+    <details class="conta-acao" id="cf-decididas-wrap">
+      <summary>Conferidos recentemente</summary>
+      <ul class="conta-lista" id="cf-decididas"></ul>
+    </details>
+  </div>
+</div>
 
 <!-- ===================== PRIVACIDADE ===================== -->
 <div class="modal-fundo" id="privacidade" role="dialog" aria-modal="true" aria-labelledby="pv-titulo">

@@ -222,7 +222,7 @@ if (require.main === module) {
       await new Promise((r) => setTimeout(r, 200));
     }
 
-    const navegador = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+    const navegador = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
     const contexto = await navegador.newContext({ viewport: { width: 1280, height: 900 } });
     const pagina = await contexto.newPage();
 

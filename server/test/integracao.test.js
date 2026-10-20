@@ -6,6 +6,7 @@
 // Cobre as entradas que um médico usa de verdade — texto, PDF, PDF assinado,
 // imagem, ditado (que vira texto), combinações — e as saídas de erro.
 
+const { tokenDaResposta } = require('./sessao.js');
 const test = require('node:test');
 const assert = require('node:assert');
 const { spawn } = require('node:child_process');
@@ -73,7 +74,7 @@ test.before(async () => {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name: 'Renan Vidal', crm: '339324' }),
   });
-  token = (await r.json()).token;
+  token = tokenDaResposta(r);
   assert.ok(token, 'não obteve sessão');
 });
 

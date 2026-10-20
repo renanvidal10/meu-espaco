@@ -3,6 +3,7 @@
 // Travas de robustez. Cada teste corresponde a um achado medido em auditoria,
 // com o cenário real que o produziu — a descrição diz qual.
 
+const { tokenDaResposta } = require('./sessao.js');
 const test = require('node:test');
 const assert = require('node:assert');
 const { spawn } = require('node:child_process');
@@ -75,7 +76,7 @@ test.before(async () => {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name: 'Renan Vidal', crm: '339324' }),
   });
-  token = (await r.json()).token;
+  token = tokenDaResposta(r);
 });
 
 test.after(async () => {

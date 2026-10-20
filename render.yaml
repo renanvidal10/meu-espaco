@@ -22,8 +22,29 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Login com senha e CRM conferido (docs/ARQUITETURA.md §85). Em
+      # produção o servidor recusa subir sem DATABASE_URL, RESEND_API_KEY,
+      # APP_ORIGIN e CHAVE_CIFRA.
       - key: AUTH_MODE
-        value: simples
+        value: completo
+
+      # E-mails de quem confere os CRMs novos, separados por vírgula.
+      - key: ADMIN_EMAILS
+        sync: false
+
+      # Cifra dos tokens do Plaud no banco. Gerada uma vez e mantida.
+      - key: CHAVE_CIFRA
+        generateValue: true
+
+      # Endereço público do site, usado nos links dos e-mails.
+      - key: APP_ORIGIN
+        sync: false
+
+      # Envio dos e-mails de confirmação e de nova senha.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
 
       # Leitura automática do laudo. Sem ela o app sobe, mas a extração falha.
       - key: ANTHROPIC_API_KEY

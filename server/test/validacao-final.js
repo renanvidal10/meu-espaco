@@ -9,6 +9,7 @@
 // no meio da amostra. O número reportado é o cru: se der ruim, sai ruim.
 
 require('dotenv').config();
+const { tokenDaResposta } = require('./sessao.js');
 const path = require('path');
 const { spawn } = require('child_process');
 const { arquivoDeDadosTemporario } = require('./temporario.js');
@@ -48,7 +49,7 @@ async function subir() {
   const servidor = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], {
     env: {
       ...process.env,
-      PORT: String(porta), NODE_ENV: 'production',
+      PORT: String(porta), NODE_ENV: 'production', PERMITIR_MODO_SIMPLES: 'sim',
       DATA_FILE: arquivoDeDadosTemporario('val'),
       DATABASE_URL: '', RESEND_API_KEY: '', APP_ORIGIN: '', AUTH_MODE: 'simples',
     },
@@ -71,7 +72,7 @@ async function subir() {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name: 'Renan Vidal', crm: '339324' }),
   });
-  const token = (await r.json()).token;
+  const token = tokenDaResposta(r);
 
   const placar = {};
   let interrompido = false;

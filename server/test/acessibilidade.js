@@ -118,7 +118,7 @@ async function testarModal(p, abrir, idDoModal, nome) {
 
 async function rodar() {
   const { base, servidor, stub } = await subir();
-  const navegador = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const navegador = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
   const contexto = await navegador.newContext({ viewport: { width: 1280, height: 900 } });
   const p = await contexto.newPage();
 

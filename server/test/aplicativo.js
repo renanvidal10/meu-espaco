@@ -97,7 +97,7 @@ let falhas=0;const ok=(c,m)=>{console.log((c?'  ✓ ':'  ✗ ')+m);if(!c)falhas+
   ok(!/Disallow:\s*\/\s*$/m.test(textoRobots),'e não bloqueia o site inteiro, o que apagaria a pré-visualização do link');
 
   console.log('\n=== NO NAVEGADOR ===');
-  const browser=await pw.chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+  const browser=await pw.chromium.launch({executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium'});
   const ctx=await browser.newContext({viewport:{width:390,height:780}});
   const p=await ctx.newPage();
   const erros=[];p.on('pageerror',e=>erros.push(e.message));

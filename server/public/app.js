@@ -1,21 +1,21 @@
 'use strict';
 // ===================== AUTENTICAÇÃO =====================
-  // O token de sessão fica em localStorage e acompanha toda chamada à API.
+  // §85. A sessão vive num cookie HttpOnly que a página não enxerga: o
+  // navegador manda sozinho em toda chamada à API. Antes o token ficava em
+  // localStorage, ao alcance de qualquer script injetado.
   // Nome e CRM vêm da conta no servidor, não são mais digitados por sessão.
-  const TOKEN_KEY = 'oncogenyx.session';
   let doctorName = '';
   let doctorCRM = '';
+  let contaAtual = null;
 
-  function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
-  function setToken(token) { localStorage.setItem(TOKEN_KEY, token); }
-  function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+  // O token antigo pode ter ficado guardado de uma versão anterior. Não serve
+  // mais para nada e não deve ficar exposto.
+  try { localStorage.removeItem('oncogenyx.session'); } catch (e) { /* modo privado */ }
 
-  // Wrapper único de API: injeta o Bearer e trata 401 num só lugar, para uma
-  // sessão expirada nunca virar erro genérico no meio de um fluxo clínico.
+  // Wrapper único de API: trata 401 num só lugar, para uma sessão expirada
+  // nunca virar erro genérico no meio de um fluxo clínico.
   async function api(path, { method = 'GET', body, isForm = false } = {}) {
     const headers = {};
-    const token = getToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
     if (body && !isForm) headers['Content-Type'] = 'application/json';
 
     let response;
@@ -23,6 +23,7 @@
       response = await fetch(path, {
         method,
         headers,
+        credentials: 'same-origin',
         body: isForm ? body : (body ? JSON.stringify(body) : undefined),
       });
     } catch {
@@ -31,9 +32,14 @@
       throw new Error('Sem conexão com o servidor. Verifique a internet e tente de novo.');
     }
 
-    if (response.status === 401 && !path.startsWith('/api/auth/')) {
-      clearToken();
+    // 401 numa tentativa de entrar é "senha errada", e quem mostra é a própria
+    // tela de entrada. Em qualquer outra chamada, é sessão vencida.
+    const tentandoEntrar = path.startsWith('/api/auth/') && method !== 'GET';
+    if (response.status === 401 && !tentandoEntrar) {
+      contaAtual = null;
+      fecharModaisDeConta();
       showGate();
+      alertGate('Sua sessão terminou por segurança. Entre novamente.', 'success');
       throw new Error('Sua sessão expirou. Entre novamente.');
     }
 
@@ -43,7 +49,15 @@
     } catch {
       payload = null;
     }
-    if (!response.ok) throw new Error((payload && payload.error) || 'Não foi possível completar a operação.');
+    if (!response.ok) {
+      // Leitura de laudo barrada pela conferência do CRM: a faixa no topo da
+      // tela passa a explicar o motivo, além da mensagem do erro.
+      if (response.status === 403 && payload && payload.crm) atualizarContaEmSegundoPlano();
+      const erro = new Error((payload && payload.error) || 'Não foi possível completar a operação.');
+      erro.dados = payload;
+      erro.status = response.status;
+      throw erro;
+    }
     // Portal cativo de hotel responde HTML com status 200: sem esta guarda o
     // médico via "Cannot read properties of undefined" na caixa de erro.
     if (payload === null) {
@@ -71,7 +85,7 @@
     const target = document.getElementById(`view-${view}`);
     if (target) target.classList.add('active');
     clearAlert();
-    const firstInput = target && target.querySelector('input');
+    const firstInput = target && target.querySelector('input:not([type="checkbox"])');
     if (firstInput) setTimeout(() => firstInput.focus(), 40);
   }
 
@@ -94,19 +108,24 @@
     btn.setAttribute('aria-label', showing ? 'Mostrar senha' : 'Ocultar senha');
   }
 
-  // Feedback de força: comprimento domina o score (recomendação do NIST),
-  // variedade de caracteres é bônus e não requisito.
-  function scorePassword() {
-    const value = document.getElementById('set-password').value;
-    const variety = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((re) => re.test(value)).length;
-    const score = Math.min(100, (Math.min(value.length, 16) / 16) * 75 + variety * 6);
-    const bar = document.getElementById('pw-bar');
-    bar.style.width = `${score}%`;
-    bar.style.background = score < 45 ? 'var(--warn)' : score < 75 ? '#b8860b' : 'var(--accent)';
-    document.getElementById('pw-hint').textContent =
-      value.length < 10 ? `Faltam ${10 - value.length} caractere(s).`
-      : score < 75 ? 'Boa. Uma frase mais longa deixa a senha ainda mais forte.'
-      : 'Senha forte.';
+  // Regra decidida pelo dono (§85.1, decisão 3), espelhada do servidor para o
+  // médico ver cada exigência sendo cumprida enquanto digita. A palavra final
+  // é sempre do servidor, que também recusa senhas comuns.
+  const REGRAS_SENHA = {
+    tamanho: (v) => v.length >= 8,
+    maiuscula: (v) => /\p{Lu}/u.test(v),
+    especial: (v) => /[^\p{L}\p{N}]/u.test(v),
+  };
+
+  function conferirRegras(inputId, listaId) {
+    const valor = document.getElementById(inputId).value;
+    let todas = true;
+    document.querySelectorAll(`#${listaId} li`).forEach((li) => {
+      const ok = REGRAS_SENHA[li.dataset.regra](valor);
+      li.classList.toggle('ok', ok);
+      todas = todas && ok;
+    });
+    return todas;
   }
 
   function busy(btnId, isBusy, busyLabel) {
@@ -121,15 +140,60 @@
     }
   }
 
+  function quando(isoData) {
+    if (!isoData) return '';
+    const d = new Date(isoData);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function quandoCurto(isoData) {
+    const d = new Date(isoData);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', ' às');
+  }
+
+  // Faixa no topo da tela enquanto a conferência do CRM não terminou.
+  function atualizarAvisoCrm(user) {
+    const faixa = document.getElementById('aviso-crm');
+    const texto = document.getElementById('aviso-crm-texto');
+    faixa.classList.remove('bloqueado');
+    if (!user || !user.crmStatus || user.crmStatus === 'ativo') { faixa.hidden = true; return; }
+    if (user.crmStatus === 'recusado') {
+      texto.textContent = 'Não conseguimos confirmar seu CRM no CFM, e a leitura de laudos está bloqueada.';
+      faixa.classList.add('bloqueado');
+    } else if (user.crmLiberado) {
+      texto.textContent = `Seu CRM está em conferência no CFM. O acesso está liberado até ${quandoCurto(user.liberadoAte)}.`;
+    } else {
+      texto.textContent = 'Seu CRM ainda está em conferência e a liberação de 48 horas terminou. A leitura de laudos volta quando a conferência for concluída.';
+      faixa.classList.add('bloqueado');
+    }
+    faixa.hidden = false;
+  }
+
+  async function atualizarContaEmSegundoPlano() {
+    try {
+      const out = await api('/api/auth/me');
+      contaAtual = out.user;
+      atualizarAvisoCrm(contaAtual);
+    } catch (e) { /* a faixa só some se a chamada der certo */ }
+  }
+
   function enterApp(user) {
+    contaAtual = user;
     doctorName = user.name;
     doctorCRM = user.crm;
     applyDoctorInfo();
+    atualizarAvisoCrm(user);
     document.body.classList.remove('gate-active');
     refreshPlaudStatus();
     // Só depois de entrar: um modal por cima da tela de acesso seria um
     // obstáculo antes mesmo de o médico saber o que é a ferramenta.
     talvezMostrarBoasVindas();
+    if (abrirConferenciaAoEntrar && user.admin) {
+      abrirConferenciaAoEntrar = false;
+      setTimeout(abrirConferencia, 300);
+    }
   }
 
   // Modo de acesso vindo do servidor. Enquanto não é conhecido, a tela fica
@@ -148,7 +212,6 @@
           crm: document.getElementById('acesso-crm').value,
         },
       });
-      setToken(out.token);
       enterApp(out.user);
     } catch (err) {
       alertGate(err.message, 'error');
@@ -158,22 +221,38 @@
     return false;
   }
 
+  // E-mail a que se refere a tela "Confira seu e-mail", para o reenvio.
+  let emailAguardando = '';
+
+  function mostrarEnviado(email, texto) {
+    emailAguardando = email || '';
+    document.getElementById('enviado-texto').textContent = texto;
+    showView('enviado');
+  }
+
   async function doLogin(event) {
     event.preventDefault();
     clearAlert();
+    const crm = document.getElementById('login-crm').value.trim();
+    const uf = document.getElementById('login-uf').value;
+    const password = document.getElementById('login-password').value;
+    if (!crm || !uf || !password) {
+      alertGate('Informe o CRM, o estado e a senha.', 'error');
+      return false;
+    }
     busy('login-submit', true, 'Entrando...');
     try {
-      const out = await api('/api/auth/login', {
-        method: 'POST',
-        body: {
-          email: document.getElementById('login-email').value,
-          password: document.getElementById('login-password').value,
-        },
-      });
-      setToken(out.token);
+      const out = await api('/api/auth/login', { method: 'POST', body: { crm, uf, password } });
+      lembrarCrm(crm, uf);
+      document.getElementById('login-password').value = '';
       enterApp(out.user);
     } catch (err) {
-      alertGate(err.message, 'error');
+      if (err.dados && err.dados.codigo === 'email_nao_confirmado') {
+        mostrarEnviado(err.dados.email,
+          `Falta confirmar o seu e-mail. Enviamos o link para ${err.dados.emailMascarado} no cadastro. Abra a mensagem e toque em "Confirmar meu e-mail".`);
+      } else {
+        alertGate(err.message, 'error');
+      }
     } finally {
       busy('login-submit', false);
     }
@@ -183,21 +262,34 @@
   async function doRegister(event) {
     event.preventDefault();
     clearAlert();
-    busy('reg-submit', true, 'Enviando...');
+    const campos = {
+      name: document.getElementById('reg-name').value.trim(),
+      crm: document.getElementById('reg-crm').value.trim(),
+      uf: document.getElementById('reg-uf').value,
+      email: document.getElementById('reg-email').value.trim(),
+      password: document.getElementById('reg-password').value,
+      aceite: document.getElementById('reg-aceite').checked,
+    };
+    // Conferência rápida antes de ir ao servidor, na ordem dos campos, para
+    // o médico corrigir de cima para baixo.
+    const falta = !campos.name ? 'Informe seu nome completo.'
+      : !campos.crm ? 'Informe o número do CRM.'
+      : !campos.uf ? 'Escolha o estado do seu CRM.'
+      : !campos.email ? 'Informe o seu e-mail.'
+      : !conferirRegras('reg-password', 'reg-regras') ? 'A senha ainda não cumpre as três exigências da lista.'
+      : !campos.aceite ? 'Para criar a conta, marque o aceite dos Termos de Uso e do Aviso de Privacidade.'
+      : '';
+    if (falta) { alertGate(falta, 'error'); return false; }
+
+    busy('reg-submit', true, 'Criando...');
     try {
-      const out = await api('/api/auth/register', {
-        method: 'POST',
-        body: {
-          name: document.getElementById('reg-name').value,
-          crm: document.getElementById('reg-crm').value,
-          email: document.getElementById('reg-email').value,
-        },
-      });
-      showView('login');
-      alertGate(out.message, 'success');
-      // Sem provedor de email (ambiente de desenvolvimento), o servidor devolve
-      // o link para o fluxo não travar. Em produção esse campo nunca vem.
-      if (out.devUrl) console.info('[dev] Link de definição de senha:', out.devUrl);
+      const out = await api('/api/auth/cadastro', { method: 'POST', body: campos });
+      lembrarCrm(campos.crm, campos.uf);
+      document.getElementById('reg-password').value = '';
+      mostrarEnviado(out.email, out.message);
+      // Sem provedor de e-mail (desenvolvimento), o servidor devolve o link
+      // para o fluxo não travar. Em produção esse campo nunca vem.
+      if (out.devUrl) console.info('[dev] Link de confirmação:', out.devUrl);
     } catch (err) {
       alertGate(err.message, 'error');
     } finally {
@@ -206,18 +298,35 @@
     return false;
   }
 
+  async function reenviarConfirmacao() {
+    clearAlert();
+    if (!emailAguardando) {
+      alertGate('Entre com CRM e senha para pedirmos um link novo.', 'error');
+      return;
+    }
+    busy('enviado-reenviar', true, 'Enviando...');
+    try {
+      const out = await api('/api/auth/reenviar-confirmacao', { method: 'POST', body: { email: emailAguardando } });
+      alertGate(out.message, 'success');
+      if (out.devUrl) console.info('[dev] Link de confirmação:', out.devUrl);
+    } catch (err) {
+      alertGate(err.message, 'error');
+    } finally {
+      busy('enviado-reenviar', false);
+    }
+  }
+
   async function doForgot(event) {
     event.preventDefault();
     clearAlert();
+    const email = document.getElementById('forgot-email').value.trim();
+    if (!email) { alertGate('Informe o e-mail do seu cadastro.', 'error'); return false; }
     busy('forgot-submit', true, 'Enviando...');
     try {
-      const out = await api('/api/auth/request-reset', {
-        method: 'POST',
-        body: { email: document.getElementById('forgot-email').value },
-      });
+      const out = await api('/api/auth/esqueci', { method: 'POST', body: { email } });
       showView('login');
       alertGate(out.message, 'success');
-      if (out.devUrl) console.info('[dev] Link de redefinição:', out.devUrl);
+      if (out.devUrl) console.info('[dev] Link de nova senha:', out.devUrl);
     } catch (err) {
       alertGate(err.message, 'error');
     } finally {
@@ -230,19 +339,19 @@
     event.preventDefault();
     clearAlert();
     const password = document.getElementById('set-password').value;
-    if (password !== document.getElementById('set-password2').value) {
-      alertGate('As duas senhas não coincidem.', 'error');
+    if (!conferirRegras('set-password', 'set-regras')) {
+      alertGate('A senha ainda não cumpre as três exigências da lista.', 'error');
       return false;
     }
     busy('set-submit', true, 'Salvando...');
     try {
-      const out = await api('/api/auth/set-password', {
+      const out = await api('/api/auth/nova-senha', {
         method: 'POST',
         body: { token: pendingResetToken, password },
       });
-      setToken(out.token);
       history.replaceState(null, '', location.pathname);
       pendingResetToken = '';
+      document.getElementById('set-password').value = '';
       enterApp(out.user);
     } catch (err) {
       alertGate(err.message, 'error');
@@ -254,11 +363,40 @@
 
   async function signOut() {
     try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) { /* segue mesmo se falhar */ }
-    clearToken();
     location.reload();
   }
 
+  // O CRM e a UF ficam lembrados neste aparelho para a próxima entrada. Não é
+  // segredo (o CRM é público no portal do CFM) e poupa digitação no celular.
+  const CRM_LEMBRADO_KEY = 'oncogenyx.crm';
+  function lembrarCrm(crm, uf) {
+    try { localStorage.setItem(CRM_LEMBRADO_KEY, JSON.stringify({ crm, uf })); } catch (e) { /* modo privado */ }
+  }
+  function preencherCrmLembrado() {
+    try {
+      const salvo = JSON.parse(localStorage.getItem(CRM_LEMBRADO_KEY) || 'null');
+      if (salvo && salvo.crm) {
+        document.getElementById('login-crm').value = salvo.crm;
+        document.getElementById('login-uf').value = salvo.uf || '';
+      }
+    } catch (e) { /* nada lembrado */ }
+  }
+
+  function preencherUfs(ufs) {
+    for (const id of ['login-uf', 'reg-uf', 'ct-in-uf']) {
+      const sel = document.getElementById(id);
+      if (!sel || sel.options.length > 1) continue;
+      for (const uf of ufs) {
+        const op = document.createElement('option');
+        op.value = uf;
+        op.textContent = uf;
+        sel.appendChild(op);
+      }
+    }
+  }
+
   let pendingResetToken = '';
+  let abrirConferenciaAoEntrar = false;
 
   (async function initAuth() {
     const params = new URLSearchParams(location.search);
@@ -268,7 +406,15 @@
     try {
       const cfg = await fetch('/api/config').then((r) => r.json());
       authMode = cfg.authMode || 'simples';
-      if (cfg.ephemeralAccounts) document.getElementById('gate-beta-note').style.display = '';
+      document.body.dataset.modoAcesso = authMode;
+      if (cfg.ufs) preencherUfs(cfg.ufs);
+      if (cfg.ephemeralAccounts) {
+        if (authMode === 'completo') {
+          document.getElementById('gate-beta-texto').textContent =
+            'Esta instalação ainda não tem banco de dados permanente: as contas podem ser apagadas a cada atualização do site.';
+        }
+        document.getElementById('gate-beta-note').style.display = '';
+      }
     } catch (e) { /* mantém o modo simples, que é o padrão do servidor */ }
 
     // Retorno do OAuth do Plaud, se houver.
@@ -278,21 +424,46 @@
       setTimeout(() => reportPlaudReturn(plaudStatus), 400);
     }
 
-    // Link de definição/redefinição de senha vindo do email.
-    const token = params.get('definir-senha');
-    if (token && authMode === 'completo') {
-      pendingResetToken = token;
-      showGate('set');
-      return;
+    if (authMode === 'completo') {
+      preencherCrmLembrado();
+
+      // Link de nova senha vindo do e-mail.
+      const nova = params.get('nova-senha');
+      if (nova) {
+        pendingResetToken = nova;
+        history.replaceState(null, '', location.pathname);
+        showGate('set');
+        return;
+      }
+
+      // Link de confirmação vindo do e-mail: confirma e já entra.
+      const confirmar = params.get('confirmar-email');
+      if (confirmar) {
+        history.replaceState(null, '', location.pathname);
+        try {
+          const out = await api('/api/auth/confirmar-email', { method: 'POST', body: { token: confirmar } });
+          enterApp(out.user);
+        } catch (err) {
+          showGate('login');
+          alertGate(err.message, 'error');
+        }
+        return;
+      }
+
+      // Aviso por e-mail ao administrador leva direto à conferência.
+      if (params.get('conferencia')) {
+        abrirConferenciaAoEntrar = true;
+        history.replaceState(null, '', location.pathname);
+      }
     }
 
-    if (!getToken()) { showGate(); return; }
-
+    // Fetch direto, e não api(): quem abre o site sem sessão não "perdeu"
+    // sessão nenhuma, e não deve ler o aviso de sessão terminada.
     try {
-      const out = await api('/api/auth/me');
-      enterApp(out.user);
+      const r = await fetch('/api/auth/me', { credentials: 'same-origin' });
+      if (!r.ok) { showGate(); return; }
+      enterApp((await r.json()).user);
     } catch (err) {
-      clearToken();
       showGate();
     }
   })();
@@ -421,6 +592,309 @@
     if (e.key === 'Escape' && document.getElementById('privacidade').classList.contains('aberto')) {
       fecharPrivacidade();
     }
+  });
+
+  /* ===================== MINHA CONTA E CONFERÊNCIA DE CRM (§85) ===================== */
+
+  ligarArmadilha('conta');
+  ligarArmadilha('conferencia');
+
+  const NOMES_DE_EVENTO = {
+    login_ok: 'Entrada',
+    login_falha: 'Tentativa com senha errada',
+    logout: 'Saída',
+    cadastro: 'Conta criada',
+    cadastro_repetido: 'Tentativa de criar outra conta com seus dados',
+    email_confirmado: 'E-mail confirmado',
+    senha_trocada: 'Senha trocada',
+    senha_redefinida: 'Senha nova criada pelo link do e-mail',
+    senha_desativada: 'Senha bloqueada por excesso de tentativas',
+    sessoes_encerradas: 'Saiu de todos os aparelhos',
+    perfil_alterado: 'Nome ou CRM corrigido',
+    crm_conferido: 'CRM conferido',
+    crm_recusado: 'CRM não confirmado',
+    admin_acao: 'Conferência de CRM feita por você',
+    plaud_conectado: 'Plaud conectado',
+    plaud_desconectado: 'Plaud desconectado',
+  };
+
+  const SITUACOES_CRM = {
+    ativo: { rotulo: 'Conferido', classe: 'ok' },
+    pendente: { rotulo: 'Em conferência', classe: 'warn' },
+    recusado: { rotulo: 'Não confirmado', classe: 'alerta' },
+  };
+
+  let focoAntesDaConta = null;
+
+  function alertaConta(id, mensagem, tipo) {
+    const box = document.getElementById(id);
+    if (!mensagem) { box.hidden = true; box.textContent = ''; return; }
+    box.className = `conta-alerta ${tipo || 'success'}`;
+    box.textContent = mensagem;
+    box.hidden = false;
+  }
+
+  function preencherConta(dados) {
+    const u = dados.user;
+    contaAtual = u;
+    document.getElementById('ct-nome').textContent = u.name;
+    document.getElementById('ct-crm').textContent = u.crm;
+    document.getElementById('ct-email').textContent = u.email || '';
+
+    const sit = SITUACOES_CRM[u.crmStatus];
+    const selo = document.getElementById('ct-situacao');
+    selo.textContent = sit ? sit.rotulo : '';
+    selo.className = `selo ${sit ? sit.classe : ''}`;
+    const nota = document.getElementById('ct-situacao-nota');
+    if (u.crmStatus === 'pendente') {
+      nota.textContent = u.crmLiberado
+        ? `Conferimos cada cadastro no portal do Conselho Federal de Medicina. Até lá, o acesso está liberado até ${quando(u.liberadoAte)}, e você recebe um e-mail quando terminar.`
+        : 'A liberação provisória de 48 horas terminou. A leitura de laudos volta assim que a conferência for concluída, e você recebe um e-mail.';
+      nota.hidden = false;
+    } else if (u.crmStatus === 'recusado') {
+      nota.textContent = 'Não encontramos um registro ativo com este nome e este CRM no portal do CFM. Se houve erro de digitação, corrija abaixo e a conferência é feita de novo.';
+      nota.hidden = false;
+    } else {
+      nota.hidden = true;
+    }
+
+    document.getElementById('ct-in-nome').value = u.name;
+    if (u.crmUf) {
+      document.getElementById('ct-in-crm').value = u.crmNumero;
+      document.getElementById('ct-in-uf').value = u.crmUf;
+    } else {
+      document.getElementById('ct-in-crm-livre').value = u.crm;
+    }
+
+    const sessoes = document.getElementById('ct-sessoes');
+    sessoes.innerHTML = (dados.sessoes || []).map((s) => `
+      <li><span class="conta-lista-titulo">${esc(s.agente || 'Aparelho sem identificação')}${s.atual ? ' <span class="selo ok">este aparelho</span>' : ''}</span>
+        <span class="conta-lista-apoio">Último uso em ${esc(quando(s.ultimoUso || s.criadaEm))}</span></li>`).join('')
+      || '<li><span class="conta-lista-apoio">Nenhuma outra entrada aberta.</span></li>';
+
+    const acessos = document.getElementById('ct-acessos');
+    acessos.innerHTML = (dados.acessos || []).map((e) => `
+      <li><span class="conta-lista-titulo${e.tipo === 'login_falha' || e.tipo === 'senha_desativada' ? ' atencao' : ''}">${esc(NOMES_DE_EVENTO[e.tipo] || e.tipo)}</span>
+        <span class="conta-lista-apoio">${esc(quando(e.em))}${e.agente ? ' · ' + esc(e.agente) : ''}${e.ip ? ' · ' + esc(e.ip) : ''}</span></li>`).join('')
+      || '<li><span class="conta-lista-apoio">Nenhum acesso registrado ainda.</span></li>';
+
+    document.getElementById('ct-admin').hidden = !u.admin;
+    if (u.admin) contarPendentes();
+  }
+
+  async function abrirConta() {
+    focoAntesDaConta = document.activeElement;
+    alertaConta('ct-alerta', '');
+    document.querySelectorAll('#conta details').forEach((d) => { d.open = false; });
+    const painel = document.getElementById('conta');
+    painel.classList.add('aberto');
+    setTimeout(() => painel.querySelector('.modal-x').focus(), 60);
+    try {
+      preencherConta(await api('/api/auth/conta'));
+    } catch (err) {
+      alertaConta('ct-alerta', err.message, 'error');
+    }
+  }
+
+  function fecharConta() {
+    document.getElementById('conta').classList.remove('aberto');
+    ['ct-senha-atual', 'ct-senha-nova', 'ct-excluir-senha'].forEach((id) => { document.getElementById(id).value = ''; });
+    if (focoAntesDaConta && focoAntesDaConta.focus) focoAntesDaConta.focus();
+  }
+
+  function fecharModaisDeConta() {
+    document.getElementById('conta').classList.remove('aberto');
+    document.getElementById('conferencia').classList.remove('aberto');
+  }
+
+  async function salvarPerfil(event) {
+    event.preventDefault();
+    const corpo = { name: document.getElementById('ct-in-nome').value.trim() };
+    if (contaAtual && contaAtual.crmUf) {
+      corpo.crm = document.getElementById('ct-in-crm').value.trim();
+      corpo.uf = document.getElementById('ct-in-uf').value;
+    } else {
+      corpo.crm = document.getElementById('ct-in-crm-livre').value.trim();
+    }
+    const situacaoAntes = contaAtual ? contaAtual.crmStatus : null;
+    busy('ct-salvar', true, 'Salvando...');
+    try {
+      const out = await api('/api/auth/me', { method: 'PATCH', body: corpo });
+      enterAppSemBoasVindas(out.user);
+      preencherConta(await api('/api/auth/conta'));
+      document.getElementById('ct-editar').open = false;
+      const voltouParaConferencia = situacaoAntes && situacaoAntes !== 'pendente' && out.user.crmStatus === 'pendente';
+      alertaConta('ct-alerta', voltouParaConferencia
+        ? 'Dados salvos. Como o nome ou o CRM mudou, a conferência é feita de novo. Você continua usando normalmente por 48 horas.'
+        : 'Dados salvos.', 'success');
+    } catch (err) {
+      alertaConta('ct-alerta', err.message, 'error');
+    } finally {
+      busy('ct-salvar', false);
+    }
+    return false;
+  }
+
+  // Atualiza o chip e a faixa sem repetir o modal de boas-vindas.
+  function enterAppSemBoasVindas(user) {
+    contaAtual = user;
+    doctorName = user.name;
+    doctorCRM = user.crm;
+    applyDoctorInfo();
+    atualizarAvisoCrm(user);
+  }
+
+  async function trocarSenha(event) {
+    event.preventDefault();
+    const atual = document.getElementById('ct-senha-atual').value;
+    const nova = document.getElementById('ct-senha-nova').value;
+    if (!atual) { alertaConta('ct-alerta', 'Digite a senha atual.', 'error'); return false; }
+    if (!conferirRegras('ct-senha-nova', 'ct-regras')) {
+      alertaConta('ct-alerta', 'A nova senha ainda não cumpre as três exigências da lista.', 'error');
+      return false;
+    }
+    busy('ct-senha-salvar', true, 'Trocando...');
+    try {
+      await api('/api/auth/trocar-senha', { method: 'POST', body: { atual, nova } });
+      document.getElementById('ct-senha-atual').value = '';
+      document.getElementById('ct-senha-nova').value = '';
+      document.getElementById('ct-senha').open = false;
+      preencherConta(await api('/api/auth/conta'));
+      alertaConta('ct-alerta', 'Senha trocada. As entradas abertas em outros aparelhos foram encerradas, e mandamos um aviso para o seu e-mail.', 'success');
+    } catch (err) {
+      alertaConta('ct-alerta', err.message, 'error');
+    } finally {
+      busy('ct-senha-salvar', false);
+    }
+    return false;
+  }
+
+  async function sairDeTodos() {
+    if (!confirm('Sair de todos os aparelhos, inclusive deste? Você vai precisar entrar de novo.')) return;
+    try { await api('/api/auth/sair-de-todos', { method: 'POST' }); } catch (e) { /* recarrega de qualquer jeito */ }
+    location.reload();
+  }
+
+  function baixarMeusDados() {
+    // O servidor responde como anexo: o navegador baixa sem sair da página.
+    const a = document.createElement('a');
+    a.href = '/api/auth/meus-dados';
+    a.download = 'meus-dados-oncogenyx.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function excluirConta(event) {
+    event.preventDefault();
+    const password = document.getElementById('ct-excluir-senha').value;
+    if (contaAtual && contaAtual.crmUf && !password) {
+      alertaConta('ct-alerta', 'Digite sua senha para confirmar a exclusão.', 'error');
+      return false;
+    }
+    if (!confirm('Excluir a conta de vez? Não há como desfazer.')) return false;
+    busy('ct-excluir-btn', true, 'Excluindo...');
+    try {
+      await api('/api/auth/conta', { method: 'DELETE', body: { password } });
+      try { localStorage.removeItem(CRM_LEMBRADO_KEY); } catch (e) { /* modo privado */ }
+      location.reload();
+    } catch (err) {
+      alertaConta('ct-alerta', err.message, 'error');
+      busy('ct-excluir-btn', false);
+    }
+    return false;
+  }
+
+  document.getElementById('conta').addEventListener('click', (e) => {
+    if (e.target.id === 'conta') fecharConta();
+  });
+
+  /* ---------- conferência de CRM (só administrador) ---------- */
+
+  const PORTAL_CFM = 'https://portal.cfm.org.br/busca-medicos/';
+
+  async function contarPendentes() {
+    try {
+      const out = await api('/api/admin/conferencias');
+      const n = out.pendentes.length;
+      document.getElementById('ct-admin-n').textContent = n ? String(n) : '';
+    } catch (e) { /* o contador é só um atalho */ }
+  }
+
+  function cartaoDeConferencia(c) {
+    const prazo = c.liberadoAte && new Date(c.liberadoAte) > new Date()
+      ? `liberação provisória até ${quando(c.liberadoAte)}`
+      : 'liberação provisória terminou';
+    return `
+      <li class="conferencia-item" data-id="${esc(c.id)}">
+        <div class="conferencia-quem">
+          <strong>${esc(c.name)}</strong>
+          <span class="conferencia-crm">CRM ${esc(c.crm)}/${esc(c.uf)}</span>
+          <span class="conta-lista-apoio">${esc(c.email)} · cadastro em ${esc(quando(c.criadaEm))} · ${esc(prazo)}</span>
+        </div>
+        <div class="conferencia-acoes">
+          <a class="linklike" href="${PORTAL_CFM}" target="_blank" rel="noopener noreferrer">Abrir o portal do CFM</a>
+          <button class="ghost compacto" type="button" onclick="decidirCrm('${esc(c.id)}', 'recusado')">Não confere</button>
+          <button class="primary compacto" type="button" onclick="decidirCrm('${esc(c.id)}', 'ativo')">Conferido</button>
+        </div>
+      </li>`;
+  }
+
+  async function carregarConferencia() {
+    try {
+      const out = await api('/api/admin/conferencias');
+      document.getElementById('cf-pendentes').innerHTML = out.pendentes.map(cartaoDeConferencia).join('')
+        || '<li class="conferencia-vazia">Nenhum CRM aguardando conferência.</li>';
+      document.getElementById('cf-decididas').innerHTML = out.decididas.map((c) => `
+        <li><span class="conta-lista-titulo">${esc(c.name)} · CRM ${esc(c.crm)}/${esc(c.uf)}
+          <span class="selo ${c.status === 'ativo' ? 'ok' : 'alerta'}">${c.status === 'ativo' ? 'Conferido' : 'Não confirmado'}</span></span>
+          <span class="conta-lista-apoio">${esc(quando(c.conferidoEm))}</span></li>`).join('')
+        || '<li><span class="conta-lista-apoio">Nada conferido ainda.</span></li>';
+      document.getElementById('ct-admin-n').textContent = out.pendentes.length ? String(out.pendentes.length) : '';
+    } catch (err) {
+      alertaConta('cf-alerta', err.message, 'error');
+    }
+  }
+
+  let focoAntesDaConferencia = null;
+
+  function abrirConferencia() {
+    focoAntesDaConferencia = document.activeElement;
+    alertaConta('cf-alerta', '');
+    document.getElementById('conta').classList.remove('aberto');
+    const painel = document.getElementById('conferencia');
+    painel.classList.add('aberto');
+    setTimeout(() => painel.querySelector('.modal-x').focus(), 60);
+    carregarConferencia();
+  }
+
+  function fecharConferencia() {
+    document.getElementById('conferencia').classList.remove('aberto');
+    if (focoAntesDaConferencia && focoAntesDaConferencia.focus) focoAntesDaConferencia.focus();
+  }
+
+  async function decidirCrm(id, decisao) {
+    const item = document.querySelector(`.conferencia-item[data-id="${id}"]`);
+    const nome = item ? item.querySelector('strong').textContent : '';
+    if (decisao === 'recusado' && !confirm(`Marcar que o CRM de ${nome} não confere? A leitura de laudos fica bloqueada para essa conta e o médico recebe um e-mail explicando como corrigir.`)) return;
+    try {
+      await api(`/api/admin/conferencias/${encodeURIComponent(id)}`, { method: 'POST', body: { decisao } });
+      alertaConta('cf-alerta', decisao === 'ativo'
+        ? `${nome}: CRM conferido. O médico recebe um e-mail avisando.`
+        : `${nome}: marcado como não confirmado. O médico recebe um e-mail explicando como corrigir.`, 'success');
+      carregarConferencia();
+    } catch (err) {
+      alertaConta('cf-alerta', err.message, 'error');
+    }
+  }
+
+  document.getElementById('conferencia').addEventListener('click', (e) => {
+    if (e.target.id === 'conferencia') fecharConferencia();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('conferencia').classList.contains('aberto')) fecharConferencia();
+    else if (document.getElementById('conta').classList.contains('aberto')) fecharConta();
   });
 
   /* ===================== INSTALAR O APLICATIVO (§65) =====================

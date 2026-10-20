@@ -7,6 +7,7 @@
 // privacidade. O comportamento conversacional em si é avaliado por roteiros
 // simulados, que verificam o processamento da resposta em cada situação real.
 
+const { tokenDaResposta } = require('./sessao.js');
 const test = require('node:test');
 const assert = require('node:assert');
 const { spawn } = require('node:child_process');
@@ -89,7 +90,7 @@ test.before(async () => {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name: 'Renan Vidal', crm: '339324' }),
   });
-  token = (await r.json()).token;
+  token = tokenDaResposta(r);
 });
 
 test.after(async () => {

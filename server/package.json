@@ -11,8 +11,9 @@
     "test:navegador": "node test/navegador.js",
     "test:contraste": "node test/contraste.js",
     "test:a11y": "node test/acessibilidade.js",
-    "test:tudo": "npm test && npm run test:navegador && npm run test:contraste && npm run test:a11y && npm run test:aplicativo",
-    "test:aplicativo": "node test/aplicativo.js"
+    "test:tudo": "npm test && npm run test:navegador && npm run test:contraste && npm run test:a11y && npm run test:login-telas && npm run test:aplicativo",
+    "test:aplicativo": "node test/aplicativo.js",
+    "test:login-telas": "node test/login-telas.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
@@ -25,6 +26,7 @@
     "unpdf": "^1.8.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "playwright": "^1.56.1"
   },
   "engines": {

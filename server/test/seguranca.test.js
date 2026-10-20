@@ -3,6 +3,7 @@
 // Travas de segurança. Cada teste aqui corresponde a um achado provado em
 // auditoria — a descrição diz qual, para que ninguém remova por engano.
 
+const { tokenDaResposta } = require('./sessao.js');
 const test = require('node:test');
 const assert = require('node:assert');
 const { spawn } = require('node:child_process');
@@ -56,7 +57,7 @@ test.before(async () => {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name: 'Renan Vidal', crm: '339324' }),
   });
-  token = (await r.json()).token;
+  token = tokenDaResposta(r);
 });
 
 test.after(async () => {
@@ -87,7 +88,7 @@ test('rota de extração tem teto por hora e devolve 429 depois dele', async () 
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name: 'Dra. Teto', crm: '900001 SP' }),
   });
-  const tk = (await r.json()).token;
+  const tk = tokenDaResposta(r);
 
   let ultimo = 200, chamadas = 0;
   for (let i = 0; i < 60 && ultimo !== 429; i++) {
@@ -111,7 +112,7 @@ test('rota de conversa também tem teto', async () => {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name: 'Dr. Teto Chat', crm: '900002 SP' }),
   });
-  const tk = (await r.json()).token;
+  const tk = tokenDaResposta(r);
   let ultimo = 200, n = 0;
   for (let i = 0; i < 140 && ultimo !== 429; i++) {
     stub.responderCom({ tipo: 'ok', extracao: {} });
@@ -289,7 +290,7 @@ test('resposta não-JSON do modelo não despeja o caso no log', async () => {
 /* ============ modo desligado ============ */
 
 test('rotas de email/senha continuam 404 no modo simples', async () => {
-  for (const rota of ['register', 'login', 'request-reset', 'set-password']) {
+  for (const rota of ['cadastro', 'login', 'esqueci', 'nova-senha', 'confirmar-email', 'reenviar-confirmacao', 'trocar-senha']) {
     const r = await fetch(`${base}/api/auth/${rota}`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
     });
@@ -302,10 +303,16 @@ test('redefinir a senha revoga as sessoes antigas', () => {
   // invasao. Sem revogar, o invasor continua logado depois da troca, e a tela
   // diz que a conta foi protegida quando nao foi. A funcao existia em store.js
   // e nao era chamada de lugar nenhum — codigo morto que parecia protecao.
+  // Desde §85 a troca mora em trocarSenha(), chamada pela rota de nova senha
+  // (link do e-mail) e pela de trocar a senha logado.
   const codigo = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
-  const rota = codigo.slice(codigo.indexOf("app.post('/api/auth/set-password'"));
-  const fim = rota.indexOf("app.post('/api/auth/login'");
-  const corpo = rota.slice(0, fim > 0 ? fim : 2000);
+  const ini = codigo.indexOf('async function trocarSenha(');
+  assert.ok(ini > 0, 'trocarSenha() sumiu');
+  const corpo = codigo.slice(ini, codigo.indexOf('\n}\n', ini));
+  for (const rota of ["app.post('/api/auth/nova-senha'", "app.post('/api/auth/trocar-senha'"]) {
+    const trecho = codigo.slice(codigo.indexOf(rota), codigo.indexOf('\n});\n', codigo.indexOf(rota)));
+    assert.match(trecho, /trocarSenha\(/, `${rota} não passa por trocarSenha()`);
+  }
   assert.match(corpo, /deleteSessionsByUser/, 'redefinicao de senha nao revoga sessoes antigas');
   assert.ok(
     corpo.indexOf('setUserPassword') < corpo.indexOf('deleteSessionsByUser'),

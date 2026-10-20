@@ -4567,3 +4567,125 @@ teste, com o rótulo "Fora do painel genético". Portanto o nível `acao` passa 
 ter dois usos legítimos: avisos que mudam a ordem do pedido (metilação de MLH1)
 e exames paralelos de alta consequência terapêutica (HER2 em endométrio,
 PD-L1 em pulmão metastático).
+
+## 85. Login definitivo dos médicos (decidido em 20/10/2026)
+
+Proposta completa, com pesquisa e fontes: `docs/proposta-login.md`. Esta seção
+registra o que o dono decidiu e é o que vale para o código. Substitui o modo
+simples (§17) em produção e completa o modo completo (§11).
+
+### 85.1 Decisões do dono
+
+| # | Pergunta | Decisão |
+|---|---|---|
+| 1 | Contratar o webservice do CFM (R$ 948/ano)? | **Não.** A conferência do CRM é manual, feita pelo administrador no portal público do CFM, por uma fila na tela de administração |
+| 2 | Usar antes de o CRM ser conferido? | **Sim**, por liberação provisória de 48 h a partir do cadastro. Depois disso, sem conferência, leitura de laudo e Gena ficam bloqueadas |
+| 3 | Regra da senha | **Mínimo de 8 caracteres, com pelo menos uma letra maiúscula e um caractere especial.** Senhas comuns continuam recusadas |
+| 4 | Duração da sessão | **1 h de inatividade e teto de 12 h** |
+| 5 | Segundo fator | **Não haverá** |
+| 6 | Login corporativo (SSO) | **Não.** A conta é sempre pessoal, do CRM do médico. A entrada é por CRM + UF + senha |
+| 7 | Fase 2 (segundo fator, contas de organização, passkey) | **Não haverá.** Uma fase só |
+
+**Registro honesto sobre a decisão 3.** A norma NIST SP 800-63B-4 (2025) pede
+15 caracteres para senha sem segundo fator e proíbe exigir composição
+(maiúscula, símbolo). A decisão do dono diverge dela de propósito, por conforto
+do médico. Consequência conhecida: num questionário de segurança de um grupo
+de saúde, "8 caracteres com composição e sem segundo fator" pode ser apontado.
+As compensações que ficam: limite de tentativas por conta gravado no banco,
+recusa de senhas comuns, hash forte e sessão curta.
+
+**Decisões 5 e 7 divergem de dois requisitos da equipe LGPD** (segundo fator
+para grupos hospitalares; administrador do grupo de saúde). Registrado para o
+cruzamento entre as equipes; a decisão do dono vale.
+
+### 85.2 O que o código passa a fazer
+
+- **Cadastro:** nome, CRM (só dígitos), UF (27 siglas), e-mail, senha e aceite
+  dos Termos e do Aviso de Privacidade (versão e data gravadas). Um par CRM+UF
+  só pode ter uma conta. Sem CPF nem telefone.
+- **Confirmação de e-mail:** link de uso único, 24 h. Sem confirmar, não entra.
+- **CRM:** nasce `pendente`; o administrador (e-mails em `ADMIN_EMAILS`) vê a
+  fila, confere no portal público do CFM e marca `ativo` ou `recusado`. O
+  médico recebe e-mail quando é liberado. Conta `recusado` não usa nada.
+- **Entrada:** CRM + UF + senha. Mensagem única para qualquer falha.
+- **Senha:** scrypt assíncrono (N=2^15, r=8, p=3), formato versionado; hash do
+  formato antigo é refeito no primeiro login bem sucedido.
+- **Tentativas:** contador por conta e por IP, gravado no banco. Por conta: a
+  partir da 5ª falha seguida, espera crescente até 15 min; na 50ª, a senha é
+  desativada e só volta por "esqueci minha senha". Nunca trava a conta para
+  sempre (senão qualquer um tranca um médico de propósito).
+- **Sessão:** cookie `__Host-sessao` (HttpOnly, Secure, SameSite=Strict), não
+  mais `localStorage`. Pedidos que alteram estado conferem o cabeçalho `Origin`.
+- **Recuperação:** link por e-mail de 30 min, uso único; encerra todas as
+  sessões e avisa por e-mail.
+- **Registro de acesso (Marco Civil, art. 15):** tabela `eventos` com data,
+  hora, IP e conta de cada entrada e de cada ação de segurança, por 6 meses.
+  Nunca senha, token ou dado de paciente.
+- **Minha conta:** ver e corrigir nome, ver as entradas recentes, sair de todos
+  os dispositivos, baixar os próprios dados, excluir a conta.
+- **Tokens do Plaud:** cifrados em repouso (AES-256-GCM, chave `CHAVE_CIFRA`).
+- **Modo simples:** continua para desenvolvimento e demonstração. Em produção o
+  servidor recusa subir com ele, salvo `PERMITIR_MODO_SIMPLES=sim`.
+
+### 85.3 Como ficou implementado (20/10/2026)
+
+**Arquivos.** `server/auth.js` (senha, sessão, tentativas, cookie, situação do
+CRM), `server/store.js` (tabelas novas e migração), `server/cifra.js` (novo),
+`server/email.js` (sete modelos de e-mail com a marca atual), rotas em
+`server/index.js` (bloco AUTENTICAÇÃO), telas em `public/index.html`,
+`public/app.js` e `public/app.css`.
+
+**Tabelas.** `users` ganhou `crm_uf`, `crm_status`, `crm_conferido_em`,
+`crm_conferido_por`, `liberado_ate`, `email_verificado_em`, `termos_versao` e
+`termos_aceitos_em`, com índice único em (CRM, UF). `sessions` ganhou
+`ultimo_uso_em`, `ip` e `agente`. `resets` ganhou `finalidade`
+(`confirmar_email` ou `redefinir_senha`). Novas: `tentativas` e `eventos`. A
+migração é por `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, testada por cima do
+esquema antigo num Postgres em memória (PGlite, só na suíte).
+
+**Rotas do modo completo.** `POST /api/auth/cadastro`, `/reenviar-confirmacao`,
+`/confirmar-email`, `/login`, `/esqueci`, `/nova-senha`, `/trocar-senha`,
+`/sair-de-todos`; `GET /api/auth/conta` e `/meus-dados`; `DELETE
+/api/auth/conta`; `GET /api/admin/conferencias` e `POST
+/api/admin/conferencias/:id`. As rotas antigas `register`, `request-reset` e
+`set-password` deixaram de existir (só o front as usava).
+
+**Defeitos do código anterior corrigidos, cada um com teste de regressão**
+(`test/login.test.js` e `test/login-unidade.test.js`):
+
+| # | Defeito | Teste |
+|---|---|---|
+| D1 | `scryptSync` travava o servidor inteiro a cada login | o laço de eventos segue girando durante o hash |
+| D2 | scrypt com parâmetros abaixo do OWASP | formato `scrypt2$32768$8$3$...`; hash antigo continua valendo e é refeito |
+| D3 | limite de login por IP+e-mail: trocar de IP zerava | cinco falhas de cinco IPs diferentes bloqueiam o sexto |
+| D4 | contador de tentativas em memória zerava no reinício | servidor reiniciado continua bloqueando |
+| D5 | token de sessão em `localStorage` | cookie HttpOnly e SameSite=Strict, nada no corpo da resposta |
+| D6 | cadastro aceitava CRM de 3 caracteres sem UF | CRM numérico e UF de lista fechada |
+| D7 | e-mails com logotipo antigo e travessões | `escrita.test.js` passou a vigiar `email.js`, `auth.js`, `cifra.js` e `store.js` |
+| D8 | nome do médico entrava cru no HTML do e-mail | nome com `<a href>` sai escapado |
+
+**Corrida de teste corrigida.** Em `test/navegador.js`, a espera pela resposta
+da Gena terminava no indicador de "digitando" (que também é um
+`.gena-msg.from-gena`) e a mensagem seguinte batia na Gena ainda ocupada.
+Apareceu agora porque a ordem de carga da página mudou; o seletor passou a
+excluir o indicador.
+
+**Teste de telas.** `npm run test:login-telas` percorre cadastro, confirmação,
+entrada, Minha conta, troca de senha, conferência pelo administrador e "esqueci
+a senha" no celular e no computador. Os testes de navegador aceitam
+`CHROMIUM_PATH` para rodar fora do ambiente de nuvem.
+
+**Ainda não feito, de propósito:**
+- texto dos Termos de Uso (o aceite aponta para o Aviso de Privacidade que já
+  existe; o texto jurídico é da equipe LGPD e do advogado);
+- o modal de privacidade ainda diz "o controlador é você", que §5 já registrou
+  como não defensável (escopo da equipe LGPD);
+- sem segundo fator e sem contas de organização, por decisão do dono (§85.1).
+
+**Antes de publicar (passos do dono, com guia):** criar o banco Neon na região
+de São Paulo, registrar o domínio, criar a conta Resend e verificar o domínio,
+e colocar no Render `AUTH_MODE=completo`, `DATABASE_URL`, `RESEND_API_KEY`,
+`MAIL_FROM`, `APP_ORIGIN`, `CHAVE_CIFRA` e `ADMIN_EMAILS`. **Atenção:** com este
+código, publicar sem essas variáveis derruba o site de propósito (o servidor
+recusa subir em produção no modo simples sem `PERMITIR_MODO_SIMPLES=sim`, e no
+completo sem banco). Nenhuma publicação sem o dono aprovar.

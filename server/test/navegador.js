@@ -128,7 +128,7 @@ function mockExtracao(p, dados, avisos = []) {
 
 async function rodar(nome, dispositivo) {
   console.log('\n=== ' + nome + ' ===');
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
   const ctx = await browser.newContext(dispositivo);
   const erros = [];
   ctx.on('weberror', (e) => erros.push(String(e.error())));
@@ -405,7 +405,12 @@ async function rodar(nome, dispositivo) {
 
     await p.fill('#gena-input', 'paciente de 61 anos com CA de ovário');
     await p.press('#gena-input', 'Enter');
-    await p.waitForSelector('.gena-msg.from-gena >> nth=1');
+    // O indicador de "digitando" também é um .gena-msg.from-gena: sem o :not,
+    // a espera terminava na bolha de digitação, antes da resposta, e a
+    // mensagem seguinte batia na Gena ainda ocupada (corrida que apareceu
+    // em §85, quando a ordem de carga da página mudou).
+    await p.waitForSelector('.gena-msg.from-gena:not(#gena-typing) >> nth=1');
+    await p.waitForSelector('#gena-typing', { state: 'detached' });
     linha(ok((await p.locator('#gena-cta').isVisible()) === false, 'ofereceu triagem cedo demais'), 'não oferece triagem sem dado suficiente');
 
     await p.fill('#gena-input', 'seroso de alto grau, estágio IIIC');
@@ -648,8 +653,12 @@ async function rodar(nome, dispositivo) {
     await p.click('#btn-extract');
     await p.waitForTimeout(500);
     const voltouAoLogin = await p.evaluate(() => document.body.classList.contains('gate-active'));
+    // §85: a sessão mora em cookie HttpOnly, invisível à página. O que se
+    // confere é que nada de sessão ficou em localStorage e que a tela explica
+    // por que voltou para a entrada.
     const semToken = await p.evaluate(() => !localStorage.getItem('oncogenyx.session'));
-    linha(ok(voltouAoLogin && semToken, `gate=${voltouAoLogin} token limpo=${semToken}`), 'sessão expirada → volta ao acesso');
+    const explicou = /sessão terminou/i.test(await p.locator('#gate-alert').textContent());
+    linha(ok(voltouAoLogin && semToken && explicou, `gate=${voltouAoLogin} token limpo=${semToken} aviso=${explicou}`), 'sessão expirada → volta ao acesso');
     await p.close();
   }
 
