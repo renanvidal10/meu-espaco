@@ -1826,28 +1826,37 @@
      Agora: grade de duas colunas, rótulo pequeno ACIMA do valor (lê-se como
      formulário, não como tabela), o teste em destaque e a assinatura presa
      ao bloco, que não se parte entre folhas. */
+  /* §90. O dono imprimiu e achou "desconfigurado": a coluna da direita
+     (Data, Amostra) parecia solta, porque as linhas largas não tinham nada
+     que as ligasse a ela. Agora é uma grade só, com filetes de 1px entre as
+     células, como um formulário de
+     papel: cada campo tem a sua caixa, e as duas colunas se leem alinhadas. */
   .doc-preview .doc-grade {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    gap: 8px 24px;
+    border: 1px solid #cfd9e2;
+    border-radius: var(--r-xs);
+    overflow: hidden;
   }
-  .doc-preview .doc-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: var(--fs-xs); line-height: 1.4; }
-  .doc-preview .doc-row.largo { grid-column: 1 / -1; }
-  .doc-preview .doc-row .k { font-size: var(--fs-2xs); color: #6b6b6b; }
+  /* Filete como BORDA da célula, não como vão de 1px da grade: o vão caía
+     entre dois pixels no PDF e sumia em uma das linhas. */
+  .doc-preview .doc-row,
+  .doc-preview .doc-justif { background: #ffffff; padding: 7px 10px; min-width: 0; border-bottom: 1px solid #cfd9e2; }
+  .doc-preview .doc-justif { border-bottom: none; }
+  .doc-preview .doc-row:nth-child(2),
+  .doc-preview .doc-row.doc-teste-amostra { border-left: 1px solid #cfd9e2; }
+  .doc-preview .doc-row { display: flex; flex-direction: column; gap: 1px; font-size: var(--fs-xs); line-height: 1.4; }
+  .doc-preview .doc-row.largo,
+  .doc-preview .doc-justif.largo { grid-column: 1 / -1; }
+  .doc-preview .doc-row .k { font-size: var(--fs-2xs); color: #5f6b76; }
   .doc-preview .doc-row .v { font-weight: 600; color: #1c1c1c; }
-  /* O teste é o que o laboratório procura primeiro: um degrau acima, e um
-     filete separando o que é do paciente do que é pedido. */
+  /* O teste é o que o laboratório procura primeiro: um degrau acima, e a
+     linha do pedido com um fundo levemente tingido. */
+  .doc-preview .doc-row.doc-teste,
+  .doc-preview .doc-row.doc-teste-amostra { background: #f2f7fa; }
   .doc-preview .doc-row.doc-teste .v { font-size: var(--fs-sm); font-weight: 700; color: #0b4a62; }
-  .doc-preview .doc-pedido { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e4e9ee; }
-  .doc-preview .doc-justif {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #e4e9ee;
-    font-size: var(--fs-xs);
-    line-height: 1.5;
-    color: #2a2a2a;
-  }
-  .doc-preview .doc-justif .label { font-size: var(--fs-2xs); color: #6b6b6b; margin-bottom: 2px; }
+  .doc-preview .doc-justif { font-size: var(--fs-xs); line-height: 1.5; color: #2a2a2a; }
+  .doc-preview .doc-justif .label { font-size: var(--fs-2xs); color: #5f6b76; margin-bottom: 1px; }
   .doc-preview .doc-sign {
     width: min(100%, 300px);
     /* 44px acima da linha: o espaço de uma assinatura e de um carimbo. */
@@ -2355,6 +2364,8 @@
        quebraria palavra a palavra. Uma coluna só na tela; o papel continua
        em duas (regra de impressão). */
     .doc-preview .doc-grade { grid-template-columns: minmax(0, 1fr); }
+    .doc-preview .doc-row:nth-child(2),
+    .doc-preview .doc-row.doc-teste-amostra { border-left: none; }
     .doc-preview { padding: 26px 22px 28px; }
     .program-row { flex-direction: column; align-items: flex-start; gap: 12px; }
     .program-row .who { width: 100%; }
@@ -2399,7 +2410,10 @@
   }
 
   @media print {
-    @page { margin: 14mm; }
+    /* §90. A margem mora NO DOCUMENTO (padding em milímetros, abaixo), e a
+       folha não pede margem nenhuma. Antes a margem era só a de @page, e há
+       navegador que a ignora: o texto saía encostado na borda do papel. */
+    @page { size: A4; margin: 0; }
     body.printing { background: #fff !important; }
 
     /* A tela ativa entra com "animation: rise ... both". Na paginação da
@@ -2477,7 +2491,9 @@
     body.printing .doc-preview {
       max-width: none !important;
       margin: 0 !important;
-      padding: 0 0 8px !important;
+      padding: 16mm 17mm 6mm !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     /* A faixa de marca é a única coisa que fica: ela é a identidade do
        documento. Passa a nascer no topo da folha, alinhada ao conteúdo. */
@@ -2497,6 +2513,12 @@
     body.printing main,
     body.printing .screen.active,
     body.printing .program-card { padding: 0 !important; margin: 0 !important; }
+    /* §90. A largura de leitura da tela (760px) não vale no papel: ela
+       encolhia a folha e a margem direita saía maior que a esquerda. */
+    body.printing main,
+    body.printing .screen.active,
+    body.printing .program-card,
+    body.printing .doc-preview-wrap.print-target { max-width: none !important; width: auto !important; }
     body.printing .doc-preview .doc-sign { break-before: avoid; page-break-before: avoid; }
     body.printing .doc-preview .doc-grade { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important; }
     body.printing .doc-actions { display: none !important; }

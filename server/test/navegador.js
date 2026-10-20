@@ -860,6 +860,10 @@ async function rodar(nome, dispositivo) {
         alvo.classList.add('print-target');
         document.body.classList.add('printing');
       }, longo);
+      /* §90. Simula o navegador do dono: um que IGNORA a margem pedida pela
+       * página (@page) e imprime de borda a borda. Com a margem só no
+       * @page, o texto encostaria no papel aqui, e o teste reprovaria. */
+      await p.addStyleTag({ content: '@page { margin: 0 !important; }' });
       // Medida no papel: altura do documento com a mídia de impressão.
       await p.emulateMedia({ media: 'print' });
       const alturaMm = await p.evaluate(() => {
@@ -871,17 +875,58 @@ async function rodar(nome, dispositivo) {
       const doc = await getDocumentProxy(new Uint8Array(pdf));
       const ultima = await doc.getPage(doc.numPages);
       const textoUltima = (await ultima.getTextContent()).items.map((i) => i.str).join(' ');
-      return { paginas: doc.numPages, alturaMm, assinaturaNaUltima: /Assinatura e carimbo/.test(textoUltima), textoUltima };
+      return { paginas: doc.numPages, alturaMm, assinaturaNaUltima: /Assinatura e carimbo/.test(textoUltima), textoUltima,
+        margens: await margensDoPdf(doc) };
     }
 
-    // Meia A4 = 148,5mm; menos a margem de cima da folha (14mm) sobram 134mm
-    // de área útil. "Com folga": o teste pede 120mm.
+    /* §90. Onde o texto começa e termina na folha, lido do próprio PDF. O dono
+     * recebeu o pedido com o texto encostado na borda: a margem dependia do
+     * @page, que há navegador que ignora. Agora a margem mora no documento, e
+     * este teste mede o resultado no papel, não a regra. */
+    async function margensDoPdf(doc) {
+      const pag = await doc.getPage(1);
+      const vp = pag.getViewport({ scale: 1 });
+      const itens = (await pag.getTextContent()).items.filter((i) => i.str.trim());
+      const mm = (pt) => pt * 25.4 / 72;
+      let esq = Infinity; let dir = 0; let topo = Infinity;
+      for (const i of itens) {
+        esq = Math.min(esq, i.transform[4]);
+        dir = Math.max(dir, i.transform[4] + i.width);
+        topo = Math.min(topo, vp.height - i.transform[5] - i.height);
+      }
+      return { esquerda: mm(esq), direita: mm(vp.width - dir), topo: mm(topo) };
+    }
+    const margemOk = (m) => m.esquerda >= 15 && m.direita >= 15 && m.topo >= 12;
+    const margemTxt = (m) => `esquerda ${m.esquerda.toFixed(1)}mm, direita ${m.direita.toFixed(1)}mm, topo ${m.topo.toFixed(1)}mm`;
+
+    // Meia A4 = 148,5mm. A folha não tem margem própria (§90): a altura do
+    // documento, já com a margem dele, é a distância do topo da folha até o
+    // fim da assinatura. "Com folga": o teste pede 140mm.
     const comum = await imprimir(false);
-    linha(ok(comum.paginas === 1 && comum.alturaMm <= 120,
-      `caso comum: ${comum.paginas} folha(s), papel com ${Math.round(comum.alturaMm)}mm (limite 120mm)`),
+    linha(ok(comum.paginas === 1 && comum.alturaMm <= 140,
+      `caso comum: ${comum.paginas} folha(s), papel com ${Math.round(comum.alturaMm)}mm (limite 140mm)`),
     `pedido comum cabe em meia folha (${Math.round(comum.alturaMm)}mm)`);
+    linha(ok(margemOk(comum.margens), `margens do pedido impresso pelo app: ${margemTxt(comum.margens)}`),
+      `impresso pelo app: nada encosta na borda (${margemTxt(comum.margens)})`);
+
+    // O outro caminho: o arquivo avulso que o app abre (ou baixa) fora dele,
+    // impresso como o médico imprimiria. É o mesmo HTML que downloadDoc monta.
+    const avulso = await p.evaluate(() => documentoAutocontido(
+      document.querySelector('#programs-dynamic details.doc-preview-wrap')));
+    const q = await ctx.newPage();
+    await q.setContent(avulso);
+    await q.addStyleTag({ content: '@page { margin: 0 !important; }' });
+    const pdfAvulso = await q.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true });
+    await q.close();
+    const docAvulso = await getDocumentProxy(new Uint8Array(pdfAvulso));
+    const mAvulso = await margensDoPdf(docAvulso);
+    linha(ok(docAvulso.numPages === 1 && margemOk(mAvulso),
+      `arquivo avulso: ${docAvulso.numPages} folha(s), ${margemTxt(mAvulso)}`),
+    `arquivo baixado: uma folha, nada encosta na borda (${margemTxt(mAvulso)})`);
 
     const longo = await imprimir(true);
+    linha(ok(margemOk(longo.margens), `margens com texto longo: ${margemTxt(longo.margens)}`),
+      'nome e justificativa longos: nada passa da área útil');
     linha(ok(longo.paginas === 1 && longo.assinaturaNaUltima,
       `nome e justificativa longos: ${longo.paginas} folha(s), assinatura na folha certa=${longo.assinaturaNaUltima}`),
     `nome e justificativa longos: uma folha, com a assinatura (${Math.round(longo.alturaMm)}mm)`);

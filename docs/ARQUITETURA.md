@@ -5104,3 +5104,40 @@ germinativo no cartão de programas ganhou a mesma divisão da tela de resultado
   conferência continua registrada;
 - saíram as travas que exigiam o critério visível (§53) e o marca-texto
   legível durante a animação (§67.2), e o alvo de contraste do marca-texto.
+
+## 90. O pedido impresso saía sem margem (20/10/2026)
+
+O dono baixou o pedido na versão de teste, mandou imprimir e recebeu a folha
+*"completamente desconfigurada"*: texto encostado na borda esquerda, o tipo do
+documento e a linha de assinatura colados na borda direita, e a coluna de Data
+e Amostra solta do resto.
+
+**Causa.** Toda a margem do papel dependia de `@page { margin: 14mm }`. O
+Chrome respeita; há navegadores e configurações de impressão que ignoram a
+margem pedida pela página (Safari, "Margens: nenhuma"), e aí a folha sai de
+borda a borda. O teste do §87 imprimia só no Chrome, onde o defeito não
+aparece.
+
+**Correção, nos dois caminhos** (imprimir de dentro do app e o arquivo avulso
+que abre ou é baixado fora dele):
+- a folha não pede margem (`@page { size: A4; margin: 0 }`) e a margem mora no
+  próprio documento, em milímetros: 16mm em cima, 17mm dos lados. Nenhum
+  navegador consegue tirá-la;
+- dentro do app, a largura de leitura da tela (760px) deixou de valer no papel:
+  ela encolhia a folha e a margem direita saía maior que a esquerda;
+- os campos viraram uma grade com filetes, como formulário de papel: cada campo
+  na sua célula, Data e Amostra alinhadas na coluna da direita, a linha do
+  pedido (teste e amostra) com fundo levemente tingido, a justificativa na
+  última célula. Os filetes são bordas de célula, não vão de 1px da grade: o
+  vão caía entre dois pixels e sumia numa das linhas do PDF.
+
+**Medido no PDF:** 17mm à esquerda e à direita, 19mm no topo, nos dois
+caminhos; o caso comum termina a 134mm do topo (meia folha é 148,5mm).
+
+**A trava** (bateria de navegador) imprime os dois caminhos **simulando um
+navegador que ignora a margem da página** (`@page { margin: 0 !important }`
+injetado) e lê do próprio PDF onde o texto começa e termina: exige pelo menos
+15mm dos lados e 12mm no topo, uma folha só, também com nome e justificativa
+longos. **Provada**: com a versão publicada (e76415b) reprova acusando
+"esquerda 0.0mm" no app e "esquerda 0.0mm, direita 0.1mm" no arquivo baixado,
+que é a folha que o dono recebeu.

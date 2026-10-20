@@ -2163,19 +2163,20 @@
             <!-- §87. O pedido cabe em meia folha A4. Dados curtos em grade
                  de duas colunas, rótulo acima do valor; o teste é a linha de
                  destaque, porque é o que o laboratório procura primeiro. -->
+            <!-- §90. Uma grade só, com filetes entre as células, como um
+                 formulário de papel: a coluna da direita (Data, Amostra)
+                 deixa de parecer solta, porque cada célula tem borda. -->
             <div class="doc-grade">
               <div class="doc-row"><span class="k">Paciente</span><span class="v doc-name">-</span></div>
               <div class="doc-row"><span class="k">Data</span><span class="v">${esc(date)}</span></div>
               <div class="doc-row largo"><span class="k">Médico solicitante</span><span class="v">${esc(doctor)}</span></div>
               <div class="doc-row largo"><span class="k">Diagnóstico</span><span class="v">${esc(diagnostico)}</span></div>
-            </div>
-            <div class="doc-grade doc-pedido">
               <div class="doc-row doc-teste"><span class="k">Teste solicitado</span><span class="v">${esc(test.name)}</span></div>
-              <div class="doc-row"><span class="k">Amostra</span><span class="v">${esc(test.sample || '-')}</span></div>
-            </div>
-            <div class="doc-justif">
-              <div class="label">Justificativa clínica</div>
-              <span>${esc(justificativa)}</span>
+              <div class="doc-row doc-teste-amostra"><span class="k">Amostra</span><span class="v">${esc(test.sample || '-')}</span></div>
+              <div class="doc-justif largo">
+                <div class="label">Justificativa clínica</div>
+                <span>${esc(justificativa)}</span>
+              </div>
             </div>
             <div class="doc-sign">
               <span>Assinatura e carimbo do médico</span>
@@ -2288,7 +2289,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Solicitação: ${esc(nome)}</title>
 <style>
-  @page { margin: 14mm; }
+  /* §90. A margem mora NO DOCUMENTO, não só na folha: há navegadores que
+     ignoram a margem pedida por @page, e o texto encostava na borda. */
+  @page { size: A4; margin: 0; }
   body { margin: 0; padding: 22px; background: #fff; color: #1c1c1c;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 15px; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -2300,21 +2303,24 @@
     border-bottom: 1px solid #e4e9ee; }
   .doc-marca { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; color: #0e6180; white-space: nowrap; }
   .doc-type { font-size: 12px; color: #6b6b6b; text-transform: uppercase; letter-spacing: .06em; text-align: right; }
-  .doc-grade { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 8px 24px; }
-  .doc-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14px; line-height: 1.4; }
-  .doc-row.largo { grid-column: 1 / -1; }
-  .doc-row .k { font-size: 12px; color: #6b6b6b; }
+  .doc-grade { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    border: 1px solid #cfd9e2; border-radius: 4px; overflow: hidden; }
+  .doc-row, .doc-justif { background: #fff; padding: 7px 10px; min-width: 0; border-bottom: 1px solid #cfd9e2; }
+  .doc-justif { border-bottom: none; }
+  .doc-row:nth-child(2), .doc-row.doc-teste-amostra { border-left: 1px solid #cfd9e2; }
+  .doc-row { display: flex; flex-direction: column; gap: 1px; font-size: 14px; line-height: 1.4; }
+  .doc-row.largo, .doc-justif.largo { grid-column: 1 / -1; }
+  .doc-row .k, .doc-justif .label { font-size: 12px; color: #5f6b76; }
   .doc-row .v { font-weight: 600; overflow-wrap: anywhere; }
+  .doc-row.doc-teste, .doc-row.doc-teste-amostra { background: #f2f7fa; }
   .doc-row.doc-teste .v { font-size: 16px; font-weight: 700; color: #0b4a62; }
-  .doc-pedido { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e4e9ee; }
-  .doc-justif { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e4e9ee;
-    font-size: 14px; line-height: 1.5; color: #2a2a2a; }
-  .doc-justif .label { font-size: 12px; color: #6b6b6b; margin-bottom: 2px; }
+  .doc-justif { font-size: 14px; line-height: 1.5; color: #2a2a2a; }
+  .doc-justif .label { margin-bottom: 1px; }
   .doc-sign { width: min(100%, 300px); margin: 44px 0 0 auto; padding-top: 6px; border-top: 1px solid #1c1c1c;
-    display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 12px; color: #6b6b6b; text-align: center; }
+    display: flex; flex-direction: column; align-items: center; gap: 1px; font-size: 12px; color: #5f6b76; text-align: center; }
   .doc-preview { break-inside: avoid; page-break-inside: avoid; }
   .aviso { max-width: 62ch; margin: 26px auto 0; font-size: 12px; color: #6b6b6b; line-height: 1.5; }
-  @media print { .aviso { display: none; } body { padding: 0; } .doc-preview { max-width: none; } }
+  @media print { .aviso { display: none; } body { padding: 0; } .doc-preview { max-width: none; padding: 16mm 17mm 6mm; } }
 </style></head><body>
 <div class="doc-preview"><div class="faixa"></div>${papel ? papel.innerHTML : ''}</div>
 <p class="aviso">Para salvar em PDF ou imprimir: use o botão de compartilhar do navegador e escolha "Imprimir" ou "Salvar em Arquivos".</p>
