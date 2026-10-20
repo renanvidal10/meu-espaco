@@ -141,7 +141,37 @@ curl -s -X POST \
 | Um texto com `"text":"ok"` (ou parecido) | Tudo certo | Siga para o passo 6 |
 | `PERMISSION_DENIED` ou fala em "terms" | O modelo ainda não foi liberado | Volte ao passo 3 e confira o botão Ativar |
 | `NOT_FOUND` | Nome do modelo ou da porta não reconhecido | Chame o coordenador, com a mensagem inteira |
-| `RESOURCE_EXHAUSTED` ou "quota" | Falta cota | Chame o coordenador: o pedido de cota é feito em "IAM e administrador > Cotas" |
+| Erro `429`, `RESOURCE_EXHAUSTED` ou "quota" | **Esperado em projeto novo:** o Google começa com cota zero para o Claude | Faça o passo 5.1 e repita este teste depois da aprovação |
+
+### 5.1 Pedir cota para o Claude (projeto novo começa com zero)
+
+**O que aconteceu na conta do OncoGenYX (20/10/2026):** o teste do passo 5 respondeu `429`. O Google libera o modelo no Model Garden, mas num projeto novo a **cota de uso do Claude Opus 5 é zero** em todas as portas (us, eu e global). Cota é o "limite de consumo por minuto" que o Google autoriza para cada projeto, como o limite de um cartão novo, que começa baixo e precisa ser pedido.
+
+**Quanto pedir.** O suficiente para a fase de teste, com folga, sem parecer exagero (pedido pequeno é aprovado mais rápido):
+
+| Cota (porta `us`) | Valor sugerido | De onde vem o número |
+|---|---|---|
+| Pedidos por minuto | **60** | Até uns 20 médicos usando ao mesmo tempo; cada leitura faz de 1 a 2 pedidos, e cada mensagem da Gena faz 1 |
+| Tokens de entrada por minuto (input tokens) | **500.000** | Um laudo em PDF de várias páginas chega a cerca de 50 a 100 mil tokens; dá para uns 5 laudos grandes no mesmo minuto |
+| Tokens de saída por minuto (output tokens) | **50.000** | Cada leitura devolve no máximo 2.048 tokens e cada resposta da Gena, 600 |
+
+**Como pedir (cliques):**
+1. No menu de três traços, abra **IAM e administrador > Cotas e limites do sistema**.
+2. Na caixa **Filtro**, digite `anthropic-claude-opus` e aperte Enter.
+3. Na lista, marque as três linhas da **US multi-region** (região `us`) com `base_model: anthropic-claude-opus`: a de pedidos (requests), a de tokens de entrada (input tokens) e a de tokens de saída (output tokens) por minuto. Se aparecer uma linha específica de "opus-5", prefira ela.
+4. Clique em **Editar** (ou **Editar cotas**, no alto da lista).
+5. Em cada linha, escreva o valor da tabela acima.
+6. No campo de justificativa (**Request description** ou **Justificativa**), cole o texto abaixo, em inglês, que é o idioma em que o Google analisa:
+
+```text
+OncoGenYX is a clinical decision-support web application used by licensed physicians in Brazil to decide which genetic tests to order for oncology patients. Each request reads one pathology report (PDF, image or text) with Claude Opus 5 and returns structured data, plus a short chat assistant. We are starting a closed beta with up to 20 physicians. Expected peak: about 60 requests per minute, 500,000 input tokens per minute (multi-page PDF reports) and 50,000 output tokens per minute (max 2,048 output tokens per request). We use the "us" multi-region endpoint on purpose, for a known processing location under our Google Cloud data processing terms. No data is stored after the response.
+```
+
+7. Confira nome e e-mail de contato e clique em **Enviar solicitação**.
+8. O Google responde por e-mail, em geral entre algumas horas e poucos dias úteis. Pode aprovar menos do que o pedido: para a fase de teste, qualquer valor a partir de 10 pedidos por minuto já permite começar.
+9. Depois da aprovação, repita o teste do passo 5. A resposta deve trazer o "ok".
+
+> Enquanto a cota não sai, os passos 6, 7 e 8 podem seguir normalmente. O site sobe e o login funciona; só a leitura do laudo e a Gena dão erro até a cota chegar.
 
 ## 6. Preparar a conta de serviço, o banco e o cofre
 
@@ -305,7 +335,7 @@ No começo o site fica num endereço do Google, terminado em `.southamerica-east
 | A publicação fica vermelha depois do passo 8.2 | Faltou uma configuração | No Cloud Run, abra o serviço > **Registros** (Logs). A primeira linha começando com `ERRO:` diz o que falta, em português |
 | `ERRO: AUTH_MODE=completo em produção exige ...` | Cofre ou variável faltando | Refaça o bloco 8.2 |
 | `ERRO: IA_PROVEDOR=vertex exige VERTEX_PROJETO` | Variável faltando | Refaça o bloco 8.2 |
-| O site abre, mas a leitura do laudo dá erro | Claude não liberado, cota ou região | Refaça o teste do passo 5 e chame o coordenador |
+| O site abre, mas a leitura do laudo dá erro | Claude não liberado, cota ainda zero (passo 5.1) ou região | Refaça o teste do passo 5 e chame o coordenador |
 | O e-mail não chega | Domínio ainda não verificado no Resend, ou chave errada | Confira o "Verify" verde no Resend; refaça o bloco 7.3 |
 | `/api/health` mostra `"storage":"postgres INDISPONÍVEL"` | O servidor não alcança o banco | Confira se o bloco 6.1 mostrou os três `ok:` e se o 8.2 tem `--add-cloudsql-instances` |
 | A montagem (Cloud Build) falha com `iam.serviceAccounts.actAs` | A montagem não pode publicar usando o "crachá" do servidor | Cole no Cloud Shell, depois do bloco 4.1: `gcloud iam service-accounts add-iam-policy-binding oncogenyx-app@$PROJETO.iam.gserviceaccount.com --member="serviceAccount:$(gcloud projects describe $PROJETO --format='value(projectNumber)')-compute@developer.gserviceaccount.com" --role=roles/iam.serviceAccountUser` e peça ao coordenador para refazer a publicação |

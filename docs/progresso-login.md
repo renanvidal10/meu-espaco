@@ -19,7 +19,13 @@ Branch: `claude/login-com-senha-d75125`. Nada foi publicado e nada foi enviado a
 **Contato de privacidade (20/10/2026):** só o e-mail renan.lvidal@gmail.com, sem nome nem cargo, na última linha do Aviso de Privacidade; retirado da entrada e de Minha conta a pedido do dono (ARQUITETURA.md §85.4). Testes: 359 passando, três rodadas seguidas; navegador e telas do login ok.
 
 ## Andamento na conta real (feito pelo coordenador com o dono)
-Conta de faturamento ativa (BRL, sem créditos de avaliação), projeto `oncogenyx-br`, orçamento de alerta R$ 200, APIs ligadas, Claude Opus 5 liberado no Model Garden. Próximo passo do roteiro: 4.1 e o teste do passo 5.
+Conta de faturamento ativa (BRL, sem créditos de avaliação), projeto `oncogenyx-br`, orçamento de alerta R$ 200, APIs ligadas, Claude Opus 5 liberado no Model Garden.
+
+Concluídos no Cloud Shell pelo coordenador (20/10/2026): 6.1 (conta de serviço `oncogenyx-app` com aiplatform.user, cloudsql.client e secretmanager.secretAccessor), 6.2 (Cloud SQL `oncogenyx-db`, POSTGRES_16, db-f1-micro, zona southamerica-east1-c, banco e usuário `oncogenyx`) e 6.3 (segredos `database-url`, `chave-cifra`, `session-secret` e `resend-api-key` com "a-preencher", todos em southamerica-east1).
+
+**Passo 5 falhou com 429:** num projeto novo, a cota do Claude Opus 5 é **zero** em us, eu e global. As cotas "US multi-region, base_model: anthropic-claude-opus" (pedidos, tokens de entrada e de saída por minuto) aparecem como ajustáveis. Roteiro ganhou o passo 5.1: pedir 60 pedidos/min, 500.000 tokens de entrada/min e 50.000 de saída/min na porta `us`, com justificativa em inglês pronta. O site e o login podem ir ao ar antes; só a leitura e a Gena esperam a cota.
+
+**Próximos passos do roteiro:** 5.1 (pedir a cota, dono), 7 (domínio e Resend, dono), 8 (Cloud Run), 9 (conferir). Depois da cota aprovada: repetir o passo 5 e rodar a bateria de laudos reais pelo Vertex.
 
 ## Claude fora do Brasil (ARQUITETURA.md §86.8, 20/10/2026)
 O Google oferece o Claude Opus 5 só em `global`, `us` e `eu`. Decidido `us`: laudo processado nos EUA sob o contrato do Google com as cláusulas da ANPD; servidor, banco e cofres em São Paulo. Roteiro e código ajustados (padrão `VERTEX_REGIAO=us`). Domínio próprio no site: começar com `.run.app`; depois Firebase Hosting (grátis, limite de 60 s) ou balanceador (US$ 18 a 25 por mês), conforme o tempo de leitura medido.
@@ -36,4 +42,4 @@ O Google oferece o Claude Opus 5 só em `global`, `us` e `eu`. Decidido `us`: la
 - Divergências por decisão do dono: sem segundo fator e sem administrador do grupo de saúde.
 
 ## Próxima ação exata
-AGUARDAR o dono. Depois, com o coordenador guiando, o dono segue `docs/roteiro-google-cloud.md` do passo 1 ao 9. Antes do passo 8.1, o coordenador decide qual branch o Cloud Run vai publicar (esta branch precisa ser enviada ao GitHub, com aprovação do dono). Nunca fazer push para `claude/oncology-genetic-screening-tool-81w16p` nem para `main` sem o dono mandar.
+Com o coordenador guiando, o dono segue `docs/roteiro-google-cloud.md` a partir do passo 5.1 (pedido de cota), depois 7, 8 e 9. Antes do passo 8.1, o coordenador decide qual branch o Cloud Run vai publicar (esta branch precisa ser enviada ao GitHub, com aprovação do dono). Nunca fazer push para `claude/oncology-genetic-screening-tool-81w16p` nem para `main` sem o dono mandar.
