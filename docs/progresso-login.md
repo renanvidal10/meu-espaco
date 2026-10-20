@@ -1,25 +1,34 @@
-# Progresso: login definitivo dos médicos (Equipe 1)
+# Progresso: login definitivo e mudança para o Google Cloud (Equipe 1)
 
-Branch: `claude/login-com-senha-d75125`, partiu de 17a65bd. Nada foi publicado e nada foi enviado ao GitHub.
+Branch: `claude/login-com-senha-d75125`. Nada foi publicado e nada foi enviado ao GitHub.
 
 ## Estado (20/10/2026)
 
-- ETAPA 1 concluída: `docs/proposta-login.md`.
-- Decisões do dono recebidas em 20/10 e registradas em `docs/ARQUITETURA.md` §85.1: não contratar o webservice do CFM (conferência manual), liberar o uso por 48 h antes da conferência, senha de 8 caracteres com maiúscula e caractere especial, sessão de 1 h parada e 12 h no máximo, sem segundo fator, sem login corporativo (sempre CRM pessoal), sem fase 2.
-- ETAPA 2 implementada e testada na branch (detalhes em ARQUITETURA.md §85.2 e §85.3):
-  - `npm test`: 348 testes passando (eram 291).
-  - `test/navegador.js`: 178 verificações passando (igual à versão anterior).
-  - `test/contraste.js` e `test/acessibilidade.js`: passando.
-  - `test/login-telas.js` (novo): passando no celular e no computador.
-  - `test/aplicativo.js` não roda nesta máquina: aponta para `/home/user/...` (problema antigo do ambiente, não deste trabalho).
-- Telas fotografadas para o dono (pasta de rascunho da sessão; para gerar de novo: `FOTOS=<pasta> CHROMIUM_PATH=... node test/login-telas.js`).
+**Etapa 1 (proposta):** concluída, `docs/proposta-login.md`.
 
-## Pendências que não são desta equipe
+**Etapa 2 (login, §85):** implementada, commit d1a5874. Decisões do dono em ARQUITETURA.md §85.1.
+
+**Etapa 3 (Google Cloud em São Paulo, §86):** implementada nesta branch, aguardando o dono.
+- Commit e50b2c3 (frase do áudio) trazido por cherry-pick (86da829).
+- `server/ia.js`: Vertex AI (padrão em produção, região southamerica-east1) ou API direta (padrão fora de produção), por `IA_PROVEDOR`.
+- Consentimento separado para o e-mail no cadastro (LGPD art. 33, VIII), gravado em `consentimento_email_em`.
+- `server/Dockerfile` e `.dockerignore`; `TRUST_PROXY` configurável.
+- `docs/roteiro-google-cloud.md`: passo a passo do dono.
+- Testes: `npm test` 356 passando; `test/navegador.js` 178 verificações; contraste, acessibilidade e `test/login-telas.js` passando.
+
+## Ressalva importante (ARQUITETURA.md §86.2)
+A documentação do Google se contradiz sobre o Claude em São Paulo: a página de regiões lista, as fichas dos modelos não. O passo 5 do roteiro testa na conta real. Se falhar, a saída é `VERTEX_REGIAO=us` (EUA, sob o contrato do Google com cláusulas da ANPD), decisão do dono.
+
+## Não verificado (sem conta, de propósito)
+- Chamada real ao Vertex (passo 5 do roteiro).
+- Montagem da imagem com Docker (Docker não instalado; conferido o boot com só as dependências de produção).
+- IP correto atrás do Cloud Run (passo 9 do roteiro).
+- Bateria de extração pela IA real via Vertex (§42), a rodar antes de liberar aos médicos.
+
+## Pendências de outras equipes
 - Texto dos Termos de Uso e correção do modal de privacidade ("o controlador é você"): equipe LGPD e advogado.
-- Divergências com os requisitos da equipe LGPD, por decisão do dono: sem segundo fator (req. 3) e sem administrador do grupo de saúde (req. 15).
+- Pergunta ao advogado: consentimento obrigatório para o e-mail é "livre"? Alternativa: Amazon SES em São Paulo.
+- Divergências por decisão do dono: sem segundo fator e sem administrador do grupo de saúde.
 
 ## Próxima ação exata
-AGUARDAR a aprovação do dono às telas e ao trabalho. Depois, só com aprovação:
-1. Guiar o dono, passo a passo, para criar o banco Neon (região São Paulo), o domínio, a conta Resend com o domínio verificado e as variáveis no Render (lista em ARQUITETURA.md §85.3).
-2. Publicar só quando as variáveis estiverem no Render: sem elas, este código recusa subir em produção, de propósito.
-3. Nunca fazer push para `claude/oncology-genetic-screening-tool-81w16p` nem para `main` sem o dono mandar.
+AGUARDAR o dono. Depois, com o coordenador guiando, o dono segue `docs/roteiro-google-cloud.md` do passo 1 ao 9. Antes do passo 8.1, o coordenador decide qual branch o Cloud Run vai publicar (esta branch precisa ser enviada ao GitHub, com aprovação do dono). Nunca fazer push para `claude/oncology-genetic-screening-tool-81w16p` nem para `main` sem o dono mandar.

@@ -49,7 +49,7 @@ async function subir() {
   const servidor = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], {
     env: {
       ...process.env,
-      PORT: String(porta), NODE_ENV: 'production', PERMITIR_MODO_SIMPLES: 'sim',
+      PORT: String(porta), NODE_ENV: 'production', PERMITIR_MODO_SIMPLES: 'sim', IA_PROVEDOR: 'anthropic',
       DATA_FILE: arquivoDeDadosTemporario('val'),
       DATABASE_URL: '', RESEND_API_KEY: '', APP_ORIGIN: '', AUTH_MODE: 'simples',
     },

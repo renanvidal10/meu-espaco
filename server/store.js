@@ -112,6 +112,7 @@ async function init() {
     ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verificado_em TIMESTAMPTZ;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS termos_versao       TEXT;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS termos_aceitos_em   TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS consentimento_email_em TIMESTAMPTZ;
     CREATE UNIQUE INDEX IF NOT EXISTS users_crm_uf_idx ON users(crm, crm_uf) WHERE crm_uf IS NOT NULL;
 
     CREATE TABLE IF NOT EXISTS sessions (
@@ -194,7 +195,7 @@ const iso = (d) => (d instanceof Date ? d.toISOString() : d);
 const CAMPOS_EDITAVEIS = [
   'name', 'crm', 'crm_uf', 'email', 'password_hash', 'last_login_at',
   'crm_status', 'crm_conferido_em', 'crm_conferido_por', 'liberado_ate',
-  'email_verificado_em', 'termos_versao', 'termos_aceitos_em',
+  'email_verificado_em', 'termos_versao', 'termos_aceitos_em', 'consentimento_email_em',
 ];
 
 async function findUserByEmail(email) {
@@ -274,14 +275,15 @@ async function createAccount(dados) {
     email_verificado_em: null,
     termos_versao: dados.termos_versao,
     termos_aceitos_em: agoraIso(),
+    consentimento_email_em: agoraIso(),
     created_at: agoraIso(),
     last_login_at: null,
   };
   if (usingPostgres) {
     const { rows } = await q(
       `INSERT INTO users (id, email, name, crm, crm_uf, password_hash, crm_status,
-                          liberado_ate, termos_versao, termos_aceitos_em)
-       VALUES ($1, $2, $3, $4, $5, $6, 'pendente', $7, $8, NOW())
+                          liberado_ate, termos_versao, termos_aceitos_em, consentimento_email_em)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pendente', $7, $8, NOW(), NOW())
        ON CONFLICT DO NOTHING
        RETURNING *`,
       [user.id, user.email, user.name, user.crm, user.crm_uf, user.password_hash,

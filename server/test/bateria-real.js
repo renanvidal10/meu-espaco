@@ -59,7 +59,7 @@ async function subirServidor() {
     env: {
       ...process.env,
       PORT: String(porta),
-      NODE_ENV: 'production', PERMITIR_MODO_SIMPLES: 'sim', // sem os atalhos de teste — é o caminho real
+      NODE_ENV: 'production', PERMITIR_MODO_SIMPLES: 'sim', IA_PROVEDOR: 'anthropic', // sem os atalhos de teste — é o caminho real
       DATA_FILE: arquivoDeDadosTemporario('real'),
       DATABASE_URL: '',
       RESEND_API_KEY: '',

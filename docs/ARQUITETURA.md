@@ -4689,3 +4689,128 @@ e colocar no Render `AUTH_MODE=completo`, `DATABASE_URL`, `RESEND_API_KEY`,
 código, publicar sem essas variáveis derruba o site de propósito (o servidor
 recusa subir em produção no modo simples sem `PERMITIR_MODO_SIMPLES=sim`, e no
 completo sem banco). Nenhuma publicação sem o dono aprovar.
+
+## 86. Google Cloud em São Paulo: IA pelo Vertex, servidor no Cloud Run (decidido em 20/10/2026)
+
+**Decisão do dono**, a partir de `docs/plano-conformidade-lgpd.md` §3 (branch
+`claude/plano-lgpd-cd0481`): levar a leitura de laudo e a Gena para o Claude
+pelo Vertex AI, o servidor para o Cloud Run e o banco para o Cloud SQL, todos
+na região `southamerica-east1`, sob um contrato só (Google Cloud, cujo aditivo
+de tratamento de dados já traz as cláusulas-padrão da ANPD). O login (§85) vai
+ao ar junto. Roteiro do dono: `docs/roteiro-google-cloud.md`.
+
+### 86.1 O que mudou no código
+
+- **`server/ia.js` (novo)** escolhe quem lê o laudo. `IA_PROVEDOR=vertex` usa
+  `@anthropic-ai/vertex-sdk` com `VERTEX_PROJETO` e `VERTEX_REGIAO` (padrão
+  `southamerica-east1`), autenticando pela conta de serviço do Cloud Run, sem
+  chave em arquivo. `IA_PROVEDOR=anthropic` mantém a API direta, que continua
+  servindo ao desenvolvimento, à suíte (o stub fala esse protocolo) e como
+  caminho de volta. **Sem a variável, produção usa Vertex**: esquecê-la não
+  pode mandar laudo aos EUA. Região `global` em produção derruba o boot, porque
+  o próprio Google diz que ela não garante onde o pedido é processado.
+- O modelo é o mesmo (`claude-opus-5`), que é também o ID no Vertex (tabela da
+  Anthropic, conferida em 20/10/2026). No Vertex o modelo vai na URL e o corpo
+  leva `anthropic_version: vertex-2023-10-16`; a biblioteca faz isso, e
+  `test/ia.test.js` confere a URL de São Paulo montada por ela.
+- O cliente nasce na primeira chamada, não no boot: a biblioteca do Vertex
+  procura credencial do Google assim que é criada, e sem credencial (máquina do
+  dev) isso virava exceção solta.
+- `TRUST_PROXY` (padrão 1) permite acertar o número de proxies na frente do
+  Cloud Run sem mexer no código; o IP certo importa para o registro de acesso
+  do Marco Civil e para os limites de tentativa.
+- `/api/health` passa a dizer qual IA está em uso (`"ia": "vertex
+  southamerica-east1"`).
+- **`server/Dockerfile` e `.dockerignore` (novos)**: imagem com só as
+  dependências de produção, rodando como usuário sem privilégio.
+- **Versões fixadas:** `@anthropic-ai/vertex-sdk` 0.20.2, com a biblioteca base
+  dela fixada em 0.131.0 por `overrides` (versões de mais de duas semanas). A
+  API direta continua na 0.32.1 de antes.
+
+### 86.2 A ressalva que o dono precisa conhecer: São Paulo pode não ter o Claude
+
+A documentação do Google se contradiz (conferida em 20/10/2026):
+- a página de regiões do Vertex lista os modelos Claude, inclusive Opus 5,
+  sob "São Paulo (southamerica-east1)";
+- as fichas dos modelos (Opus 5, Opus 5.5, Sonnet 4.6) listam só EUA, Europa,
+  Singapura e o endpoint global;
+- a página de residência de dados não inclui o Brasil para modelos de
+  terceiros.
+
+Por isso o roteiro (passo 5) testa na conta real antes de publicar. Se São
+Paulo não responder, a saída é `VERTEX_REGIAO=us`: o laudo é processado nos
+EUA, mas sob o contrato do Google com as cláusulas da ANPD, o que ainda resolve
+o problema legal apontado pelo plano LGPD (deixa de valer só a frase
+"processado no Brasil"). A escolha é do dono; o código aceita as duas sem
+mudança.
+
+### 86.3 Banco: Cloud SQL na menor máquina
+
+Cloud SQL para PostgreSQL 16, edição Enterprise, `db-f1-micro` (núcleo
+compartilhado), 10 GB, cópia de segurança diária, em São Paulo. Estimativa de
+R$ 60 a R$ 90 por mês. O servidor conecta pelo conector embutido do Cloud Run
+(socket em `/cloudsql/...`), sem IP público autorizado; por isso
+`DATABASE_SSL=off` (o socket não usa TLS, e não sai da infraestrutura do
+Google). O formato do endereço foi conferido localmente: o `pg` lê o socket do
+parâmetro `host`.
+
+**Alternativa mais barata, comparada e não recomendada agora:** Neon na região
+de São Paulo, grátis no volume beta. Os dados também ficariam no Brasil, mas
+seria um segundo fornecedor e um segundo contrato, que é justamente o que esta
+mudança quer evitar. A troca, se um dia fizer sentido, é só a `DATABASE_URL`.
+
+A máquina `db-f1-micro` não tem garantia formal de disponibilidade (SLA) do
+Google. Na fase beta serve; com contrato de grupo de saúde, sobe-se para uma
+máquina dedicada.
+
+### 86.4 E-mail: Resend, com consentimento separado no cadastro
+
+O Resend envia por várias regiões, mas guarda os dados da conta (nome e e-mail
+do médico, registros de envio) nos EUA em qualquer caso. Comparação:
+- **Resend + consentimento específico e em destaque do médico (LGPD art. 33,
+  VIII)**: uma caixa a mais no cadastro, nada de conta nova. **Escolhido**,
+  conforme `docs/plano-conformidade-lgpd.md` §3.2 e §4.
+- Amazon SES em São Paulo: outro fornecedor e outro contrato, com configuração
+  bem mais trabalhosa.
+- Google: não tem serviço de e-mail transacional; o mais próximo exige Google
+  Workspace pago e o domínio inteiro nele.
+
+**Implementado:** a tela de cadastro tem uma segunda caixa, separada do aceite
+dos termos, autorizando o envio de nome e e-mail ao Resend; o servidor recusa o
+cadastro sem ela e grava a data em `users.consentimento_email_em`, que também
+sai em "Baixar meus dados". **Para o advogado:** um consentimento obrigatório
+para criar a conta pode ser questionado como não "livre"; a alternativa é o
+SES em São Paulo.
+
+### 86.5 Endereço do site
+
+O Cloud Run em São Paulo **não tem** o mapeamento de domínio próprio (o recurso
+existe só em dez regiões, e está em pré-lançamento). A fase beta usa o endereço
+`https://oncogenyx-....southamerica-east1.run.app`, que já tem HTTPS. Domínio
+próprio no site fica para depois, por um balanceador de carga do Google (cerca
+de US$ 18 por mês). O Firebase Hosting, que seria grátis, corta o pedido em 60
+segundos, e a leitura de um laudo longo pode passar disso. O domínio próprio
+continua necessário para o **e-mail** (remetente verificado no Resend).
+
+### 86.6 Configuração do Cloud Run
+
+1 GB de memória e 1 CPU (o servidor foi calibrado para 512 MB, §60; a folga
+vai para o pico de upload), até 20 pedidos por cópia, até 3 cópias (teto de
+custo), nenhuma cópia ligada quando ninguém usa, 300 segundos por pedido.
+Segredos (`DATABASE_URL`, `CHAVE_CIFRA`, `SESSION_SECRET`, `RESEND_API_KEY`) no
+Secret Manager com replicação só em São Paulo. A conta de serviço do servidor
+tem três papéis e só esses: `aiplatform.user`, `cloudsql.client` e
+`secretmanager.secretAccessor`.
+
+### 86.7 O que ainda não foi verificado
+
+- Nenhuma chamada real ao Vertex foi feita: não há conta. O teste é o passo 5
+  do roteiro.
+- A imagem não foi montada com Docker nesta máquina (Docker não instalado). Foi
+  conferido o equivalente: instalação só com dependências de produção e boot em
+  modo produção, que recusa subir sem banco e aceita o endereço de socket do
+  Cloud SQL.
+- O número de proxies do Cloud Run (`TRUST_PROXY`) é conferido no passo 9 do
+  roteiro, comparando o IP de "Minha conta" com o IP real do dono.
+- A bateria de extração contra a IA real (§42) precisa rodar de novo pelo
+  Vertex antes de liberar aos médicos, como pede o plano LGPD.

@@ -269,6 +269,7 @@
       email: document.getElementById('reg-email').value.trim(),
       password: document.getElementById('reg-password').value,
       aceite: document.getElementById('reg-aceite').checked,
+      consentimentoEmail: document.getElementById('reg-consentimento').checked,
     };
     // Conferência rápida antes de ir ao servidor, na ordem dos campos, para
     // o médico corrigir de cima para baixo.
@@ -278,6 +279,7 @@
       : !campos.email ? 'Informe o seu e-mail.'
       : !conferirRegras('reg-password', 'reg-regras') ? 'A senha ainda não cumpre as três exigências da lista.'
       : !campos.aceite ? 'Para criar a conta, marque o aceite dos Termos de Uso e do Aviso de Privacidade.'
+      : !campos.consentimentoEmail ? 'Para criar a conta, marque a autorização do envio dos e-mails da conta. Sem ela não conseguimos mandar o link de confirmação.'
       : '';
     if (falta) { alertGate(falta, 'error'); return false; }
 

@@ -18,7 +18,7 @@ const PUBLIC = path.join(__dirname, '..', 'public');
 // §85: os textos do login (e-mails, mensagens de senha e de sessão) também
 // chegam ao médico, e os módulos novos nasceram limpos.
 const ARQUIVOS = ['tumors.js', 'app.js', 'index.html',
-  '../email.js', '../auth.js', '../cifra.js', '../store.js'];
+  '../email.js', '../auth.js', '../cifra.js', '../store.js', '../ia.js'];
 
 // Identificadores de tipo de tumor: são chaves de dados trocadas com o servidor,
 // com a IA e com os testes, não texto de leitura. Renomear exige migração à

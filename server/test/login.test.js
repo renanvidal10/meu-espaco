@@ -20,8 +20,18 @@ let app;
 let base;
 let dataFile;
 
+// Porta livre de verdade, pedida ao sistema. Sorteio numa faixa colidia com
+// os outros servidores da suíte rodando em paralelo, e a colisão aparecia como
+// "o servidor não subiu" num teste que não tinha nada a ver com porta.
+function portaLivreSincrona() {
+  const { execFileSync } = require('node:child_process');
+  return Number(execFileSync(process.execPath, ['-e',
+    "const s=require('net').createServer().listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close();})"],
+  { encoding: 'utf8' }).trim());
+}
+
 function subir(env = {}, arquivo) {
-  const porta = 6100 + Math.floor(Math.random() * 600);
+  const porta = portaLivreSincrona();
   const proc = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], {
     env: {
       ...process.env,
@@ -95,6 +105,7 @@ function medico(extra = {}) {
     email: `medica${numero}@clinica.com.br`,
     password: SENHA,
     aceite: true,
+    consentimentoEmail: true,
     ...extra,
   };
 }
@@ -139,6 +150,7 @@ test('cadastro recusa dado faltando, um motivo de cada vez', async () => {
     [{ uf: 'XX' }, /estado/],
     [{ email: 'sem-arroba' }, /e-mail válido/],
     [{ aceite: false }, /Termos de Uso/],
+    [{ consentimentoEmail: false }, /autorizar o envio/],
     [{ email: 'crm-1-sp@acesso.oncogenyx' }, /e-mail válido/],
   ];
   for (const [troca, motivo] of casos) {
@@ -193,6 +205,7 @@ test('termos aceitos ficam gravados com versão e data', async () => {
   const u = lerDados().users.find((x) => x.email === dados.email);
   assert.ok(u.termos_versao, 'versão dos termos não gravada');
   assert.ok(u.termos_aceitos_em, 'data do aceite não gravada');
+  assert.ok(u.consentimento_email_em, 'consentimento do envio de e-mail não gravado (LGPD art. 33, VIII)');
 });
 
 /* ---------- confirmação de e-mail e sessão ---------- */
@@ -515,7 +528,7 @@ test('nenhuma senha e nenhum token aparecem no arquivo de dados', async () => {
 /* ---------- boot em produção ---------- */
 
 async function saidaDoBoot(env) {
-  const s = subir({ NODE_ENV: 'production', ...env }, arquivoDeDadosTemporario('login-boot'));
+  const s = subir({ NODE_ENV: 'production', IA_PROVEDOR: 'anthropic', ...env }, arquivoDeDadosTemporario('login-boot'));
   const codigo = await new Promise((resolve) => {
     const t = setTimeout(() => { s.proc.kill(); resolve('subiu'); }, 4000);
     s.proc.on('exit', (c) => { clearTimeout(t); resolve(c); });

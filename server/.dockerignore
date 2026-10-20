@@ -1,0 +1,10 @@
+# Fora da imagem: dependências da máquina do dev (a imagem instala as suas),
+# dados locais, segredos e a bateria de testes.
+node_modules
+.data
+.env
+.env.*
+!.env.example
+test
+*.log
+npm-debug.log*

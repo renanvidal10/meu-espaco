@@ -6,9 +6,9 @@ const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const Anthropic = require('@anthropic-ai/sdk');
 
 const store = require('./store');
+const ia = require('./ia');
 const auth = require('./auth');
 const mailer = require('./email');
 const plaud = require('./plaud');
@@ -91,8 +91,15 @@ function reservaDeMemoria(req, res, next) {
   next();
 }
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.warn('AVISO: ANTHROPIC_API_KEY não está definida. Configure um arquivo .env (veja .env.example).');
+// §86. Quem lê o laudo: Vertex AI em São Paulo (produção) ou API direta
+// (desenvolvimento e testes). Configuração errada derruba o boot.
+{
+  const problemas = ia.problemasDeConfiguracao();
+  if (problemas.length) {
+    for (const p of problemas) console.error('ERRO: ' + p);
+    process.exit(1);
+  }
+  for (const a of ia.avisos()) console.warn('AVISO: ' + a);
 }
 
 // Sem DATABASE_URL o armazenamento é o disco local, que no Render é efêmero:
@@ -140,19 +147,13 @@ if (IS_PRODUCTION && AUTH_MODE === 'simples' && process.env.PERMITIR_MODO_SIMPLE
   process.exit(1);
 }
 
-// Padrão do SDK: 600 s por tentativa, 3 tentativas — até 30 minutos com a
-// requisição do médico pendurada e ~180 MB de buffers presos. 90 s cobre laudo
-// longo; travamento não. maxRetries 1 porque cada retentativa é chamada paga, e
-// o caminho de recuperação já faz duas chamadas.
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-  timeout: 90_000,
-  maxRetries: 1,
-});
 
-// Render coloca 1 proxy na frente. Se entrar CDN (Cloudflare) vira 2 — e o
-// req.ip do rate limit passa a ler o valor errado.
-app.set('trust proxy', 1);
+// Render coloca 1 proxy na frente. Se entrar CDN (Cloudflare) vira 2, e o
+// req.ip do rate limit passa a ler o valor errado. §86: no Cloud Run o número
+// de saltos é conferido depois da publicação (o IP em "Minha conta" tem de ser
+// o do médico) e ajustado por TRUST_PROXY, sem mexer no código.
+const SALTOS_DE_PROXY = Number.parseInt(process.env.TRUST_PROXY || '1', 10);
+app.set('trust proxy', Number.isFinite(SALTOS_DE_PROXY) && SALTOS_DE_PROXY >= 0 ? SALTOS_DE_PROXY : 1);
 
 // O app não carrega NENHUM recurso externo, então CSP estrita não quebra nada.
 // Sem ela, um XSS exfiltra para qualquer domínio sem obstáculo.
@@ -446,6 +447,13 @@ app.post('/api/auth/cadastro', requireFullAuthMode, async (req, res, next) => {
     if (!auth.isValidEmail(d.email)) return res.status(400).json({ error: 'Informe um e-mail válido.' });
     if (req.body.aceite !== true) {
       return res.status(400).json({ error: 'Para criar a conta, é preciso aceitar os Termos de Uso e o Aviso de Privacidade.' });
+    }
+    // §86. O serviço de e-mail (Resend) guarda nome e e-mail nos EUA. Sem
+    // cláusula da ANPD com ele, a base para essa transferência é o
+    // consentimento específico e em destaque do médico (LGPD art. 33, VIII),
+    // numa caixa separada do aceite dos termos.
+    if (req.body.consentimentoEmail !== true) {
+      return res.status(400).json({ error: 'Para criar a conta, é preciso autorizar o envio do seu nome e e-mail ao serviço que manda os e-mails da conta.' });
     }
     const invalida = auth.validatePassword(d.password, { nome: d.name, email: d.email, crm: d.crm });
     if (invalida) return res.status(400).json({ error: invalida });
@@ -780,6 +788,7 @@ app.get('/api/auth/meus-dados', auth.requireAuth(), async (req, res, next) => {
         crmConferidoEm: u.crm_conferido_em || null,
         emailConfirmadoEm: u.email_verificado_em || null,
         termosAceitos: u.termos_versao ? { versao: u.termos_versao, em: u.termos_aceitos_em } : null,
+        consentimentoEnvioDeEmailEm: u.consentimento_email_em || null,
         criadaEm: u.created_at,
         ultimaEntrada: u.last_login_at,
       },
@@ -1120,8 +1129,7 @@ app.post('/api/chat', auth.requireAuth(), auth.requireCrmLiberado(), tetoDeGasto
     // só string, tamanho limitado, e o nome do paciente nunca é aceito aqui.
     const system = GENA_SYSTEM_PROMPT + montarContextoDaTela(req.body.contexto);
 
-    const response = await client.messages.create({
-      model: 'claude-opus-5',
+    const response = await ia.criarMensagem({
       max_tokens: 600,
       system,
       messages,
@@ -1261,8 +1269,7 @@ app.post('/api/extract', auth.requireAuth(), auth.requireCrmLiberado(), tetoDeGa
     }
 
     async function chamar(blocos, textoExtra) {
-      return client.messages.create({
-        model: 'claude-opus-5',
+      return ia.criarMensagem({
         max_tokens: 2048,
         system: UNIFIED_SYSTEM_PROMPT,
         output_config: { format: { type: 'json_schema', schema: UNIFIED_SCHEMA } },
@@ -1420,8 +1427,7 @@ app.post('/api/extract', auth.requireAuth(), auth.requireCrmLiberado(), tetoDeGa
       if (schemaFoco) {
         try {
           console.warn(`Extração abandonada em "${extracted.tipo_tumor}"; segunda tentativa com schema dirigido.`);
-          const segunda = await client.messages.create({
-            model: 'claude-opus-5',
+          const segunda = await ia.criarMensagem({
             max_tokens: 2048,
             system: promptDoSubtipo(tumor),
             output_config: { format: { type: 'json_schema', schema: schemaFoco } },
@@ -1494,7 +1500,8 @@ app.get('/api/health', async (req, res) => {
 
   res.status(armazenamentoOk ? 200 : 503).json({
     ok: armazenamentoOk,
-    hasApiKey: Boolean(process.env.ANTHROPIC_API_KEY),
+    hasApiKey: ia.configurado(),
+    ia: ia.PROVEDOR === 'vertex' ? `vertex ${ia.REGIAO}` : 'anthropic',
     storage: store.usingPostgres ? (armazenamentoOk ? 'postgres' : 'postgres INDISPONÍVEL') : 'arquivo (efêmero)',
     email: mailer.isConfigured() ? 'configurado' : 'não configurado',
     plaud: plaud.isConfigured() ? 'configurado' : 'aguardando credenciais',
@@ -1636,6 +1643,7 @@ store.init()
         () => store.limparExpirados().catch((e) => console.error('Limpeza periódica:', e.message)),
         60 * 60 * 1000,
       ).unref();
+      console.log(`  IA:            ${ia.descricao()}`);
       console.log(`  Armazenamento: ${store.usingPostgres ? 'Postgres' : 'arquivo local (efêmero)'}`);
       console.log(`  Email:         ${mailer.isConfigured() ? 'Resend configurado' : 'NÃO configurado (links vão para o console)'}`);
       console.log(`  Plaud:         ${plaud.isConfigured() ? 'credenciais presentes' : 'aguardando credenciais'}`);

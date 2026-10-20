@@ -128,6 +128,9 @@ async function rodar(nome, dispositivo, base, sufixo) {
   await p.click('#reg-submit');
   ok(/Termos de Uso/.test(await p.locator('#gate-alert').textContent()), 'sem aceite: pede o aceite');
   await p.check('#reg-aceite');
+  await p.click('#reg-submit');
+  ok(/autorização do envio/.test(await p.locator('#gate-alert').textContent()), 'sem o consentimento do e-mail: pede o consentimento');
+  await p.check('#reg-consentimento');
   await semRolagemLateral(p, 'cadastro');
   await foto(p, `3-cadastro-pronto-${sufixo}`);
   await p.click('#reg-submit');
@@ -213,6 +216,7 @@ async function rodar(nome, dispositivo, base, sufixo) {
     await pa.fill('#reg-email', ADMIN);
     await pa.fill('#reg-password', 'Flores no jardim#');
     await pa.check('#reg-aceite');
+    await pa.check('#reg-consentimento');
     await pa.click('#reg-submit');
     await pa.waitForSelector('#view-enviado.active');
     await pa.goto(ultimoLink('confirmar-email'));

@@ -106,7 +106,8 @@ test('pool do Postgres declara listener de erro', () => {
 test('cliente da API tem timeout e teto de retentativas', () => {
   // Padrão do SDK: 600 s por tentativa, 3 tentativas = até 30 min pendurado,
   // com os buffers do upload presos em memória o tempo todo.
-  const codigo = fonte('index.js');
+  // Desde §86 o cliente nasce em ia.js, para o Vertex e para a API direta.
+  const codigo = fonte('ia.js');
   assert.match(codigo, /timeout:\s*90_?000/, 'chamada à API sem timeout');
   assert.match(codigo, /maxRetries:\s*1/, 'retentativas do SDK multiplicam o custo');
 });

@@ -23,7 +23,8 @@
     "helmet": "^8.3.0",
     "multer": "^2.2.0",
     "pg": "^8.23.0",
-    "unpdf": "^1.8.0"
+    "unpdf": "^1.8.0",
+    "@anthropic-ai/vertex-sdk": "0.20.2"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
@@ -31,5 +32,10 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "overrides": {
+    "@anthropic-ai/vertex-sdk": {
+      "@anthropic-ai/sdk": "0.131.0"
+    }
   }
 }

@@ -46,6 +46,12 @@ services:
       - key: MAIL_FROM
         sync: false
 
+      # §86: o caminho de produção passou a ser o Google Cloud (Vertex AI em
+      # São Paulo). Enquanto o Render existir, ele continua na API direta, e
+      # isso precisa ser dito: sem esta variável, produção tenta o Vertex.
+      - key: IA_PROVEDOR
+        value: anthropic
+
       # Leitura automática do laudo. Sem ela o app sobe, mas a extração falha.
       - key: ANTHROPIC_API_KEY
         sync: false
