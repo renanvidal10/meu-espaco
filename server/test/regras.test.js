@@ -660,10 +660,21 @@ test('num() aceita vírgula decimal e unidade colada', () => {
   assert.strictEqual(H.num('não informado'), null);
 });
 
-test('filled() trata negativas explícitas como ausência de conteúdo', () => {
+/* §82. O nome deste teste era "filled() trata negativas explícitas como
+ * ausência de conteúdo" — e `filled()` conhece exatamente DUAS frases. O nome
+ * prometia um invariante geral que a função não entrega, e deu falsa
+ * cobertura ao defeito do histórico familiar por meses: quem lesse a lista de
+ * testes concluiria que negativas estavam tratadas. Teste que promete mais do
+ * que verifica é pior que teste ausente, porque desencoraja quem iria olhar.
+ * O nome agora diz o que a função faz; quem trata negativa de verdade é
+ * `temHistoricoFamiliar()`, testada logo abaixo. */
+test('filled() reconhece as duas frases canônicas da IA como vazio', () => {
   ['', ' ', '-', 'Não relatado', 'não relatado', 'Nenhum relatado']
     .forEach((v) => assert.ok(!H.filled(v), `"${v}" deveria contar como vazio`));
   ['mãe com câncer de mama', 'Seroso'].forEach((v) => assert.ok(H.filled(v), `"${v}" tem conteúdo`));
+  // E o limite da função, explicitado: ela NÃO entende negação em prosa.
+  assert.ok(H.filled('Nega história familiar'),
+    'filled() passou a interpretar prosa — essa responsabilidade é de temHistoricoFamiliar()');
 });
 
 test('lower() preserva acento (o diagnóstico vai impresso)', () => {
@@ -1384,4 +1395,149 @@ test('§70.1 nenhum tumor devolve mais de um teste prioritário', () => {
     assert.ok(prioritarios.length <= 1,
       `${id}: ${prioritarios.length} prioritários (${prioritarios.join(', ')}) — a sequência passa a ter dois "primeiros"`);
   }
+});
+
+/* ====================================================================
+ * §82. Os quatro defeitos de LEITURA DE CAMPO apontados pela auditoria
+ * externa AV-ONCOGENYX-2026-10-18 e pela verificação interna.
+ *
+ * Nenhum deles é questão de critério clínico — todos fazem o motor dizer
+ * algo diferente do que o critério documentado diz. Dois produzem
+ * afirmação falsa em documento ASSINADO; dois apagam indicação de teste.
+ * ==================================================================== */
+
+test('§82.1 negação em prosa não vira critério de histórico familiar', () => {
+  const mama = TUMORS.list().find((t) => t.id === 'mama');
+  const base = {
+    tipo_tumor: 'Mama', subtipo_molecular: 'Luminal (RH+/HER2-)',
+    idade: '55', extensao_doenca: 'Inicial (operável)',
+  };
+  const negativas = [
+    'Nega história familiar de câncer', 'nega', 'Sem história familiar',
+    'sem antecedentes familiares', 'Ausente', 'Negativo', 'Não há',
+    'Desconhecido', 'Nenhuma', 'n/a', 'NA', 'ignorado', 'sem dados', 'Não',
+    'nega neoplasia em familiares',
+  ];
+  for (const texto of negativas) {
+    const r = mama.classify(TUMORS.normalizar({ ...base, historico_familiar: texto }));
+    assert.strictEqual(r.state, 'sem-indicacao',
+      `"${texto}" foi lido como histórico familiar relatado`);
+  }
+});
+
+test('§82.1b história real que CONTÉM uma negativa continua sendo histórico', () => {
+  /* A armadilha que impede isto de ser um regex de "nega": história familiar
+   * verdadeira frequentemente nega outra coisa na mesma frase. Inverter este
+   * caso trocaria um falso positivo por um falso NEGATIVO, que apaga
+   * indicação — o erro pior dos dois. */
+  const mama = TUMORS.list().find((t) => t.id === 'mama');
+  const base = {
+    tipo_tumor: 'Mama', subtipo_molecular: 'Luminal (RH+/HER2-)',
+    idade: '55', extensao_doenca: 'Inicial (operável)',
+  };
+  const positivas = [
+    'mãe com câncer de mama aos 58 anos',
+    'mãe com câncer de mama aos 58, nega outros casos',
+    'Nega história familiar. Tia com câncer de ovário aos 44',
+    'irmã com CA de ovário',
+    'avó materna com câncer de mama',
+    'dois parentes de primeiro grau com próstata',
+  ];
+  for (const texto of positivas) {
+    const r = mama.classify(TUMORS.normalizar({ ...base, historico_familiar: texto }));
+    assert.notStrictEqual(r.state, 'sem-indicacao',
+      `"${texto}" é histórico familiar e deixou de indicar o teste`);
+  }
+});
+
+test('§82.1c o documento assinado não cita a negação como se fosse a história', () => {
+  /* O pior caso era colorretal, que imprimia o texto do campo entre
+   * parênteses: "com história familiar oncológica relatada (Nega história
+   * familiar)". A mesma frase afirmava e desmentia. */
+  const crc = TUMORS.list().find((t) => t.id === 'colorretal');
+  const r = crc.classify(TUMORS.normalizar({
+    tipo_tumor: 'Colorretal', mmr_msi: 'pMMR / MSS', idade: '65',
+    extensao_doenca: 'Localizado / ressecado',
+    historico_familiar: 'Nega história familiar',
+  }));
+  const impresso = (r.tests || []).map((t) => t.justify || '').join(' ');
+  assert.ok(!/Nega história familiar/i.test(impresso),
+    `a justificativa impressa cita a negação: "${impresso.slice(0, 120)}"`);
+});
+
+test('§82.2 notação M1 do laudo é doença metastática, não localizada', () => {
+  const prostata = TUMORS.list().find((t) => t.id === 'prostata');
+  for (const ext of ['M1', 'M1b', 'M1c', 'm1', 'Doença metastática óssea']) {
+    const r = prostata.classify(TUMORS.normalizar({
+      tipo_tumor: 'Próstata', extensao_doenca: ext,
+      gleason_grade_group: 'Gleason 4+5=9 (Grade Group 5)', psa: '80',
+    }));
+    const ids = (r.tests || []).map((t) => t.id);
+    assert.ok(ids.includes('germinativo-prostata'),
+      `"${ext}" não indicou germinativo — testes: ${ids.join(', ') || 'nenhum'}`);
+    assert.ok(!/localizada/i.test(r.summary || r.message || ''),
+      `"${ext}" foi descrito como doença localizada`);
+  }
+});
+
+test('§82.3 o motor não afirma categoria de risco que não foi informada', () => {
+  const prostata = TUMORS.list().find((t) => t.id === 'prostata');
+  const r = prostata.classify(TUMORS.normalizar({
+    tipo_tumor: 'Próstata', extensao_doenca: 'Localizado',
+    categoria_risco_localizado: '',
+    gleason_grade_group: 'Gleason 5+4=9 (Grade Group 5)', psa: '40',
+  }));
+  assert.ok(!/risco baixo/i.test(r.summary || ''),
+    `afirmou risco não informado: "${r.summary}"`);
+  assert.ok((r.notes || []).some((n) => /risco/i.test(n.title || '')),
+    'não avisou que a categoria de risco está em branco');
+});
+
+test('§82.3b o motor não inverte a categoria de risco que o médico informou', () => {
+  const prostata = TUMORS.list().find((t) => t.id === 'prostata');
+  const r = prostata.classify(TUMORS.normalizar({
+    tipo_tumor: 'Próstata', extensao_doenca: 'Localizado',
+    categoria_risco_localizado: 'Intermediário desfavorável',
+    gleason_grade_group: 'Gleason 4+3=7 (Grade Group 3)', psa: '12',
+  }));
+  const texto = r.summary || r.message || '';
+  assert.ok(!/intermediário favorável/i.test(texto),
+    `imprimiu o oposto do informado: "${texto}"`);
+  assert.ok(/desfavorável/i.test(texto),
+    `não repetiu a categoria informada: "${texto}"`);
+});
+
+test('§82.4 histologia de ovário em inglês não vira "não epitelial"', () => {
+  const ovario = TUMORS.list().find((t) => t.id === 'ovario');
+  const equivalentes = [
+    'High-grade serous carcinoma', 'HGSC', 'Serous carcinoma, high grade',
+    'Clear cell carcinoma', 'Endometrioid carcinoma', 'Mucinous carcinoma',
+  ];
+  for (const h of equivalentes) {
+    const r = ovario.classify(TUMORS.normalizar({
+      tipo_tumor: 'Ginecológico - Ovário', histologia: h, estadiamento: 'IIIC',
+    }));
+    assert.notStrictEqual(r.state, 'nao-reconhecida',
+      `"${h}" foi tratado como histologia não epitelial`);
+    const ids = (r.tests || []).map((t) => t.id);
+    assert.ok(ids.includes('germinativo-brca'),
+      `"${h}" perdeu a indicação germinativa universal — testes: ${ids.join(', ') || 'nenhum'}`);
+  }
+});
+
+test('§82.4b as exclusões de ovário continuam valendo em inglês', () => {
+  /* Reconhecer inglês não pode abrir a porta que a revisão clínica fechou:
+   * borderline segue fora da regra universal, e não epitelial segue
+   * encaminhado à oncogenética em vez de calar. */
+  const ovario = TUMORS.list().find((t) => t.id === 'ovario');
+  const borderline = ovario.classify(TUMORS.normalizar({
+    tipo_tumor: 'Ginecológico - Ovário', histologia: 'Borderline serous tumor', estadiamento: 'IIIC',
+  }));
+  assert.strictEqual(borderline.state, 'sem-indicacao',
+    'borderline em inglês passou a receber a indicação universal');
+  const granulosa = ovario.classify(TUMORS.normalizar({
+    tipo_tumor: 'Ginecológico - Ovário', histologia: 'Granulosa cell tumor', estadiamento: 'IIIC',
+  }));
+  assert.strictEqual(granulosa.state, 'nao-reconhecida',
+    'tumor de cordões sexuais deixou de ser encaminhado à oncogenética');
 });

@@ -481,16 +481,77 @@
   };
   const COMUNS = [CAMPO_IDADE, CAMPO_HISTORICO, CAMPO_TESTES];
 
-  // Reconhece histórico familiar de fato relatado (e não "não relatado").
+  /* §82. Reconhece histórico familiar de fato relatado.
+   *
+   * O defeito: `filled()` só conhece as duas frases canônicas que a IA
+   * devolve ("Não relatado", "Nenhum relatado"), por igualdade de string
+   * inteira. Qualquer outra forma de negativa — e o campo é editável à mão —
+   * contava como critério ATENDIDO. "Nega história familiar de câncer"
+   * indicava painel germinativo e imprimia, no documento assinado:
+   *
+   *   "...com história familiar oncológica relatada (Nega história
+   *    familiar de câncer): atende aos critérios..."
+   *
+   * A mesma frase afirmava e desmentia. Quinze formas de negativa testadas,
+   * quinze falhavam. Vale para mama, próstata e colorretal.
+   *
+   * A ARMADILHA, e é por ela que isto não é um regex de "nega": história
+   * familiar real frequentemente CONTÉM uma negativa.
+   *
+   *   "mãe com câncer de mama aos 58, nega outros casos"  → É HISTÓRICO.
+   *
+   * Procurar a palavra "nega" no texto inteiro inverteria esse caso, trocando
+   * um falso positivo por um falso negativo — e falso negativo aqui APAGA
+   * indicação de teste, que é o erro pior dos dois.
+   *
+   * A regra, conservadora de propósito: só é negativa quando o campo ABRE com
+   * um marcador de negação E não nomeia nenhum parente. Havendo parente
+   * nomeado em qualquer lugar do texto, há história, mesmo que o texto também
+   * negue alguma coisa. Na dúvida, o motor indica o teste — nunca o contrário.
+   *
+   * "Desconhecido" e "não sabe" entram como ausência porque o critério é
+   * história "relatada": o que não se sabe não foi relatado. É o mesmo que
+   * "Não relatado" já fazia. */
+  const ABRE_NEGANDO = /^\s*(?:nega(?:tiv[oa]|d[oa])?|n[aã]o\b|sem\b|ausente|ausência|nenhum[a]?|desconhecid[oa]|ignorad[oa]|n\/?a|inexistente)\b/i;
+  const NOMEIA_PARENTE = /\b(m[ãa]e|pai|irm[ãa]o?s?|av[óoôa]s?|bisav[óoôa]s?|ti[ao]s?|prim[ao]s?|filh[ao]s?|sobrinh[ao]s?|net[ao]s?|c[óo]njuge|primeiro grau|segundo grau)\b/i;
+
+  function negaHistoricoFamiliar(texto) {
+    const t = String(texto || '').trim();
+    if (!t) return false;
+    if (NOMEIA_PARENTE.test(t)) return false;
+    return ABRE_NEGANDO.test(t);
+  }
+
   function temHistoricoFamiliar(v) {
-    return filled(v.historico_familiar);
+    return filled(v.historico_familiar) && !negaHistoricoFamiliar(v.historico_familiar);
   }
 
   /* ================================================================== *
    * OVÁRIO
    * ================================================================== */
-  const HISTOLOGIAS_EPITELIAIS = ['seroso', 'endometrioide', 'celulas claras', 'mucinoso', 'carcinossarcoma', 'indiferenciado'];
-  const HISTOLOGIAS_HRD = ['seroso', 'endometrioide'];
+  /* §82. O laudo chega em inglês com frequência — relatório de laboratório
+   * internacional, segunda opinião, artigo colado. E "High-grade serous
+   * carcinoma", "HGSC", "Clear cell carcinoma" e "Endometrioid carcinoma"
+   * caíam todos em `nao-reconhecida`, saindo com ZERO testes e a mensagem de
+   * histologia não epitelial — apagando a indicação germinativa UNIVERSAL do
+   * carcinoma epitelial de ovário. É o pior tipo de falso negativo: a tela
+   * não diz "não sei ler", diz "não é epitelial", que é uma afirmação
+   * clínica errada.
+   *
+   * A tolerância ao inglês já existia num helper vizinho e não aqui:
+   * `grauAlto()` reconhece "high grade" desde sempre. Era assimetria de
+   * implementação, não decisão. Os sinônimos entram ao lado dos termos em
+   * português, na mesma lista — não há critério clínico novo, só a mesma
+   * entidade escrita na outra língua. */
+  const HISTOLOGIAS_EPITELIAIS = [
+    'seroso', 'serous', 'hgsc', 'lgsc',
+    'endometrioide', 'endometrioid',
+    'celulas claras', 'clear cell',
+    'mucinoso', 'mucinous',
+    'carcinossarcoma', 'carcinosarcoma',
+    'indiferenciado', 'undifferentiated',
+  ];
+  const HISTOLOGIAS_HRD = ['seroso', 'serous', 'hgsc', 'lgsc', 'endometrioide', 'endometrioid'];
 
   const ovario = {
     id: 'ovario',
@@ -679,7 +740,19 @@
         return { state: 'insuficiente', message: 'Extensão da doença (ou categoria de risco) não identificada. Volte à revisão e complete o campo.' };
       }
 
-      const metastatico = has(ext, 'metastatico');
+      /* §82. "M1" digitado à mão caía em doença localizada.
+       *
+       * `has(ext, 'metastatico')` casa com os rótulos do seletor, que são
+       * prosa ("Metastático hormônio-sensível (mHSPC)"). O campo é editável,
+       * e o médico escreve como o laudo escreve: M1, M1b, M1c. Nenhum desses
+       * contém "metastatico", então a doença metastática era classificada
+       * como localizada e o caso saía SEM INDICAÇÃO — perdendo germinativo,
+       * HRR e MSI de uma vez. Falso negativo, que é o erro pior.
+       *
+       * `\bM1\b` com limite de palavra, para não casar com PSA, Gleason nem
+       * com um "m1" dentro de outra palavra. */
+      const notacaoM1 = /\bm1[abc]?\b/i.test(String(ext || ''));
+      const metastatico = has(ext, 'metastatico', 'metastase', 'metastatica', 'disseminad') || notacaoM1;
       const mCRPC = has(ext, 'resistente a castracao', 'mcrpc');
       const n1 = has(ext, 'n1', 'linfonodo positivo');
       // O campo é editável: o médico escreve "Risco alto", "alto risco",
@@ -782,15 +855,43 @@
         };
       }
 
+      /* §82. A frase era FIXA: "Doença localizada de risco baixo ou
+       * intermediário favorável", emitida sempre que nenhum gatilho disparou.
+       * Dois defeitos no mesmo lugar, e o segundo é pior que o primeiro:
+       *
+       *   campo vazio                     → o motor AFIRMAVA risco baixo
+       *   "Intermediário desfavorável"    → o motor imprimia "FAVORÁVEL"
+       *
+       * O segundo inverte o dado que o médico acabou de digitar, num texto
+       * que acompanha a decisão de não testar.
+       *
+       * Ovário já resolve isto, e o comentário de lá diz por quê: "o médico
+       * não pode AFIRMAR o que a tela ainda está pedindo para confirmar".
+       * Próstata não tinha o equivalente. Era inconsistência interna do
+       * motor, não divergência com diretriz nenhuma: agora o resumo repete o
+       * que foi informado, e quando nada foi informado, diz isso. */
+      const riscoInformado = filled(v.categoria_risco_localizado);
+      const riscoEscrito = String(v.categoria_risco_localizado || '').trim();
+      const resumoSemIndicacao = riscoInformado
+        ? `Doença localizada, categoria de risco informada como "${riscoEscrito}": nenhum critério de indicação formal atendido por esta regra.`
+        : 'Doença localizada, categoria de risco não informada. A triagem não assume uma categoria que não foi preenchida.';
+      const notaRiscoPendente = riscoInformado ? [] : [{
+        warn: true,
+        tag: 'A confirmar na revisão',
+        title: 'Categoria de risco em branco',
+        body: 'Risco alto ou muito alto tem indicação de teste germinativo. Sem o campo preenchido, a triagem não pode avaliar esse critério — e não assume que ele não foi atendido. Volte à revisão e complete, ou informe Gleason, PSA e estágio clínico para a leitura inferir a categoria.',
+      }];
+
       return {
         state: 'sem-indicacao',
         title: 'Sem indicação de teste genético por esta regra',
         summary: consideracoes.length
           ? 'Nenhum critério de indicação formal atendido, mas há elemento que a diretriz coloca como consideração — veja a nota abaixo.'
-          : 'Doença localizada de risco baixo ou intermediário favorável, sem outros critérios identificados.',
-        notes: [{ tag: 'Sem indicação', title: 'Nenhum teste genético indicado no momento',
-          body: 'Reavalie se a categoria de risco, a histologia ou o histórico familiar forem atualizados.' },
-        ...consideracoes],
+          : resumoSemIndicacao,
+        notes: [...notaRiscoPendente,
+          { tag: 'Sem indicação', title: 'Nenhum teste genético indicado no momento',
+            body: 'Reavalie se a categoria de risco, a histologia ou o histórico familiar forem atualizados.' },
+          ...consideracoes],
       };
     },
     diagnosis(v) {
