@@ -4289,3 +4289,63 @@ Pedido do dono, e a razão é boa: a cor mais clara sozinha não diz que aquilo
 não foi escrito por ninguém. O médico chega a olhar duas vezes para saber se já
 há conteúdo no campo. O itálico resolve **antes da leitura** — é a convenção de
 "isto é indicação, não texto".
+
+---
+
+## 83. Decisão de produto — o documento permanece enxuto
+
+**Decidido pelo dono em 20/10/2026, em resposta ao achado M4 da auditoria
+externa AV-ONCOGENYX-2026-10-18.**
+
+### O achado
+
+A auditoria apontou, e o time de produto confirmou e elevou a gravidade: o
+documento de solicitação tem seis linhas — Paciente, Médico solicitante,
+Diagnóstico, Amostra, Teste solicitado, Data — mais justificativa e
+assinatura. Faltam CID-10, data de nascimento ou prontuário, código TUSS,
+convênio e laboratório de destino.
+
+A conclusão do time foi que isso **zera o ganho de tempo**, porque o médico
+reescreveria o pedido em outro sistema. A recomendação era levar o documento
+de 6 para cerca de 18 linhas, com os dados do paciente numa ficha preenchida
+uma vez por sessão.
+
+### A decisão: manter como está
+
+> *"O médico pode simplesmente anexar uma página atrás e colocar o restante
+> dos dados que precisa, como CID e registro da operadora. Um dado importante
+> é citar qual é a indicação do tumor, ou seja, câncer de ovário. Se isso já
+> tem, na prática já serve."*
+
+Duas razões, e as duas se sustentam:
+
+1. **O dado clínico que o laboratório precisa já está no documento.** A linha
+   "Diagnóstico" nomeia histologia, sítio primário, grau e estágio — é o que
+   permite interpretar o teste. Os campos faltantes são administrativos
+   (faturamento, autorização, identificação), e administrativo se resolve com
+   a folha que o médico já anexa hoje em qualquer pedido.
+2. **A fricção tem custo real.** Pedir data de nascimento, prontuário,
+   carteirinha e CID dentro de um fluxo cuja promessa é "em três minutos você
+   sai com o pedido" cobra de todo médico, em todo caso, um preço que só uma
+   parte deles precisa pagar.
+
+**Consequência para o posicionamento:** o documento é uma **solicitação
+clínica assinável**, não uma guia de convênio. Isso passa a ser declarado, não
+deduzido — e deixa de ser tratado como pendência em auditoria futura.
+
+### A ressalva registrada, que não muda a decisão
+
+"Origem do tecido", no formulário do laboratório, é **de onde o material foi
+retirado** — não o sítio primário. Num teste somático feito em biópsia de
+metástase hepática de primário ovariano, o diagnóstico diz "ovário" e o tecido
+veio do fígado, e essa diferença importa para o laboratório. É caso de borda, e
+a folha anexa resolve. Fica escrito para quem reabrir o assunto não reabrir do
+zero.
+
+### O que isso NÃO decide
+
+Permanece válida a recomendação de **nomear a metodologia e a lista de genes
+em linha própria** no documento. Isso não é campo administrativo: a lista de
+genes já existe dentro do nome do teste, e extraí-la para uma linha própria é
+o que dá sentido a um código de procedimento genérico quando o convênio for
+analisar. Entra como melhoria de produto, não como pendência de auditoria.
