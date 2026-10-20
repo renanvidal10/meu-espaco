@@ -2559,6 +2559,15 @@
        então a pílula "indicado neste caso" e o nome do teste passaram a sair
        no formulário. */
     body.printing .program-card:not(:has(.print-target)) { display: none !important; }
+    /* §87. A mesma lição do §61, uma camada acima. A faixa de conferência do
+       CRM nasceu com o login (§85) e o rótulo "Programas por teste" com o
+       §76, os dois FORA do card, e os dois saíram impressos acima do pedido.
+       Regra de raiz para a página inteira: no papel só fica o documento e o
+       caminho de contêineres até ele. Qualquer elemento que não contém o
+       alvo, não é o alvo e não está dentro dele some, seja ele qual for e
+       nasça onde nascer. Dentro do alvo, só a folha (.doc-preview). */
+    body.printing :not(:has(.print-target)):not(.print-target):not(.print-target *) { display: none !important; }
+    body.printing .print-target > :not(.doc-preview) { display: none !important; }
 
     /* O papel ocupa a página. Na tela ele tem largura de leitura e margem
        automática dentro do card; no papel a margem é a da própria folha

@@ -770,10 +770,22 @@ async function rodar(nome, dispositivo) {
       document.querySelectorAll('.doc-preview-wrap').forEach((e) => e.classList.remove('print-target'));
       alvo.classList.add('print-target');
       document.body.classList.add('printing');
+      /* §87. A faixa de conferência do CRM nasceu com o login (§85) e saiu
+       * impressa acima do pedido. Aqui ela fica de pé de propósito, com o
+       * texto real, porque é o caso que a bateria não via: no ambiente de
+       * teste a conta nunca está em conferência e a faixa nem aparecia. */
+      const faixaCrm = document.getElementById('aviso-crm');
+      if (faixaCrm) {
+        faixaCrm.hidden = false;
+        document.getElementById('aviso-crm-texto').textContent = 'Seu CRM está em conferência no CFM.';
+      }
+      // Só o papel conta: o que estiver dentro do alvo mas fora do documento
+      // (o resumo do <details>, "Editar campos") também é interface.
+      const papel = alvo.querySelector('.doc-preview');
 
       const fora = [];
       document.querySelectorAll('body *').forEach((el) => {
-        if (alvo.contains(el) || el.contains(alvo)) return;
+        if (papel.contains(el) || el.contains(papel)) return;
         // getComputedStyle num descendente de ancestral display:none devolve
         // o display DECLARADO, não 'none' — ler só o próprio elemento acusa
         // como impressa a tela de acesso inteira, que está oculta. O que vale
@@ -787,10 +799,13 @@ async function rodar(nome, dispositivo) {
         if (r.bottom <= 0 || r.right <= 0) return;
         const cs = getComputedStyle(el);
         if (cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
-        // Só folhas de texto: um contêiner cujo conteúdo está oculto não
-        // imprime nada por si.
-        if (el.children.length) return;
-        const txt = (el.textContent || '').trim();
+        /* Só o texto que é do PRÓPRIO elemento. A versão anterior olhava só
+         * folhas (elemento sem filhos) e por isso não via "Programas por
+         * teste": o rótulo é um <p> com um <span> decorativo dentro, então
+         * não era folha, e o texto dele passava para o papel sem ninguém
+         * acusar. Ver §87. */
+        const txt = Array.from(el.childNodes)
+          .filter((n) => n.nodeType === 3).map((n) => n.textContent).join(' ').trim();
         if (txt) fora.push(`${el.tagName}.${el.className || '-'}: "${txt.slice(0, 40)}"`);
       });
       return fora;
