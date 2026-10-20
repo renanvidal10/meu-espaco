@@ -381,16 +381,20 @@ rodar('Colorretal', [
     estado: 'completo', testes: ['mmr'],
   },
   {
-    nome: 'dMMR localizado — Lynch, sem somático',
+    // §38.8b. A metilação de MLH1 passou a ser emitida como PEDIDO, e não só
+    // como texto de nota: a nota manda fazê-la antes do germinativo, e o
+    // passo um não tinha card, amostra nem linha no documento impresso.
+    nome: 'dMMR localizado — metilação + Lynch, sem somático',
     tumor: 'colorretal',
     valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Localizado / ressecado', mmr_msi: 'dMMR / MSI-alto' },
-    estado: 'completo', testes: ['germinativo-lynch'],
+    estado: 'completo', testes: ['metilacao-mlh1', 'germinativo-lynch'],
   },
   {
-    nome: 'dMMR metastático — Lynch + perfil somático',
+    // §38.8b, idem.
+    nome: 'dMMR metastático — metilação + Lynch + perfil somático',
     tumor: 'colorretal',
     valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático', mmr_msi: 'dMMR / MSI-alto' },
-    estado: 'completo', testes: ['germinativo-lynch', 'somatico-crc'],
+    estado: 'completo', testes: ['metilacao-mlh1', 'germinativo-lynch', 'somatico-crc'],
   },
   {
     nome: 'metastático sem MMR feito — MMR + perfil somático',
@@ -594,10 +598,13 @@ rodar('Pulmão', [
     estado: 'sem-indicacao', testes: [],
   },
   {
-    nome: 'C3 colorretal 44a dMMR metastatico — os tres testes',
+    /* §38.8a. Eram DOIS painéis germinativos sobrepostos neste caso — o
+     * multigênico já contém os genes de Lynch. Decisão de curadoria: um só.
+     * E §38.8b trouxe a metilação para a lista, como passo um da sequência. */
+    nome: 'C3 colorretal 44a dMMR metastatico — um germinativo, com a metilação antes',
     tumor: 'colorretal',
     valores: { histologia: 'Adenocarcinoma', extensao_doenca: 'Metastático', mmr_msi: 'dMMR / MSI-alto', idade: '44' },
-    estado: 'completo', testes: ['germinativo-crc-precoce', 'germinativo-lynch', 'somatico-crc'],
+    estado: 'completo', testes: ['germinativo-crc-precoce', 'metilacao-mlh1', 'somatico-crc'],
   },
 
   // --- 30.5 ovario borderline: o unico item que RETIRA exame ---
@@ -1540,4 +1547,161 @@ test('§82.4b as exclusões de ovário continuam valendo em inglês', () => {
   }));
   assert.strictEqual(granulosa.state, 'nao-reconhecida',
     'tumor de cordões sexuais deixou de ser encaminhado à oncogenética');
+});
+
+/* ====================================================================
+ * §38.4 a §38.9 — as seis decisões de curadoria, decididas pelo dono em
+ * 20/10/2026 e registradas em docs/ARQUITETURA.md antes de virarem código.
+ * ==================================================================== */
+
+const ov = () => TUMORS.list().find((t) => t.id === 'ovario');
+const ma = () => TUMORS.list().find((t) => t.id === 'mama');
+const cr = () => TUMORS.list().find((t) => t.id === 'colorretal');
+const en = () => TUMORS.list().find((t) => t.id === 'endometrio');
+const pu = () => TUMORS.list().find((t) => t.id === 'pulmao');
+const temNota = (r, re) => (r.notes || []).some((n) => re.test(`${n.title || ''} ${n.body || ''}`));
+
+test('§38.4 a divergência etária de mama aparece na faixa em que ela existe', () => {
+  const base = {
+    tipo_tumor: 'Mama', subtipo_molecular: 'Luminal (RH+/HER2-)',
+    extensao_doenca: 'Inicial (operável)',
+  };
+  // Dentro da faixa: NCCN não indica, ASCO-SSO indicaria. A nota existe.
+  for (const idade of ['51', '58', '65']) {
+    const r = ma().classify(TUMORS.normalizar({ ...base, idade }));
+    assert.strictEqual(r.state, 'sem-indicacao', `aos ${idade} o gatilho do NCCN mudou`);
+    assert.ok(temNota(r, /ASCO-SSO/), `aos ${idade} a divergência ficou silenciosa`);
+  }
+  // Fora da faixa as duas diretrizes concordam, e a nota viraria ruído.
+  const velho = ma().classify(TUMORS.normalizar({ ...base, idade: '70' }));
+  assert.ok(!temNota(velho, /ASCO-SSO/), 'aos 70 anos a nota aparece sem haver divergência');
+  // Abaixo de 50 ambas indicam, e o caso nem chega ao ramo sem indicação.
+  const jovem = ma().classify(TUMORS.normalizar({ ...base, idade: '48' }));
+  assert.notStrictEqual(jovem.state, 'sem-indicacao');
+});
+
+test('§38.5 ascendência Ashkenazi é critério suficiente em mama', () => {
+  const r = ma().classify(TUMORS.normalizar({
+    tipo_tumor: 'Mama', subtipo_molecular: 'Luminal (RH+/HER2-)',
+    extensao_doenca: 'Inicial (operável)', idade: '60',
+    ascendencia_ashkenazi: 'Sim',
+  }));
+  assert.strictEqual(r.state, 'completo', 'ascendência Ashkenazi não acionou o germinativo');
+  assert.match(r.summary, /Ashkenazi/, 'o critério atendido não nomeia a ascendência');
+  // E não pode disparar sozinha quando negada.
+  const negado = ma().classify(TUMORS.normalizar({
+    tipo_tumor: 'Mama', subtipo_molecular: 'Luminal (RH+/HER2-)',
+    extensao_doenca: 'Inicial (operável)', idade: '60',
+    ascendencia_ashkenazi: 'Não relatado',
+  }));
+  assert.strictEqual(negado.state, 'sem-indicacao');
+});
+
+test('§38.6 HER2 vira nota em endométrio avançado, e não vira teste', () => {
+  const avancado = en().classify(TUMORS.normalizar({
+    tipo_tumor: 'Ginecológico - Endométrio', histologia: 'Seroso',
+    estadiamento: 'IVB', mmr_msi: 'pMMR / MSS', idade: '68',
+  }));
+  assert.ok(temNota(avancado, /HER2/), 'seroso avançado não recebeu a nota de HER2');
+  assert.ok(temNota(avancado, /imuno-histoquímica/i), 'a nota não diz que é imuno-histoquímica');
+  assert.ok(!(avancado.tests || []).some((t) => /HER2/.test(t.name)),
+    'HER2 virou card de teste — alarga o escopo do produto para fora do teste genético');
+  // Especificidade: não aparece onde a diretriz não pede.
+  const inicial = en().classify(TUMORS.normalizar({
+    tipo_tumor: 'Ginecológico - Endométrio', histologia: 'Seroso',
+    estadiamento: 'IA', mmr_msi: 'pMMR / MSS', idade: '68',
+  }));
+  assert.ok(!temNota(inicial, /HER2/), 'nota de HER2 em doença inicial');
+  const endometrioide = en().classify(TUMORS.normalizar({
+    tipo_tumor: 'Ginecológico - Endométrio', histologia: 'Endometrioide',
+    estadiamento: 'IVB', mmr_msi: 'pMMR / MSS', idade: '68',
+  }));
+  assert.ok(!temNota(endometrioide, /HER2/), 'nota de HER2 em histologia endometrioide');
+});
+
+test('§38.7 PD-L1 é nomeado no pulmão metastático', () => {
+  const r = pu().classify(TUMORS.normalizar({
+    tipo_tumor: 'Pulmão - não pequenas células', histologia: 'Adenocarcinoma',
+    extensao_doenca: 'Metastático', painel_previo: 'Não realizado',
+  }));
+  assert.ok(temNota(r, /PD-L1/), 'o card lista nove genes e PD-L1 continua sem aparecer');
+  assert.ok(temNota(r, /imuno-histoquímica|não entra no painel/i),
+    'a nota não diz que PD-L1 não sai no painel de sequenciamento');
+});
+
+test('§38.8a colorretal dMMR precoce emite UM painel germinativo, não dois', () => {
+  const r = cr().classify(TUMORS.normalizar({
+    tipo_tumor: 'Colorretal', mmr_msi: 'dMMR / MSI-alto',
+    idade: '42', extensao_doenca: 'Metastático',
+  }));
+  const germinativos = (r.tests || []).filter((t) => t.kind === 'germinativo');
+  assert.strictEqual(germinativos.length, 1,
+    `${germinativos.length} painéis germinativos sobrepostos: ${germinativos.map((t) => t.id).join(', ')}`);
+  // E o painel de Lynch continua existindo onde ele é o único indicado.
+  const semPrecoce = cr().classify(TUMORS.normalizar({
+    tipo_tumor: 'Colorretal', mmr_msi: 'dMMR / MSI-alto',
+    idade: '65', extensao_doenca: 'Localizado / ressecado',
+  }));
+  assert.ok((semPrecoce.tests || []).some((t) => t.id === 'germinativo-lynch'),
+    'o painel de Lynch sumiu do caso em que ele é o único indicado');
+});
+
+test('§38.8b a metilação de MLH1 é emitida como pedido, não só como texto', () => {
+  const r = cr().classify(TUMORS.normalizar({
+    tipo_tumor: 'Colorretal', mmr_msi: 'dMMR / MSI-alto',
+    idade: '42', extensao_doenca: 'Metastático',
+  }));
+  const metilacao = (r.tests || []).find((t) => t.id === 'metilacao-mlh1');
+  assert.ok(metilacao, 'a nota manda fazer a metilação antes, e ela não é emitida como teste');
+  assert.ok(metilacao.sample, 'a metilação foi emitida sem amostra');
+  assert.ok(metilacao.justify, 'a metilação foi emitida sem justificativa para o documento');
+});
+
+test('§38.8c o prioritário não é o teste que a nota manda adiar', () => {
+  for (const idade of ['42', '65']) {
+    const r = cr().classify(TUMORS.normalizar({
+      tipo_tumor: 'Colorretal', mmr_msi: 'dMMR / MSI-alto',
+      idade, extensao_doenca: 'Metastático',
+    }));
+    const prioritarios = (r.tests || []).filter((t) => t.primary);
+    assert.strictEqual(prioritarios.length, 1, `${prioritarios.length} prioritários aos ${idade}`);
+    assert.strictEqual(prioritarios[0].kind, 'somatico',
+      `aos ${idade} o prioritário é "${prioritarios[0].id}" — germinativo, que a nota manda adiar`);
+  }
+});
+
+test('§38.9 o grau vem da histologia quando ela nomeia a entidade', () => {
+  for (const h of ['Carcinoma seroso de alto grau', 'High-grade serous carcinoma', 'HGSC']) {
+    const r = ov().classify(TUMORS.normalizar({
+      tipo_tumor: 'Ginecológico - Ovário', histologia: h, grau: '', estadiamento: 'IIIC',
+    }));
+    assert.strictEqual(r.state, 'completo', `"${h}" não resolveu o grau`);
+    assert.ok(temNota(r, /histologia/i), `"${h}" inferiu o grau sem marcar a origem`);
+    const hrd = (r.tests || []).find((t) => t.id === 'hrd');
+    assert.ok(/conforme a histologia informada/.test(hrd.justify),
+      `o documento assinado não diz de onde veio o grau: "${hrd.justify.slice(0, 90)}"`);
+    assert.ok(!/a confirmar/.test(hrd.justify),
+      `o documento afirma e desmente na mesma frase: "${hrd.justify.slice(0, 90)}"`);
+  }
+});
+
+test('§38.9 trava 1 — modalizador cancela a inferência', () => {
+  for (const h of ['Carcinoma seroso, provavelmente de alto grau',
+    'Carcinoma seroso, favorece alto grau',
+    'Carcinoma seroso de alto grau?',
+    'Carcinoma seroso, sugestivo de alto grau']) {
+    const r = ov().classify(TUMORS.normalizar({
+      tipo_tumor: 'Ginecológico - Ovário', histologia: h, grau: '', estadiamento: 'IIIC',
+    }));
+    assert.strictEqual(r.state, 'provisorio',
+      `"${h}" foi lido como grau confirmado — é inferência de laudo, não leitura de entidade`);
+  }
+});
+
+test('§38.9 a regra vizinha continua valendo: grau nunca vem do estágio', () => {
+  const r = ov().classify(TUMORS.normalizar({
+    tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: '', estadiamento: 'IIIC',
+  }));
+  assert.strictEqual(r.state, 'provisorio',
+    'estágio avançado passou a implicar alto grau — eixos independentes');
 });

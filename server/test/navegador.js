@@ -538,8 +538,13 @@ async function rodar(nome, dispositivo) {
     await p.waitForSelector('#screen-1.active');
     await p.click('button:has-text("Rodar triagem")');
     await p.waitForSelector('#screen-2.active');
+    /* §38.8b. Eram 2 testes neste caso (dMMR metastático, 55 anos) e passaram
+     * a ser 3: a metilação do promotor de MLH1 virou PEDIDO, e não só texto
+     * de nota. A nota sempre mandou fazê-la antes do germinativo, e o passo
+     * um da sequência não tinha card, amostra nem linha no documento — o
+     * médico lia "faça antes" e não tinha o que assinar. */
     const nTestes = await p.locator('#test-steps .test-step').count();
-    linha(ok(nTestes === 2, `esperado 2 testes, veio ${nTestes}`), 'triagem indica os testes corretos');
+    linha(ok(nTestes === 3, `esperado 3 testes, veio ${nTestes}`), 'triagem indica os testes corretos');
     await p.click('#verdict-next-btn');
     await p.waitForSelector('#screen-3.active');
     const docs = await p.locator('#programs-dynamic .doc-preview').count();
@@ -548,7 +553,7 @@ async function rodar(nome, dispositivo) {
     // teste faz o mesmo — e assim também vigia que o painel ABRE.
     await p.locator('#programs-dynamic details.doc-preview-wrap').first().click();
     const nome = await p.locator('#programs-dynamic .doc-name').first().innerText();
-    linha(ok(docs === 2 && /Maria/.test(nome), `docs=${docs} nome=${nome}`), 'documentos gerados com o nome do paciente');
+    linha(ok(docs === 3 && /Maria/.test(nome), `docs=${docs} nome=${nome}`), 'documentos gerados com o nome do paciente');
 
     // E o PDF não pode sair em branco por causa do painel recolhido: a função
     // de baixar precisa abrir o documento antes de mandar imprimir.

@@ -102,15 +102,23 @@
   }
 
   // Grau alto/baixo tolerando escala numérica, ISUP e descrição verbal.
+  /* §38.9. O hífen conta. "High-grade serous carcinoma" é como o laudo em
+   * inglês escreve — com hífen —, e `has(value, 'high grade')` compara contra
+   * texto normalizado que preserva o hífen, então nunca casava. Trocar hífen
+   * por espaço antes de comparar resolve as duas grafias de uma vez, aqui e
+   * em qualquer termo futuro de duas palavras. */
+  function semHifen(value) {
+    return norm(value).replace(/[-–—]/g, ' ').replace(/\s+/g, ' ');
+  }
   function grauAlto(value) {
     if (!filled(value)) return false;
-    if (has(value, 'alto', 'high grade')) return true;
+    if (has(value, 'alto') || /\bhigh grade\b/.test(semHifen(value))) return true;
     if (has(value, 'pouco diferenciado', 'indiferenciado')) return true;
     return /\b(g\s*[23]|grau\s*[23])\b/.test(norm(value));
   }
   function grauBaixo(value) {
     if (!filled(value)) return false;
-    if (has(value, 'baixo', 'low grade')) return true;
+    if (has(value, 'baixo') || /\blow grade\b/.test(semHifen(value))) return true;
     if (has(value, 'bem diferenciado')) return true;
     return /\b(g\s*1|grau\s*1)\b/.test(norm(value));
   }
@@ -156,6 +164,12 @@
     cec: 'Carcinoma escamoso',
     adc: 'Adenocarcinoma',
     cbt: 'Carcinoma de células claras',
+    // §38.9. Siglas do laudo em inglês para carcinoma seroso de ovário.
+    // Resolvidas aqui, e não em cada regra: viram a entidade canônica em
+    // português, e com isso o diagnóstico impresso, a leitura do grau e a
+    // comparação de histologia passam a funcionar de uma vez só.
+    hgsc: 'Carcinoma seroso de alto grau',
+    lgsc: 'Carcinoma seroso de baixo grau',
   };
 
   function limpar(texto) {
@@ -648,8 +662,42 @@
         };
       }
 
-      const altoGrau = grauAlto(v.grau);
-      const baixoGrau = grauBaixo(v.grau);
+      /* §38.9. O grau pode vir da histologia, com três travas.
+       *
+       * O carcinoma seroso de ovário tem DUAS categorias apenas — baixo grau
+       * e alto grau — e o grau é parte do NOME da entidade, não um atributo
+       * separado: são doenças biologicamente distintas (alto grau com
+       * instabilidade cromossômica e TP53 mutado; baixo grau com KRAS, BRAF,
+       * ERBB2). Pedir confirmação de algo que o próprio texto afirma é
+       * fricção sem ganho — e produzia, no documento ASSINADO, a frase
+       * "Carcinoma seroso DE ALTO GRAU ... com GRAU A CONFIRMAR no laudo".
+       * A mesma frase afirmava e desmentia.
+       *
+       * TRAVA 1 — modalizador cancela a inferência. "Provavelmente de alto
+       * grau", "favorece alto grau", "sugestivo de", qualquer "?": aí é
+       * inferência de verdade, e o motor não infere laudo. Mantém pendente.
+       *
+       * As travas 2 e 3 (marcar como inferido na tela, e dizer a origem no
+       * documento) ficam logo abaixo, no texto da justificativa.
+       *
+       * Isto NÃO afrouxa a regra vizinha, que continua valendo e é outra:
+       * nunca deduzir grau a partir do ESTÁGIO. Grau e estágio são eixos
+       * independentes; histologia e grau, na entidade serosa, não são. */
+      const MODALIZADOR = /\b(provavel|provavelmente|possivel|possivelmente|favorece|favorecendo|sugestiv[oa]|suspeit[oa]|compativel com|a esclarecer|a definir|indeterminad[oa])\b|\?/i;
+      const histologiaModaliza = MODALIZADOR.test(String(v.histologia || ''));
+      /* A sigla é resolvida ANTES de ler o grau. `montaDx` já expandia HGSC
+       * para a entidade canônica no diagnóstico impresso, mas a leitura do
+       * grau olhava o texto cru — então "HGSC" saía certo no papel e pendente
+       * na regra. Mesma informação, dois caminhos, duas respostas. */
+      const histoCanonica = SIGLAS[norm(v.histologia)] || v.histologia;
+      const grauDaHistologia = histologiaModaliza ? null
+        : (grauAlto(histoCanonica) ? 'alto' : (grauBaixo(histoCanonica) ? 'baixo' : null));
+
+      const altoGrau = grauAlto(v.grau) || grauDaHistologia === 'alto';
+      const baixoGrau = grauBaixo(v.grau) || grauDaHistologia === 'baixo';
+      // Veio da histologia, e não de um campo que o médico preencheu: a tela
+      // e o documento têm de dizer isso.
+      const grauInferido = !filled(v.grau) && grauDaHistologia !== null;
       const avancado = estadioAvancado(v.estadiamento);
       const inicial = estadioInicial(v.estadiamento);
 
@@ -675,19 +723,44 @@
       // ainda está pedindo para confirmar. Quando falta grau ou estágio, a
       // justificativa impressa diz que o critério está por confirmar.
       if (!confirmado && faltando) {
-        somatico.justify = `Carcinoma ${descapitalizar(montaDx(v.histologia, 'ovário', 'carcinoma epitelial de ovário')).replace(/^carcinoma\s+/i, '')} com ${faltando} a confirmar no laudo: havendo alto grau e estágio III ou IV, há indicação de avaliação de status HRD tumoral para apoiar a decisão de manutenção após quimioterapia à base de platina.`;
+        somatico.justify = `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')} com ${faltando} a confirmar no laudo: havendo alto grau e estágio III ou IV, há indicação de avaliação de status HRD tumoral para apoiar a decisão de manutenção após quimioterapia à base de platina.`;
       }
+
+      /* §38.9, travas 2 e 3. Quando o grau veio da histologia e não de um
+       * campo preenchido, isso é dito nos dois lugares: na tela, como nota, e
+       * no documento assinado, dentro da própria justificativa. O médico
+       * nunca assina uma afirmação sem saber de onde ela saiu. */
+      /* O texto da histologia quase sempre JÁ nomeia o grau ("carcinoma
+       * seroso de alto grau") — repetir produziria "de alto grau de ovário,
+       * alto grau, estágio IIIC". Quando a entidade já diz, só se acrescenta
+       * de onde veio; quando não diz (um "G3" solto, por exemplo), nomeia-se
+       * o grau e a origem. */
+      const histologiaJaDizOGrau = /\b(alto|baixo|high|low)\b/i.test(semHifen(histoCanonica));
+      const grauComOrigem = grauInferido
+        ? (histologiaJaDizOGrau
+          ? 'grau conforme a histologia informada'
+          : `${grauDaHistologia} grau, conforme a histologia informada`)
+        : `${grauDaHistologia === 'baixo' ? 'baixo' : 'alto'} grau`;
+      if (confirmado && grauInferido) {
+        somatico.justify = `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')}, ${grauComOrigem}, estágio ${v.estadiamento}: indicação de avaliação de status HRD tumoral para apoiar a decisão de manutenção após quimioterapia à base de platina.`;
+      }
+      const notaGrauInferido = grauInferido ? [{
+        tag: 'Lido da histologia',
+        title: 'O grau veio do texto da histologia, não do campo',
+        body: `A histologia informada nomeia a entidade de ${grauDaHistologia} grau, e o carcinoma seroso de ovário tem duas categorias apenas — o grau faz parte do nome da doença. O campo de grau continua em branco na revisão; se o laudo disser outra coisa, corrija lá e a triagem recalcula.`,
+      }] : [];
 
       return {
         state: confirmado ? 'completo' : 'provisorio',
         tests: [somatico, germinativo],
         title: confirmado ? 'Este caso tem indicação para 2 testes' : 'Este caso tem indicação provável para 2 testes',
         summary: confirmado
-          ? `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')}, alto grau, estágio ${v.estadiamento}. Solicite os 2 testes abaixo.`
+          ? `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')}, ${grauComOrigem}, estágio ${v.estadiamento}. Solicite os 2 testes abaixo.`
           : `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')}. Histologia compatível com o par somático + germinativo.${faltando ? ` Confirme ${faltando} no laudo antes de solicitar o teste somático.` : ''}`,
-        notes: confirmado || !faltando ? [] : [{ warn: true, tag: 'A confirmar no laudo',
-          title: `${faltando.charAt(0).toUpperCase()}${faltando.slice(1)} a confirmar`,
-          body: `A indicação do teste somático assume que ${faltando} está dentro do critério (alto grau, estágio III/IV), o mais comum para esta histologia. O germinativo é indicado de qualquer forma.` }],
+        notes: [...notaGrauInferido,
+          ...(confirmado || !faltando ? [] : [{ warn: true, tag: 'A confirmar no laudo',
+            title: `${faltando.charAt(0).toUpperCase()}${faltando.slice(1)} a confirmar`,
+            body: `A indicação do teste somático assume que ${faltando} está dentro do critério (alto grau, estágio III/IV), o mais comum para esta histologia. O germinativo é indicado de qualquer forma.` }])],
       };
     },
     diagnosis(v) {
@@ -929,6 +1002,15 @@
       { key: 'sexo', label: 'Sexo', placeholder: 'Ex.: Feminino',
         options: ['Feminino', 'Masculino'],
         ai: 'Sexo do paciente. "Masculino" quando o material indicar paciente homem (pronome, tratamento, "paciente masculino", nome masculino acompanhado de menção explícita). Vazio se não for possível determinar — não presuma feminino por ser câncer de mama.' },
+      /* §38.5. O campo existia em próstata e não existia em mama — assimetria
+       * interna, não decisão: o NCCN trata ascendência Ashkenazi como critério
+       * independente, e em paciente COM câncer de mama nenhuma história
+       * familiar adicional é necessária para atendê-lo. Sem o campo, o caso
+       * era impossível de representar, como aconteceu antes com o câncer de
+       * mama masculino (§30.1). Mesma redação da próstata, de propósito. */
+      { key: 'ascendencia_ashkenazi', label: 'Ascendência Ashkenazi', placeholder: 'Ex.: Não relatado',
+        options: ['Sim', 'Não relatado'],
+        ai: '"Sim" se ascendência judaica Ashkenazi for mencionada, "Não relatado" se negada, vazio se não mencionada.' },
       ...COMUNS,
     ],
     hint: 'Subtipo (RE/RP/HER2), sexo e idade ao diagnóstico são os eixos que mais mudam a indicação germinativa. Extensão da doença define o teste somático.',
@@ -950,12 +1032,16 @@
       // familiar relevante. O critério masculino é independente de todos os
       // outros — é o subgrupo com maior prevalência de BRCA2 patogênico, e a
       // indicação vale mesmo sem história familiar. Ver ARQUITETURA.md §30.1.
+      const ashkenazi = has(v.ascendencia_ashkenazi, 'sim');
       const motivos = [
         masculino ? 'câncer de mama em paciente do sexo masculino' : null,
         idade !== null && idade <= 50 ? `diagnóstico aos ${idade} anos` : null,
         triploNeg ? 'subtipo triplo-negativo' : null,
         metastatico ? 'doença metastática' : null,
         familiar ? 'histórico familiar relatado' : null,
+        // §38.5. Critério independente: em paciente com câncer de mama e
+        // ascendência Ashkenazi, nenhuma história familiar adicional é exigida.
+        ashkenazi ? 'ascendência Ashkenazi' : null,
       ].filter(Boolean);
 
       const germinativo = {
@@ -984,12 +1070,32 @@
       if (metastatico && luminal) tests.push(somatico);
 
       if (!tests.length) {
+        /* §38.4. A divergência etária deixa de ser silenciosa.
+         *
+         * O motor mantém o gatilho do NCCN — 50 anos ou menos —, por coerência
+         * com a regra de desempate do §38.1. Mas até aqui o caso de 51 a 65
+         * anos saía apenas como "sem indicação", seco, e o médico não tinha
+         * como saber que existe recomendação internacional em sentido
+         * contrário. Silêncio sobre uma divergência conhecida é pior que a
+         * divergência: faz parecer esquecimento.
+         *
+         * A nota só aparece na faixa em que as duas diretrizes DISCORDAM.
+         * Abaixo de 50 ambas indicam e o caso nem chega aqui; acima de 65 as
+         * duas concordam que não há gatilho isolado de idade, e a nota viraria
+         * ruído. */
+        const naFaixaDaDivergencia = idade !== null && idade > 50 && idade <= 65;
+        const notaDivergencia = naFaixaDaDivergencia ? [{
+          tag: 'Divergência entre diretrizes',
+          title: `Aos ${idade} anos, NCCN e ASCO-SSO discordam`,
+          body: 'Esta triagem segue o NCCN, cujo gatilho isolado de idade é 50 anos ou menos. A ASCO-SSO de 2024 recomenda oferecer teste BRCA1/2 a todo paciente diagnosticado aos 65 anos ou menos, independentemente das características do tumor. A divergência é conhecida e está registrada — a decisão de testar fora do critério do NCCN é sua.',
+        }] : [];
         return {
           state: 'sem-indicacao',
           title: 'Sem indicação de teste genético por esta regra',
-          summary: 'Perfil sem critério germinativo identificado (idade acima de 50, subtipo não triplo-negativo, doença não metastática e sem histórico familiar relatado).',
-          notes: [{ tag: 'Sem indicação', title: 'Nenhum teste genético indicado no momento',
-            body: 'Reavalie se surgir histórico familiar, se a doença progredir ou se o subtipo for atualizado.' }],
+          summary: 'Perfil sem critério germinativo identificado (idade acima de 50, subtipo não triplo-negativo, doença não metastática, sem histórico familiar relatado e sem ascendência Ashkenazi).',
+          notes: [...notaDivergencia,
+            { tag: 'Sem indicação', title: 'Nenhum teste genético indicado no momento',
+              body: 'Reavalie se surgir histórico familiar, se a doença progredir ou se o subtipo for atualizado.' }],
         };
       }
 
@@ -1177,7 +1283,19 @@
            * Prioritário é o teste que LIDERA este resultado — um só. Com o
            * MMR na lista, ele lidera: é o rastreio universal que orienta o
            * germinativo. Sem ele (status já conhecido), o painel lidera. */
-          sample: 'Sangue periférico', order: 'Sangue · germinativo · prioridade', primary: mmrFeito,
+          /* §38.8(c). O selo de prioridade segue a ORDEM CLÍNICA.
+           *
+           * A correção do §70 resolveu "dois prioritários" e criou "o
+           * prioritário errado": passou o selo para este painel germinativo
+           * exatamente nos casos dMMR, em que a nota de ação manda fazer a
+           * metilação ANTES do germinativo. A sequência pintava como passo um
+           * o teste que o texto mandava adiar.
+           *
+           * O invariante codificado era "no máximo um prioritário". Faltava
+           * "o prioritário não pode ser o que a nota manda adiar" — e por
+           * isso a auditoria de 67.284 combinações não pegou. Agora, em dMMR,
+           * quem lidera é a metilação; sem dMMR, vale a regra do §70. */
+          sample: 'Sangue periférico', order: 'Sangue · germinativo · prioridade', primary: mmrFeito && !dmmr,
           // A estatística é de série prospectiva NÃO selecionada por idade nem
           // por história familiar (15,5% de 361 pacientes, Uson Jr. et al.,
           // Clin Gastroenterol Hepatol 2022) — vale para colorretal em geral,
@@ -1221,7 +1339,45 @@
           title: 'Perda de MLH1/PMS2 pede metilação antes do germinativo',
           body: 'A maioria da perda de MLH1 é esporádica, por metilação do promotor. Solicite a metilação de MLH1 (BRAF V600E pode complementar) antes de encaminhar ao germinativo: metilado sugere causa esporádica; não metilado indica investigação de Lynch. Perda de MSH2/MSH6, MSH6 isolada ou PMS2 isolada segue direto ao germinativo.',
         });
+        /* §38.8(b). A metilação vira PEDIDO, não só texto.
+         *
+         * A nota logo acima manda fazer a metilação ANTES do germinativo — e
+         * o passo um não tinha card, não tinha amostra, não tinha programa e
+         * não entrava no documento impresso. O médico lia "faça antes" e não
+         * tinha o que assinar. Era defeito, não critério: a sequência
+         * desenhada na tela (§63) prometia uma ordem cujo primeiro degrau não
+         * existia.
+         *
+         * É teste de TECIDO, somático, e lidera a sequência — por isso é ele
+         * que leva o selo de prioridade neste ramo, resolvendo de uma vez o
+         * §38.8(c): o prioritário passa a ser o que a nota manda fazer
+         * primeiro, em vez de o que ela manda adiar. */
         tests.push({
+          id: 'metilacao-mlh1', kind: 'somatico', primary: true,
+          name: 'Metilação do promotor de MLH1 (BRAF V600E pode complementar)',
+          sample: 'Tecido tumoral', order: 'Tumoral · somático · prioridade',
+          stat: 'A maioria da perda de MLH1 é esporádica, por metilação do promotor',
+          description: 'Afasta causa esporádica antes do encaminhamento germinativo, quando há perda de MLH1/PMS2. Metilado sugere origem esporádica; não metilado indica investigação de Lynch. Perda de MSH2/MSH6, MSH6 isolada ou PMS2 isolada dispensa esta etapa e segue direto ao germinativo.',
+          justify: 'Tumor com deficiência de reparo e perda de MLH1/PMS2: indicação de pesquisa de metilação do promotor de MLH1 para afastar causa esporádica antes da investigação germinativa.',
+          programs: [A_MAPEAR],
+        });
+        /* §38.8(a). Um painel germinativo, não dois.
+         *
+         * Quando o caso é precoce E dMMR, o motor emitia DOIS painéis
+         * germinativos no mesmo resultado — e o multigênico acima já contém
+         * os genes de Lynch (MLH1, MSH2, MSH6, PMS2, EPCAM), além dos de
+         * polipose. Dois pedidos sobrepostos, mesma amostra de sangue, mesmo
+         * encaminhamento: custo, fila em oncogenética e confusão para quem
+         * assina, sem acrescentar um gene sequer.
+         *
+         * As sociedades não pedem os dois. NSGC e CGA-ICC registram dados
+         * insuficientes para preferir um ao outro ou os dois juntos, e a
+         * prática corrente favorece o painel multigênico sobre testes
+         * sequenciais mais estreitos. Decisão de curadoria, §38.8(a).
+         *
+         * O painel de Lynch continua existindo para o caso em que ele é o
+         * único indicado: dMMR sem critério de idade precoce. */
+        if (!precoce) tests.push({
           id: 'germinativo-lynch', kind: 'germinativo', name: 'Painel germinativo de Lynch (MLH1, MSH2, MSH6, PMS2, EPCAM)',
           sample: 'Sangue periférico', order: 'Sangue · germinativo',
           // Nem todo dMMR é Lynch — a maioria da perda de MLH1 é esporádica,
@@ -1306,6 +1462,33 @@
       const mmrFeito = filled(v.mmr_msi) && !has(v.mmr_msi, 'nao realizado');
       const tests = [];
       const notasEndo = [];
+
+      /* §38.6. HER2 entra como NOTA DE AÇÃO, não como card de teste.
+       *
+       * A pergunta nunca foi clínica — o NCCN recomenda HER2 para seroso ou
+       * carcinossarcoma avançado ou metastático, sem ambiguidade. A pergunta
+       * era de ESCOPO: HER2 por imuno-histoquímica não é teste genético, e a
+       * plataforma se apresenta como triagem de teste genético. Virar card
+       * alargaria a promessa do produto.
+       *
+       * O mecanismo é o mesmo que o motor já usa para a metilação de MLH1: o
+       * médico recebe o que muda a conduta, e o card continua dizendo com
+       * precisão o que é e o que não é.
+       *
+       * HER2 aqui não define só trastuzumabe somado à quimioterapia — define
+       * também acesso a trastuzumabe-deruxtecana. Os números estão em §38.6
+       * com a ressalva que merecem (n pequeno, intervalo largo) e não entram
+       * na tela: uma nota clínica não é lugar de intervalo de confiança. */
+      const serosoOuCarcinossarcoma = has(v.histologia, 'seroso', 'serous', 'carcinossarcoma', 'carcinosarcoma');
+      const avancadoEndo = estadioAvancado(v.estadiamento) || has(v.extensao_doenca, 'metastatico', 'avancado', 'recorrente');
+      if (serosoOuCarcinossarcoma && avancadoEndo) {
+        notasEndo.push({
+          nivel: 'acao',
+          tag: 'Fora do painel genético',
+          title: 'Avalie HER2 por imuno-histoquímica',
+          body: 'Em seroso ou carcinossarcoma avançado, HER2 define elegibilidade a trastuzumabe somado à quimioterapia e a anticorpo conjugado anti-HER2, com taxa de resposta alta nos tumores de expressão forte. É imuno-histoquímica — não é teste genético, não sai no painel e não entra neste pedido. Positivo = IHQ 3+, ou 2+ com amplificação de ERBB2 confirmada por FISH.',
+        });
+      }
 
       if (!mmrFeito) {
         tests.push({
@@ -1490,7 +1673,24 @@
         }],
         title: 'Este caso tem indicação para 1 teste',
         summary: 'Doença avançada: painel molecular amplo indicado antes da primeira linha de tratamento.',
-        notes: [],
+        /* §38.7. PD-L1 nomeado, pelo mesmo mecanismo do §38.6.
+         *
+         * Era assimetria interna do motor: o card de doença RESSECÁVEL já
+         * nomeia PD-L1, e o de metastática não — embora PD-L1 seja mais
+         * decisivo na metastática, onde é ele que define a primeira linha na
+         * ausência de driver acionável.
+         *
+         * O card acima lista nove genes e dá a impressão de cobrir o que
+         * precisa ser pedido. Não cobre: PD-L1 é PROTEÍNA, lida por
+         * imuno-histoquímica, e não é capturada por painel de sequenciamento.
+         * São exames diferentes, em plataformas diferentes. O médico que
+         * confiar no card pode iniciar primeira linha sem ele. */
+        notes: [{
+          nivel: 'acao',
+          tag: 'Fora do painel genético',
+          title: 'PD-L1 precisa ser pedido à parte',
+          body: 'Sem driver acionável, é o nível de PD-L1 que define a primeira linha. Ele é imuno-histoquímica, não entra no painel molecular acima e não sai no mesmo laudo — peça junto, no mesmo material, antes de iniciar o tratamento. Alguns medicamentos exigem ensaio específico aprovado pela agência regulatória.',
+        }],
       };
     },
     diagnosis(v) {
