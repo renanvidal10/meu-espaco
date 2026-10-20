@@ -432,7 +432,9 @@
   };
 
   const LIFE_GENOMICS = {
-    name: 'Life Genomics (laboratório parceiro de oncogenética)',
+    // §89. Sem "laboratório parceiro" no nome: decisão do dono, para não
+    // sugerir ganho da plataforma com o laboratório.
+    name: 'Life Genomics',
     tipo: 'laboratorio',
     note: 'Parceiro para painéis germinativos: processa sangue periférico e emite o laudo de predisposição hereditária. Não é programa patrocinado, confirme cobertura e valores no portal.',
     url: 'https://lifegenomics.com.br/',

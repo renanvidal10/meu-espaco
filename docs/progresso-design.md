@@ -39,7 +39,7 @@ amostra (o tipo vem de `test.kind`, a prioridade de `test.primary`).
 * **Pedido em meia folha A4: FEITO** (commit aa87e23, §87.3). PDF de exemplo em
   `mockup/resultado-propostas/capturas/pedido-meia-folha.pdf`. Teste imprime de
   verdade e exige uma folha.
-* **Tela de programas: AGUARDANDO O DONO** (§87.4). Fotos em
+* **Tela de programas: DECIDIDO E FEITO (§89).** Dono decidiu: nenhum critério na tela, nem recolhido. Histórico da discussão: Fotos em
   `capturas/comparacao-programas.png`. Conflito: no GSK e no Amgen o texto embaixo
   do nome é o critério que recusa o paciente (§53, §67.3, trava em regras.test.js).
   Opção 1 (recomendada): critério continua à vista só nesses dois, o resto sai.
@@ -55,7 +55,5 @@ amostra (o tipo vem de `test.kind`, a prioridade de `test.primary`).
 
 ## Próximo passo exato
 
-1. Mostrar ao dono a tela de resultado implementada (fotos em `final/`) e esperar o ok.
-2. Esperar a resposta sobre o critério de elegibilidade (opção 1 ou 2) e implementar a
-   tela de programas conforme a seção acima.
-3. Nada de publicação ou push sem o ok do dono e do coordenador.
+1. Dono ver as duas telas implementadas (fotos em `mockup/resultado-propostas/final/`) e dar o ok.
+2. Nada de publicação ou push sem o ok do dono e do coordenador.

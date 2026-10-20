@@ -2073,62 +2073,33 @@
       const icon = test.kind === 'germinativo' ? ICONE_DNA : ICONE_LAB;
 
       // O selo diz, antes de qualquer leitura, o que aquela linha é: via sem
-      // custo da indústria, laboratório parceiro, ou nenhuma via verificada.
+      // custo da indústria, ou nenhuma via verificada.
       // E quando não há endereço, a linha precisa dizer POR ONDE se solicita,
       // uma linha sem botão e sem explicação parece produto quebrado. Ver §44.
       /* §56. O selo dizia "Sem custo" em cada programa de indústria. Como
        * TODOS os programas de indústria listados são sem custo, o selo não
        * distinguia nada, só empurrava o clique para quem o exibia primeiro.
        * O selo passou a dizer o que o programa É; o custo é dito uma vez, na
-       * linha acima da lista, valendo para todos. */
+       * linha acima da lista, valendo para todos.
+       * §89. O selo "Laboratório parceiro" saiu por decisão do dono: podia
+       * passar a impressão de que a plataforma ganha com o laboratório. */
       const SELO = {
         patrocinado: { txt: 'Programa da indústria', cls: 'ok' },
-        laboratorio: { txt: 'Laboratório parceiro', cls: 'neutro' },
         'sem-via': { txt: 'Sem via verificada', cls: 'warn' },
-      };
-      /* Cortar a nota do programa em 78 CARACTERES partia a frase no meio do
-       * critério. No teste HRD da GSK, o que ficava visível era
-       * "Elegível: carcinoma seroso ou…", e o que sumia atrás do "mais" era
-       * "de ALTO GRAU" e "EM PRIMEIRA LINHA de tratamento", ou seja, os dois
-       * critérios que RECUSAM o paciente, mais o aviso de que a solicitação
-       * não é por portal. O médico lia a metade que inclui e não lia a metade
-       * que exclui. Agora o corte respeita o fim de frase: o que fica visível
-       * é sempre um enunciado inteiro. Ver §53. */
-      const cortarNota = (txt) => {
-        const t = String(txt || '');
-        if (t.length <= 120) return { cabeca: t, cauda: '' };
-        let fim = t.indexOf('. ');
-        // Uma primeira frase curta demais não explica nada: busca a seguinte.
-        while (fim > 0 && fim < 60) {
-          const prox = t.indexOf('. ', fim + 2);
-          if (prox < 0) break;
-          fim = prox;
-        }
-        if (fim <= 0 || fim >= t.length - 2) return { cabeca: t, cauda: '' };
-        return { cabeca: t.slice(0, fim + 1), cauda: t.slice(fim + 2) };
       };
 
       // A ordem mora no registro clínico (§56), não aqui.
       const listaProgramas = TUMORS.ordenarProgramas(test.programs || []);
 
-      /* §67. Marca-texto nos trechos que o registro declarou como excludentes.
-       * Aplicado DEPOIS do escape de HTML, sobre o texto já seguro, e só nas
-       * ocorrências exatas que o registro listou, nunca por padrão de letra
-       * maiúscula, que confundiria nome de gene com critério. */
-      const marcarDestaques = (textoEscapado, destaques) => {
-        if (!destaques || !destaques.length) return textoEscapado;
-        let saida = textoEscapado;
-        for (const trecho of destaques) {
-          const alvo = esc(trecho);
-          if (!saida.includes(alvo)) continue;
-          saida = saida.split(alvo).join(`<mark class="marca-criterio">${alvo}</mark>`);
-        }
-        return saida;
-      };
-
+      /* §89. Decisão do dono: a linha do programa mostra só o nome, o selo e
+       * o caminho para o portal. Descrição, critério de elegibilidade e data
+       * de conferência NÃO aparecem, nem recolhidos: quem informa o médico
+       * sobre elegibilidade é o próprio programa, no portal dele, e a tela
+       * diz isso uma vez, no aviso do topo. Os textos continuam no registro
+       * (tumors.js), para a auditoria interna, mas não chegam à tela. Isto
+       * substitui a exibição decidida no §53 e no §67.3. */
       const programas = listaProgramas.map((p) => {
         const selo = SELO[p.tipo] || null;
-        const nota = cortarNota(p.note);
         const acao = p.url
           ? `<a class="link" href="${esc(p.url)}" target="_blank" rel="noopener">Abrir portal ↗</a>`
           : (p.tipo === 'sem-via' ? '' : '<span class="link-ausente">Solicite pelo representante</span>');
@@ -2138,10 +2109,6 @@
             <span class="logo">${icon}</span>
             <div>
               <div class="name">${esc(p.name)}${selo ? ` <span class="selo ${selo.cls}">${selo.txt}</span>` : ''}</div>
-              ${nota.cauda
-                ? `<details class="prog-nota"><summary>${marcarDestaques(esc(nota.cabeca), p.destaques)}</summary><div class="test">${marcarDestaques(esc(nota.cauda), p.destaques)}</div></details>`
-                : `<div class="test">${marcarDestaques(esc(nota.cabeca), p.destaques)}</div>`}
-              ${p.verificadoEm ? `<div class="prog-verif">Via conferida em ${esc(p.verificadoEm.split('-').reverse().join('/'))}</div>` : ''}
             </div>
           </div>
           ${acao}
@@ -2167,7 +2134,10 @@
             <span class="step-num">${i + 1}</span>
             <span class="pill ${provisional ? 'warn' : 'ok'}">${provisional ? 'indicação provável: confirmar' : 'indicado neste caso'}</span>
           </div>
-          <h3>${esc(test.name)}</h3>
+          ${/* §89. A mesma divisão da tela de resultado (§88): nome curto como
+                título, a lista entre parênteses numa linha de apoio. */''}
+          <h3>${esc(partirNomeDoTeste(test.name).titulo)}</h3>
+          ${partirNomeDoTeste(test.name).apoio ? `<p class="prog-apoio">${esc(partirNomeDoTeste(test.name).apoio)}</p>` : ''}
         </div>
         ${programas}
 

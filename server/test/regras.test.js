@@ -1141,42 +1141,31 @@ test('o consórcio de pulmão com porta morta não volta pelo card (§44.1)', ()
   }
 });
 
-test('o resumo da nota de programa nunca corta um critério no meio (§53)', () => {
-  // O corte em 78 caracteres partia a frase dentro do critério: no HRD da GSK
-  // ficava visível "Elegível: carcinoma seroso ou…" e sumia "de ALTO GRAU" e
-  // "EM PRIMEIRA LINHA", que são justamente os critérios que RECUSAM. O
-  // médico lia a metade que inclui e não lia a metade que exclui.
-  const CRITICOS = [/ALTO GRAU/, /PRIMEIRA LINHA/, /não é feita por portal/i];
-  const cortar = (txt) => {
-    const t = String(txt || '');
-    if (t.length <= 120) return t;
-    let fim = t.indexOf('. ');
-    while (fim > 0 && fim < 60) {
-      const prox = t.indexOf('. ', fim + 2);
-      if (prox < 0) break;
-      fim = prox;
-    }
-    return (fim <= 0 || fim >= t.length - 2) ? t : t.slice(0, fim + 1);
-  };
-
+/* §89. Decisão do dono: a tela não mostra critério de elegibilidade nem a
+ * data de conferência (quem informa o médico é o próprio programa), e o
+ * painel germinativo deixa de se chamar "laboratório parceiro". Os dados
+ * continuam no registro para a auditoria interna: este teste vigia que a data
+ * de conferência siga registrada e que o nome não volte a falar em parceria.
+ * A ausência na TELA é vigiada pela bateria de navegador. */
+test('nenhum programa se apresenta como parceiro da plataforma (§89)', () => {
+  for (const tumorId of TUMORS.ORDER) {
+    const tumor = TUMORS.get(tumorId);
+    const v = {};
+    tumor.fields.forEach((f) => { v[f.key] = ''; });
+    // Um caso qualquer de cada tumor já lista os programas do registro.
+    const r = tumor.classify(v);
+    (r.tests || []).flatMap((t) => t.programs || []).forEach((p) => {
+      assert.ok(!/parceir/i.test(p.name), `${tumorId}: "${p.name}" fala em parceria no nome`);
+    });
+  }
   const { resultado } = triar('ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' });
-  const gsk = resultado.tests.flatMap((t) => t.programs || []).find((p) => /GSK/.test(p.name));
-  assert.ok(gsk, 'o programa da GSK sumiu do card de ovário');
-
-  const visivel = cortar(gsk.note);
-  // O trecho visível tem de terminar em frase completa, nunca em meio de oração.
-  assert.ok(/\.$/.test(visivel.trim()), `resumo não termina em frase inteira: "${visivel}"`);
-  assert.ok(!/\bou$/.test(visivel.trim().replace(/\.$/, '')), 'resumo termina numa conjunção solta');
-  // E os dois critérios que recusam o paciente precisam estar no trecho visível.
-  CRITICOS.slice(0, 2).forEach((re) => {
-    assert.match(visivel, re, `critério de exclusão ficou escondido atrás do "mais": ${re}`);
-  });
-
-  // Toda via patrocinada precisa mostrar quando foi conferida.
-  resultado.tests.flatMap((t) => t.programs || []).forEach((p) => {
-    if (p.tipo !== 'patrocinado') return;
-    assert.match(String(p.verificadoEm || ''), /^\d{4}-\d{2}-\d{2}$/,
-      `${p.name}: sem data de verificação para mostrar ao médico`);
+  const programas = resultado.tests.flatMap((t) => t.programs || []);
+  const life = programas.find((p) => /Life Genomics/.test(p.name));
+  assert.ok(life, 'o germinativo de ovário perdeu a Life Genomics');
+  assert.strictEqual(life.name, 'Life Genomics');
+  // A data continua registrada para a auditoria, mesmo fora da tela.
+  programas.filter((p) => p.tipo === 'patrocinado').forEach((p) => {
+    assert.match(String(p.verificadoEm || ''), /^\d{4}-\d{2}-\d{2}$/, `${p.name}: sem data de verificação no registro`);
   });
 });
 

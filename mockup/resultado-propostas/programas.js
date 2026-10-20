@@ -82,7 +82,9 @@ async function foto(p, arquivo) {
   const b = await chromium.launch({ executablePath: CHROME });
   const aparelhos = { celular: devices['iPhone 13'], computador: { viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 } };
   for (const [nome, opts] of Object.entries(aparelhos)) {
-    for (const v of ['hoje', 'P1', 'P2']) {
+    // §89: P1 e P2 ficaram só como registro da proposta; o dono decidiu
+    // tirar todo critério da tela, então só a tela real é fotografada.
+    for (const v of (process.env.VARIANTES || 'hoje').split(',')) {
       const { p, ctx } = await abrir(b, opts);
       if (v !== 'hoje') await aplicar(p, v);
       await foto(p, `programas-${v}-${nome}.png`);

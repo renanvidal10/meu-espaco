@@ -4978,18 +4978,9 @@ longa: 177mm, uma folha só, assinatura nela.
 caso comum até 120mm; caso longo em uma folha, com "Assinatura e carimbo" na
 mesma folha. **Provada**: com o espaçamento anterior reprovou acusando 122mm.
 
-### 87.4 Tela de programas: decisão do dono aguardando um ponto
+### 87.4 Tela de programas
 
-Pedido do dono: tirar de todos os programas o texto embaixo do nome e a linha
-"Via conferida em", e tirar "Laboratório parceiro" (selo e trecho do nome) do
-painel germinativo, para não sugerir ganho com o laboratório.
-
-Conflito encontrado e levado ao dono antes de implementar: em dois programas o
-texto embaixo do nome **é o critério que recusa o paciente** (GSK: alto grau e
-primeira linha; Amgen: painel fechado e voucher). O §53 e o §67.3 decidiram
-mantê-los visíveis, com trava em `regras.test.js`. Opções mostradas: manter só
-esse critério à vista (recomendada) ou recolhê-lo num toque. A decisão entra
-aqui quando o dono escolher.
+Decidido e implementado no §89.
 
 ## 88. A tela de resultado virou um painel só (proposta B, 20/10/2026)
 
@@ -5048,3 +5039,51 @@ lugar do número.
 - **A bateria de instalação como aplicativo nunca rodou nesta máquina.**
   `test/aplicativo.js` tinha o caminho `/home/user/...` escrito à mão e parava
   na primeira linha. Passou a usar o caminho do próprio arquivo e roda inteira.
+
+## 89. A tela de programas não mostra critério (decisão do dono, 20/10/2026)
+
+Pedido do dono, para todos os programas, sempre: tirar o texto embaixo do nome
+de cada programa, tirar a linha "Via conferida em", e tirar "Laboratório
+parceiro" (selo e trecho do nome) do painel germinativo, porque podia passar a
+impressão de que a plataforma ganha com o laboratório.
+
+**O conflito foi levado ao dono antes.** Em dois programas o texto embaixo do
+nome era o critério que recusa o paciente (GSK: alto grau e primeira linha;
+Amgen: painel fechado e voucher), e o §53 e o §67.3 tinham decidido mantê-lo à
+vista. Foram mostradas duas saídas: critério à vista só nesses dois, ou
+recolhido num toque. Resposta do dono:
+
+> *"Nem recolhido nem à vista. Nenhum tipo de critério deve aparecer. Isso o
+> médico deve ser informado pelo próprio programa. Não é responsabilidade
+> nossa."*
+
+**O que a tela passou a mostrar**, por programa: ícone, nome, selo
+("Programa da indústria" ou "Sem via verificada") e "Abrir portal". O aviso do
+topo continua dizendo *"Confirme a elegibilidade no portal oficial. Critérios e
+disponibilidade mudam sem aviso."*, que é exatamente a posição do dono. A frase
+de custo perdeu a segunda metade (*"O que muda entre eles é o critério de
+elegibilidade, descrito em cada um"*), que deixou de ser verdade.
+
+**O que NÃO mudou.** Os textos (`note`), os trechos excludentes (`destaques`)
+e as datas (`verificadoEm`) continuam no registro (`tumors.js`): servem à
+auditoria interna dos programas e ao documento de curadoria. Só não chegam à
+tela. O nome passou a ser só "Life Genomics".
+
+**Substitui** a exibição decidida no §53 (corte da nota em fim de frase) e no
+§67.3 (marca-texto no critério). O marca-texto, a nota recolhível e a linha de
+data saíram do CSS.
+
+**Acabamento junto:** o selo começava 6px à direita do nome quando descia de
+linha (margem antiga somada ao espaçamento novo), e o título do painel
+germinativo no cartão de programas ganhou a mesma divisão da tela de resultado
+(§88): nome curto e genes na linha de apoio.
+
+**As travas:**
+- navegador: a tela de programas do caso de ovário (o critério mais longo, da
+  GSK) reprova se aparecer "Elegível", "ALTO GRAU", "PRIMEIRA LINHA", "Ver
+  critério", "conferida em", "parceiro" ou trechos das descrições, inclusive
+  dentro de algo recolhido; e exige "Life Genomics" como nome;
+- regras: nenhum programa de nenhum tumor fala em parceria no nome, e a data de
+  conferência continua registrada;
+- saíram as travas que exigiam o critério visível (§53) e o marca-texto
+  legível durante a animação (§67.2), e o alvo de contraste do marca-texto.

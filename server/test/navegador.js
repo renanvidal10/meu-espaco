@@ -1138,19 +1138,16 @@ async function rodar(nome, dispositivo) {
     await p.close();
   }
 
-  /* ---------- 13c-bis. o destaque não pode esconder o que destaca ---------- */
+  /* ---------- 13c-bis. §89: a tela de programas não mostra critério ---------- */
   {
-    /* §67. A primeira versão do marca-texto revelava por recorte
-     * (clip-path), imitando um marcador passando sobre o papel. O recorte
-     * corta O TEXTO, não só o fundo: "EM PRIMEIRA LINHA" ficava ilegível por
-     * quase um segundo — justamente o critério que a animação existe para
-     * apontar, e justamente o que o corte de 78 caracteres do §53 já tinha
-     * escondido uma vez.
-     *
-     * O teste mede NO MEIO da animação: o texto marcado precisa estar
-     * inteiro, do primeiro quadro ao último. */
+    /* Decisão do dono: nenhum critério de elegibilidade aparece, nem à vista
+     * nem recolhido, porque quem informa o médico é o próprio programa. Sai
+     * também a data de conferência e qualquer menção a "parceiro". O teste
+     * olha a tela inteira de programas, inclusive o que estiver dentro de
+     * um <details> fechado (textContent), e usa o caso de ovário, que é o
+     * que trazia o critério mais longo (GSK). */
     const p = await ctx.newPage();
-    p.on('pageerror', (e) => erros.push('destaque: ' + e.message));
+    p.on('pageerror', (e) => erros.push('programas: ' + e.message));
     await mockExtracao(p, { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC', idade: '61' });
     await entrar(p);
     await p.fill('#case-text', 'caso de ovário');
@@ -1161,37 +1158,23 @@ async function rodar(nome, dispositivo) {
     await p.click('#verdict-next-btn');
     await p.waitForSelector('#screen-3.active');
 
-    // Amostra em três instantes, cobrindo os atrasos dos dois destaques.
-    const amostras = [];
-    for (const espera of [120, 420, 700]) {
-      await p.waitForTimeout(espera === 120 ? 120 : 300);
-      amostras.push(await p.evaluate(() => Array.from(document.querySelectorAll('mark.marca-criterio')).map((m) => {
-        const r = m.getBoundingClientRect();
-        const cs = getComputedStyle(m);
-        return {
-          texto: (m.textContent || '').trim(),
-          largura: Math.round(r.width),
-          recortado: cs.clipPath !== 'none' && cs.clipPath !== 'inset(0px)',
-          opacidade: parseFloat(cs.opacity),
-        };
-      })));
-    }
-
-    const quantos = amostras[amostras.length - 1].length;
-    const falhas2 = [];
-    amostras.forEach((amostra, i) => {
-      if (amostra.length !== quantos) falhas2.push(`instante ${i}: ${amostra.length} de ${quantos} marcas no DOM`);
-      amostra.forEach((m) => {
-        if (m.largura < 10) falhas2.push(`instante ${i}: "${m.texto}" com ${m.largura}px de largura`);
-        if (m.recortado) falhas2.push(`instante ${i}: "${m.texto}" recortado (${m.recortado})`);
-        if (m.opacidade < 0.99) falhas2.push(`instante ${i}: "${m.texto}" com opacidade ${m.opacidade}`);
-      });
+    const tela = await p.evaluate(() => {
+      const linhas = Array.from(document.querySelectorAll('#programs-dynamic .program-row'));
+      return {
+        quantas: linhas.length,
+        texto: linhas.map((l) => l.textContent.replace(/\s+/g, ' ')).join(' | '),
+        nomes: linhas.map((l) => l.querySelector('.name').firstChild.textContent.trim()),
+      };
     });
-
-    linha(ok(quantos >= 2, `só ${quantos} trecho(s) marcado(s) — o teste não mediria nada`),
-      'o critério de exclusão aparece marcado');
-    linha(ok(falhas2.length === 0, falhas2.slice(0, 3).join(' | ')),
-      'o texto marcado fica legível durante toda a animação');
+    const PROIBIDOS = [/Elegível/i, /ALTO GRAU/, /PRIMEIRA LINHA/i, /Ver critério/i, /conferida em/i, /parceir/i,
+      /reteste/i, /biópsia líquida/i, /não é programa patrocinado/i];
+    const achados = PROIBIDOS.filter((re) => re.test(tela.texto)).map(String);
+    linha(ok(tela.quantas >= 3, `só ${tela.quantas} programa(s) na tela, o teste não mediria nada`),
+      'a tela de programas lista os programas do caso');
+    linha(ok(achados.length === 0, `aparece na tela de programas: ${achados.join(', ')}`),
+      'nenhum critério, data ou "parceiro" aparece nos programas');
+    linha(ok(tela.nomes.includes('Life Genomics'), `nomes: ${tela.nomes.join(' / ')}`),
+      'o germinativo aparece só como "Life Genomics"');
     await p.close();
   }
 
