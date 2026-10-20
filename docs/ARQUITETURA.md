@@ -5068,7 +5068,9 @@ recolhido num toque. Resposta do dono:
 **O que a tela passou a mostrar**, por programa: ícone, nome, selo
 ("Programa da indústria" ou "Sem via verificada") e "Abrir portal". O aviso do
 topo continua dizendo *"Confirme a elegibilidade no portal oficial. Critérios e
-disponibilidade mudam sem aviso."*, que é exatamente a posição do dono. A frase
+disponibilidade mudam sem aviso."*, que é exatamente a posição do dono. O selo
+"Programa da indústria" fica: o dono confirmou em 20/10/2026 (*"Pode manter o
+selo Programa da indústria."*). A frase
 de custo perdeu a segunda metade (*"O que muda entre eles é o critério de
 elegibilidade, descrito em cada um"*), que deixou de ser verdade.
 
