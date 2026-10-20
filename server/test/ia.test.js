@@ -76,3 +76,10 @@ test('região fora de us, eu e global gera aviso (o Opus 5 não existe em São P
   const a = avaliar({ IA_PROVEDOR: 'vertex', VERTEX_PROJETO: 'p', VERTEX_REGIAO: 'southamerica-east1' }, 'ia.avisos()');
   assert.match(a.join(' '), /só é oferecido em us, eu e global/);
 });
+
+test('API direta em produção sem chave derruba o boot; com chave, sobe', () => {
+  const sem = avaliar({ NODE_ENV: 'production', IA_PROVEDOR: 'anthropic', ANTHROPIC_API_KEY: '' }, 'ia.problemasDeConfiguracao()');
+  assert.match(sem.join(' '), /exige ANTHROPIC_API_KEY/);
+  const com = avaliar({ NODE_ENV: 'production', IA_PROVEDOR: 'anthropic', ANTHROPIC_API_KEY: 'x' }, 'ia.problemasDeConfiguracao()');
+  assert.deepStrictEqual(com, []);
+});

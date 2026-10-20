@@ -409,6 +409,12 @@
       const cfg = await fetch('/api/config').then((r) => r.json());
       authMode = cfg.authMode || 'simples';
       document.body.dataset.modoAcesso = authMode;
+      // §86.9: o Aviso de Privacidade diz por qual caminho o laudo vai agora.
+      const caminho = {
+        anthropic: ' Nesta fase de teste, o envio vai direto à Anthropic.',
+        vertex: ' O envio passa pelo Google Cloud, sob contrato com as cláusulas-padrão da ANPD para transferência internacional.',
+      }[cfg.ia];
+      if (caminho) document.getElementById('pv-ia-caminho').textContent = caminho;
       if (cfg.ufs) preencherUfs(cfg.ufs);
       if (cfg.ephemeralAccounts) {
         if (authMode === 'completo') {

@@ -1514,6 +1514,8 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/config', (req, res) => {
   res.json({
     authMode: AUTH_MODE,
+    // §86.9: o Aviso de Privacidade diz por qual caminho o laudo vai.
+    ia: ia.PROVEDOR,
     ufs: auth.UFS,
     termosVersao: TERMOS_VERSAO,
     ephemeralAccounts: !store.usingPostgres,

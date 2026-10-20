@@ -31,9 +31,11 @@ Concluídos no Cloud Shell pelo coordenador (20/10/2026): 6.1 (conta de serviço
 - pedidos por minuto, 60: caso 8c258795-9393-4e9e-9a66-b176a9c466b1.
 Aguardando a resposta do Google por e-mail.
 
-**Teste do dono antes do domínio:** possível, pelo Resend em modo de teste (só entrega ao e-mail do dono da conta Resend). Caminho descrito no roteiro, seção 6.5.
+**Cota negada pelo Google (20/10/2026):** "projeto novo: espere 48 horas ou tenha histórico de faturamento". O coordenador confere na quinta, 22/10, e pede de novo se ainda estiver zerada.
 
-**Próximos passos do roteiro:** 6.5 (teste mínimo, sem domínio), depois 7 (domínio e Resend), 8 (Cloud Run definitivo) e 9 (conferir). Depois da cota aprovada: repetir o passo 5 e rodar a bateria de laudos reais pelo Vertex.
+**Decisão do dono: versão de teste já** no Cloud Run em São Paulo, com a leitura pela API direta da Anthropic (`IA_PROVEDOR=anthropic`, segredo `anthropic-api-key` em São Paulo) e o Resend em modo de teste (só entrega ao e-mail do dono). Só casos fictícios até trocar para o Vertex. Ordem exata no roteiro, seção 6.5; registro em ARQUITETURA.md §86.9.
+
+**Próximos passos:** roteiro seção 6.5, itens 1 a 7 (push da branch pelo coordenador, contas Resend e chave nova da Anthropic pelo dono, cofres, Cloud Run, conferência). Depois: cota do Claude (22/10), troca para o Vertex e domínio. Depois da cota aprovada: repetir o passo 5 e rodar a bateria de laudos reais pelo Vertex.
 
 ## Claude fora do Brasil (ARQUITETURA.md §86.8, 20/10/2026)
 O Google oferece o Claude Opus 5 só em `global`, `us` e `eu`. Decidido `us`: laudo processado nos EUA sob o contrato do Google com as cláusulas da ANPD; servidor, banco e cofres em São Paulo. Roteiro e código ajustados (padrão `VERTEX_REGIAO=us`). Domínio próprio no site: começar com `.run.app`; depois Firebase Hosting (grátis, limite de 60 s) ou balanceador (US$ 18 a 25 por mês), conforme o tempo de leitura medido.

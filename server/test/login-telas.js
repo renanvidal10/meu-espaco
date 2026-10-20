@@ -101,6 +101,9 @@ async function rodar(nome, dispositivo, base, sufixo) {
   await p.goto(base);
   await p.waitForSelector('#view-login.active');
   ok(await p.locator('#login-uf option').count() === 28, 'lista de estados com as 27 UFs');
+  // §86.9: o Aviso de Privacidade diz por qual caminho o laudo vai (aqui, a
+  // API direta, que é o padrão fora de produção).
+  ok(/direto à Anthropic/.test(await p.locator('#pv-ia-caminho').textContent()), 'Aviso de Privacidade diz que o laudo vai direto à Anthropic');
   await rotulosAcessiveis(p, '#view-login input, #view-login select', 'entrada');
   await semRolagemLateral(p, 'entrada');
   await foto(p, `1-entrada-${sufixo}`);

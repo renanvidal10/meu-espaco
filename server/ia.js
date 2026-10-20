@@ -44,6 +44,12 @@ function problemasDeConfiguracao() {
     out.push(`IA_PROVEDOR="${process.env.IA_PROVEDOR}" não é válido. Use "vertex" ou "anthropic".`);
     return out;
   }
+  // §86.9: enquanto o Google não libera a cota do Claude, a versão de teste
+  // no Cloud Run usa a API direta. Sem a chave, a leitura falharia para o
+  // médico com erro genérico; melhor o servidor nem subir.
+  if (PROVEDOR === 'anthropic' && IS_PRODUCTION && !process.env.ANTHROPIC_API_KEY) {
+    out.push('IA_PROVEDOR=anthropic em produção exige ANTHROPIC_API_KEY (no Cloud Run, o segredo anthropic-api-key).');
+  }
   if (PROVEDOR === 'vertex') {
     if (!PROJETO) out.push('IA_PROVEDOR=vertex exige VERTEX_PROJETO (o ID do projeto no Google Cloud).');
     // O endpoint global não tem garantia nenhuma de onde o laudo é
@@ -62,7 +68,7 @@ function avisos() {
     out.push('ANTHROPIC_API_KEY não está definida. Configure um arquivo .env (veja .env.example).');
   }
   if (PROVEDOR === 'anthropic' && IS_PRODUCTION) {
-    out.push('IA pela API direta da Anthropic em produção: o laudo é processado nos EUA (ver ARQUITETURA.md §86).');
+    out.push('IA pela API direta da Anthropic em produção: o laudo é processado nos EUA, fora do contrato do Google (ARQUITETURA.md §86.9). Use só com casos fictícios até trocar para IA_PROVEDOR=vertex.');
   }
   if (PROVEDOR === 'vertex' && !['us', 'eu', 'global'].includes(REGIAO)) {
     out.push(`VERTEX_REGIAO=${REGIAO}: o Claude Opus 5 só é oferecido em us, eu e global; confira se o modelo existe nessa região.`);

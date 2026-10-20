@@ -4885,3 +4885,40 @@ pedidos em 60 segundos (documentação do Firebase), e a leitura de laudo longo
 pode passar disso. O balanceador de carga do Google funciona, por cerca de
 US$ 18 a 25 por mês. Recomendação: começar com o endereço `.run.app` e decidir
 depois da bateria de laudos reais medir o tempo de leitura pelo Vertex.
+
+### 86.9 Versão de teste no Cloud Run com a API direta da Anthropic (decidido em 20/10/2026)
+
+**Motivo.** O Google negou os três pedidos de cota do Claude Opus 5 na porta
+`us` ("projeto novo: espere 48 horas ou tenha histórico de faturamento"). O
+coordenador confere de novo na quinta, 22/10/2026. **Decisão do dono:** não
+esperar; subir já a versão de teste no Cloud Run em São Paulo com a leitura de
+laudo e a Gena pela API direta da Anthropic, e trocar para o Vertex quando a
+cota sair.
+
+**O código já aceitava esse modo** em produção: `IA_PROVEDOR=anthropic` é uma
+escolha explícita, porque sem a variável a produção usa o Vertex (§86.1). O que
+entrou agora:
+- produção com `IA_PROVEDOR=anthropic` e sem `ANTHROPIC_API_KEY` **não sobe**
+  (antes só avisava, e o médico veria a leitura falhar com erro genérico);
+- o aviso de boot passou a dizer que o laudo vai aos EUA fora do contrato do
+  Google e que o modo é só para casos fictícios;
+- `/api/config` informa o provedor (`ia`), e o **Aviso de Privacidade** ganha
+  uma frase conforme o caminho: "Nesta fase de teste, o envio vai direto à
+  Anthropic" ou "O envio passa pelo Google Cloud, sob contrato com as
+  cláusulas-padrão da ANPD para transferência internacional". A troca é
+  automática quando a variável muda.
+
+**Segredo.** A chave fica no Secret Manager como `anthropic-api-key`, com
+replicação só em `southamerica-east1`, colada pelo dono no Cloud Shell sem
+aparecer na tela. Recomendada uma chave nova (`cloud-run-teste`), separada da
+do Render, para ser apagada sozinha na troca.
+
+**Limite de uso combinado:** só casos fictícios enquanto o modo direto estiver
+ligado. É o mesmo caminho do site atual, sem as cláusulas da ANPD; o ganho da
+versão de teste é provar servidor, banco, login e e-mail no Google.
+
+**Volta para o Vertex:** um comando (`--update-env-vars IA_PROVEDOR=vertex,...`
+e `--remove-secrets ANTHROPIC_API_KEY`), descrito no roteiro, seção 6.5.
+
+**Testes:** `test/ia.test.js` (produção sem chave derruba o boot; com chave,
+sobe) e `test/login-telas.js` (o Aviso de Privacidade mostra o caminho direto).

@@ -230,44 +230,102 @@ Resposta esperada: quatro linhas começando com `guardado:`.
 
 ---
 
-## 6.5 Caminho mínimo para o senhor testar, antes do domínio
+## 6.5 Versão de teste: o senhor experimenta antes do domínio e da cota do Claude
 
-**Dá para testar a versão nova sem domínio próprio?** Sim, com uma limitação. O Resend, enquanto não tem domínio verificado, funciona em "modo de teste": manda e-mail a partir de um endereço dele (`onboarding@resend.dev`) e **só entrega para o e-mail do dono da conta Resend**. Se o senhor criar a conta Resend com o seu e-mail, recebe o link de confirmação e consegue fazer o caminho inteiro do médico. Outra pessoa que se cadastrar nessa fase não recebe o e-mail, então este teste é só do senhor.
+**Situação em 20/10/2026.** O Google negou os pedidos de cota do Claude ("projeto novo: espere 48 horas ou tenha histórico de faturamento"). Na quinta, 22/10, o coordenador confere de novo e, se ainda estiver zerada, pede outra vez. Para não ficar parado, a decisão do senhor foi subir já a versão de teste no Cloud Run, em São Paulo, com duas adaptações provisórias:
 
-O programa já está preparado: sem a variável `MAIL_FROM`, ele usa justamente o endereço de teste do Resend.
+| Peça | Na versão de teste | Na versão definitiva |
+|---|---|---|
+| Leitura do laudo e Gena | **API direta da Anthropic**, nos EUA, como no site atual | Claude pelo Google (porta `us`), sob o contrato com as cláusulas da ANPD |
+| E-mail | Resend **em modo de teste**: só chega ao e-mail do dono da conta Resend | Resend com o domínio do OncoGenYX |
+| Servidor, banco e cofres | São Paulo | São Paulo |
 
-**O que precisa estar pronto, nesta ordem:**
+**Regra durante a versão de teste:** só casos fictícios, nada de laudo de paciente real. A API direta da Anthropic não tem as cláusulas da ANPD; é exatamente o problema que a mudança para o Google resolve. O Aviso de Privacidade do site diz, enquanto isso, que o envio vai direto à Anthropic.
 
-1. **O código no GitHub, numa branch que o Render não publica** (coordenador, com a sua autorização).
-   - Esta branch de trabalho, `claude/login-com-senha-d75125`, é enviada ao GitHub com esse mesmo nome.
-   - O Render publica só a branch `claude/oncology-genetic-screening-tool-81w16p`; antes do envio, o coordenador confere no painel do Render (Settings > Branch) que é essa mesmo, para o site atual não mudar.
-   - Nada vai para `main` nem para a branch do Render.
-2. **Conta no Resend** (o senhor).
-   - Abra **resend.com** e crie a conta **com o mesmo e-mail que vai ser o do administrador** (o seu).
-   - **Não** precisa adicionar domínio agora.
-   - Em **API Keys > Create API Key**, crie uma chave com **Sending access** e copie (começa com `re_`; só aparece uma vez).
-3. **Colar a chave no cofre:** o bloco do passo 7.3.
-4. **Ligar o Cloud Run ao GitHub:** passo 8.1, escolhendo a branch `claude/login-com-senha-d75125`. A primeira publicação aparece com erro vermelho, como esperado.
-5. **Entregar as configurações:** o bloco do passo 8.2, **com duas diferenças**:
-   - apague o trecho `,MAIL_FROM=OncoGenYX <acesso@seudominio.com.br>` (sem ele, o e-mail sai pelo endereço de teste do Resend);
-   - em `ADMIN_EMAILS=`, ponha o mesmo e-mail da conta Resend.
-6. **Conferir:** passo 9, itens 1 a 5. O e-mail de confirmação chega com remetente `onboarding@resend.dev`; **se não aparecer em alguns minutos, procure no lixo eletrônico**.
+### Ordem exata
 
-**O que funciona e o que não funciona neste teste:**
+**1. Coordenador, com a autorização do senhor: enviar o código ao GitHub numa branch que o Render não publica.**
+- Antes, no painel do Render, **Settings > Build & Deploy > Branch**, confirmar que o Render publica só `claude/oncology-genetic-screening-tool-81w16p`.
+- Enviar a branch de trabalho com o mesmo nome dela: `claude/login-com-senha-d75125`. Nada vai para `main` nem para a branch do Render; o site atual não muda.
+
+**2. O senhor: criar a conta no Resend, sem domínio.**
+1. Abra **resend.com** e crie a conta **com o e-mail que vai ser o do administrador** (o seu). É para esse e-mail, e só para ele, que o modo de teste entrega.
+2. Não adicione domínio agora.
+3. Em **API Keys > Create API Key**, crie uma chave com **Sending access** e copie (começa com `re_`; só aparece uma vez).
+
+**3. O senhor: criar uma chave nova na Anthropic, só para o Cloud Run.**
+1. Abra **console.anthropic.com**, entre na conta do OncoGenYX e vá em **API Keys > Create Key**.
+2. Nome: `cloud-run-teste`. Copie a chave (começa com `sk-ant-`; só aparece uma vez).
+3. Por que uma chave nova, e não a do Render: assim, quando o Vertex entrar, apaga-se só esta, sem mexer no site atual.
+
+**4. O senhor, no Cloud Shell: guardar as duas chaves no cofre, em São Paulo.**
+Cole primeiro o bloco 4.1 (o que diz qual é o projeto). Depois cole o bloco abaixo. Ele pede uma chave de cada vez; **ao colar, nada aparece na tela, é de propósito.** Cole e aperte Enter em cada pergunta. Ninguém além do senhor vê as chaves: elas vão direto para o cofre.
+
+```bash
+read -rsp "Cole a chave do Resend (re_...) e aperte Enter: " CHAVE && echo && printf '%s' "$CHAVE" | gcloud secrets versions add resend-api-key --data-file=- > /dev/null && echo "chave do Resend guardada" ; unset CHAVE
+read -rsp "Cole a chave da Anthropic (sk-ant-...) e aperte Enter: " CHAVE && echo && printf '%s' "$CHAVE" | gcloud secrets create anthropic-api-key --data-file=- --replication-policy=user-managed --locations="$REGIAO" > /dev/null && echo "chave da Anthropic guardada" ; unset CHAVE
+```
+
+Resposta esperada: `chave do Resend guardada` e `chave da Anthropic guardada`.
+
+**5. O senhor, no console: ligar o Cloud Run ao GitHub.**
+Siga o passo 8.1 inteiro, escolhendo a branch `claude/login-com-senha-d75125`. A primeira publicação aparece com erro vermelho, como esperado.
+
+**6. O senhor, no Cloud Shell: entregar as configurações da versão de teste.**
+Use **este bloco, e não o do passo 8.2**. Antes de colar, troque `seu-email@exemplo.com.br` pelo mesmo e-mail da conta Resend.
+
+```bash
+URL="$(gcloud run services describe oncogenyx --region="$REGIAO" --format='value(status.url)')"
+echo "Endereço do site: $URL"
+gcloud run services update oncogenyx --region="$REGIAO" \
+  --service-account="oncogenyx-app@$PROJETO.iam.gserviceaccount.com" \
+  --add-cloudsql-instances="$PROJETO:$REGIAO:oncogenyx-db" \
+  --memory=1Gi --cpu=1 --concurrency=20 --timeout=300 --min-instances=0 --max-instances=3 \
+  --set-env-vars="NODE_ENV=production,AUTH_MODE=completo,IA_PROVEDOR=anthropic,DATABASE_SSL=off,APP_ORIGIN=$URL,ADMIN_EMAILS=seu-email@exemplo.com.br" \
+  --set-secrets="DATABASE_URL=database-url:latest,CHAVE_CIFRA=chave-cifra:latest,SESSION_SECRET=session-secret:latest,RESEND_API_KEY=resend-api-key:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest"
+```
+
+O que muda em relação ao 8.2: `IA_PROVEDOR=anthropic` com o cofre da Anthropic, e **sem** `MAIL_FROM` (sem ele, o e-mail sai pelo endereço de teste do Resend, `onboarding@resend.dev`).
+
+**7. O senhor: conferir.**
+1. Abra o endereço do site com `/api/health` no fim. Deve aparecer `"ok":true`, `"storage":"postgres"`, `"ia":"anthropic"` e `"email":"configurado"`.
+2. Abra o site, toque em **Criar acesso** e crie a conta **com o e-mail da conta Resend**. Marque as duas caixas.
+3. O e-mail de confirmação chega de `onboarding@resend.dev`. **Se não aparecer em alguns minutos, procure no lixo eletrônico.** Toque em **Confirmar meu e-mail**.
+4. Faça o resto do passo 9 (Minha conta, conferir o IP, conferir o próprio CRM).
+5. Faça um caso **fictício** (o exemplo que aparece no campo do caso serve) e veja o resultado chegar.
+
+**O que funciona e o que não funciona na versão de teste:**
 
 | Funciona | Ainda não |
 |---|---|
 | Criar acesso, confirmar e-mail, entrar, sair, esqueci a senha, trocar senha | E-mail para qualquer pessoa além do senhor |
-| Minha conta, baixar dados, excluir conta, conferência de CRM | Leitura de laudo e Gena, **até o Google aprovar a cota do Claude** (passo 5.1) |
-| Banco de dados em São Paulo, contas que não somem mais | Endereço com o domínio do OncoGenYX (seção 9.1) |
+| Minha conta, baixar dados, excluir conta, conferência de CRM | Laudo de paciente real (só casos fictícios, pela regra acima) |
+| Leitura de caso e Gena, pela API direta | Endereço com o domínio do OncoGenYX (seção 9.1) |
+| Banco em São Paulo: as contas não somem mais | |
 
-**Depois do teste, para abrir aos médicos:** registrar o domínio e verificá-lo no Resend (passos 7.1 e 7.2) e colocar o `MAIL_FROM` com o domínio de volta. Comando, depois de colar o bloco 4.1:
+### Quando a cota do Claude sair: trocar para o Google
+
+1. Repita o teste do passo 5. A resposta tem de trazer o "ok".
+2. Cole o bloco 4.1 e depois este, que troca a IA para o Google e desliga a chave da Anthropic do servidor:
+
+```bash
+gcloud run services update oncogenyx --region="$REGIAO" \
+  --update-env-vars="IA_PROVEDOR=vertex,VERTEX_PROJETO=$PROJETO,VERTEX_REGIAO=us" \
+  --remove-secrets=ANTHROPIC_API_KEY
+```
+
+3. Abra `/api/health`: deve mostrar `"ia":"vertex us"`. O Aviso de Privacidade do site passa sozinho a dizer que o envio vai pelo Google Cloud, sob as cláusulas da ANPD.
+4. Em **console.anthropic.com**, apague a chave `cloud-run-teste`.
+
+### Quando houver domínio: e-mail para todos os médicos
+
+Faça os passos 7.1 e 7.2 (domínio e verificação no Resend) e depois, com o bloco 4.1 já colado:
 
 ```bash
 gcloud run services update oncogenyx --region="$REGIAO" --update-env-vars="MAIL_FROM=OncoGenYX <acesso@seudominio.com.br>"
 ```
 
-Não precisa refazer nada do resto. Antes de chamar médicos, também é preciso a cota aprovada e a bateria de laudos reais pelo Google.
+**Antes de chamar médicos de verdade:** cota do Claude aprovada e trocada para o Google, domínio verificado no Resend, e a bateria de laudos reais rodada pelo Google.
 
 ## 7. Domínio e e-mail (fora do Google)
 
