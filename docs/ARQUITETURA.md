@@ -4349,3 +4349,185 @@ em linha própria** no documento. Isso não é campo administrativo: a lista de
 genes já existe dentro do nome do teste, e extraí-la para uma linha própria é
 o que dá sentido a um código de procedimento genérico quando o convênio for
 analisar. Entra como melhoria de produto, não como pendência de auditoria.
+
+---
+
+## 38.4 a 38.9 — As seis decisões de curadoria
+
+**Decididas pelo dono em 20/10/2026**, a partir do levantamento em
+`docs/decisoes-de-curadoria.html`, em resposta à auditoria externa
+AV-ONCOGENYX-2026-10-18 e à verificação interna.
+
+> **Ressalva de método, registrada antes dos critérios.** As diretrizes
+> primárias (NCCN; texto integral da ASCO-SSO) são de acesso restrito e não
+> foram abertas na elaboração deste levantamento. As posições abaixo vêm de
+> fontes secundárias consistentes entre si — resumos oficiais das sociedades,
+> revisões e material das próprias entidades. **Antes de a plataforma ser
+> usada por médico fora deste projeto, cada critério precisa de conferência no
+> texto primário.** Nenhum número foi inventado; o que não foi possível
+> confirmar está marcado como tal.
+
+### 38.4 Mama — corte etário permanece em 50, mas deixa de ser silencioso
+
+**Decisão: manter o gatilho do NCCN (≤ 50 anos) e tornar a divergência
+visível.**
+
+O motor mantém `idade <= 50` como gatilho isolado, por coerência com §38.1
+(NCCN soberano). O que muda é o silêncio: o caso de 51 a 65 anos, luminal,
+doença inicial e sem história familiar saía como "sem indicação", seco, sem
+dizer que existe uma recomendação internacional relevante em sentido
+contrário.
+
+Passa a sair com nota visível nomeando a divergência: NCCN não indica por
+idade isolada acima de 50; ASCO-SSO 2024 recomenda oferecer BRCA1/2 a todo
+paciente diagnosticado aos 65 anos ou menos, estágio I–III ou IV de novo,
+independentemente das características do tumor. A decisão volta ao médico que
+assina — que é onde ela deve estar.
+
+> Fonte: ASCO-SSO, *Germline Testing in Patients With Breast Cancer*, JCO,
+> jan/2024. O corte de 65 foi escolhido por ser a idade em que o equilíbrio
+> entre sensibilidade e especificidade foi melhor, independentemente das
+> características do tumor. A ASBrS recomenda teste universal, sem corte —
+> registrado como terceira posição, não adotada.
+
+### 38.5 Mama — ascendência Ashkenazi passa a ser coletada e é gatilho
+
+**Decisão: implementar. Aqui não há divergência entre corpos.**
+
+O NCCN já trata ascendência Ashkenazi como critério independente, e em
+paciente **com** câncer de mama **nenhuma história familiar adicional é
+necessária** para atender ao critério. O motor simplesmente não coletava o
+dado — assimetria interna, já que o campo existe e é gatilho em próstata.
+
+O campo entra em mama com a mesma redação da próstata, e aciona o painel
+germinativo.
+
+> Fonte: NCCN Genetic/Familial High-Risk Assessment: Breast, Ovarian and
+> Pancreatic, versão vigente. Ascendência definida por ao menos um avô.
+> **Não implementado, e registrado como escolha:** o NCCN orienta testar
+> primeiro as três variantes fundadoras (185delAG e 5382insC em BRCA1;
+> 6174delT em BRCA2) e, se negativas, considerar painel completo. Isso é
+> instrução de *como* testar, não de *se* testar; a plataforma indica o painel
+> multigênico e não desce a esse nível. Reavaliar se a curadoria quiser.
+
+### 38.6 Endométrio — HER2 por imuno-histoquímica entra como NOTA, não como teste
+
+**Decisão: incluir, sem alargar o escopo do produto.**
+
+A pergunta aqui não era clínica — o NCCN recomenda HER2 para seroso ou
+carcinossarcoma avançado ou metastático, sem ambiguidade. A pergunta era de
+escopo: HER2 por IHQ **não é teste genético**, e a plataforma se apresenta
+como triagem de teste genético.
+
+Resolução: HER2 não vira card de teste ao lado do painel. Vira **nota de
+ação**, o mesmo mecanismo que o motor já usa para a metilação de MLH1 em
+colorretal. O médico recebe o que muda a conduta, e o produto continua dizendo
+com precisão o que é e o que não é.
+
+**Razão clínica acrescentada pelo dono, e que reforça a decisão:** HER2 não
+define só elegibilidade a trastuzumabe somado à quimioterapia — define também
+acesso a trastuzumabe-deruxtecana (T-DXd), com taxa de resposta alta.
+
+> Fontes: NCCN Uterine Neoplasms, versão vigente — HER2 recomendado em seroso
+> ou carcinossarcoma avançado/metastático; carboplatina/paclitaxel +
+> trastuzumabe para seroso HER2-positivo III/IV ou recorrente.
+> HER2-positivo = IHQ 3+, ou 2+ com amplificação de ERBB2 por FISH.
+>
+> T-DXd: DESTINY-PanTumor02 (JCO, DOI 10.1200/JCO.23.02005). **Taxa de
+> resposta objetiva confirmada de 84,6% em endométrio com HER2 IHQ 3+ por
+> teste central — mas n = 13, com intervalo de confiança de 95% em torno de
+> 55% a 98%.** O sinal é forte; a precisão não é. Na coorte endometrial
+> inteira (n = 40) a taxa foi de 57,5%; em IHQ 2+, cerca de 47%.
+>
+> **Dado que importa para a prática e não entra na nota da tela, por ser
+> nuance demais para uma linha:** a concordância entre o HER2 local e o
+> central foi de 64,3% nos IHQ 3+ de endométrio. Um terço dos casos chamados
+> 3+ localmente não se confirmou. Registrado aqui para quem for escrever
+> material de apoio.
+
+### 38.7 Pulmão — PD-L1 passa a ser nomeado na doença metastática
+
+**Decisão: nomear, pelo mesmo mecanismo do §38.6.**
+
+Era assimetria interna do motor: o card de doença ressecável nomeia PD-L1 e o
+de metastática não — embora PD-L1 seja **mais** decisivo na metastática.
+
+O card do painel amplo lista nove genes e dá a impressão de cobrir o que
+precisa ser pedido. Não cobre: PD-L1 é proteína, detectada por
+imuno-histoquímica, e **não é capturada por painel de sequenciamento**. O
+médico que confiar no card pode iniciar primeira linha sem PD-L1 — que é
+justamente o que define a conduta quando não há driver acionável.
+
+Nota de ação, com a ressalva do método.
+
+> Fontes: NCCN NSCLC v4.2026 — estabelecer subtipo histológico e fazer teste
+> de biomarcadores antes de iniciar terapia sistêmica; sem driver acionável, o
+> nível de PD-L1 guia a escolha de primeira linha. Pembrolizumabe exige teste
+> aprovado por agência regulatória — não serve qualquer anticorpo.
+
+### 38.8 Colorretal dMMR — um painel germinativo, e a metilação vira pedido
+
+**Decisão: três mudanças, e só a primeira é de critério.**
+
+**(a) Unificar os dois painéis germinativos.** O motor emitia painel
+multigênico **e** painel de Lynch no mesmo resultado, e o multigênico já
+contém os genes de Lynch. As sociedades não dizem que ambos devem ser pedidos:
+NSGC e CGA-ICC registram dados insuficientes para preferir um ao outro ou os
+dois juntos, e a prática corrente favorece o painel multigênico sobre testes
+sequenciais de gene único. Dois pedidos sobrepostos custam dinheiro e fila em
+oncogenética sem acrescentar gene nenhum.
+
+**(b) Emitir a metilação do promotor de MLH1 como teste de verdade.** Era
+defeito, não critério: a nota mandava fazer a metilação **antes** do
+germinativo, e o passo um não tinha card, não tinha amostra e não entrava no
+pedido impresso. O médico lia "faça antes" e não tinha o que assinar.
+
+**(c) O selo de prioridade segue a ordem clínica.** Também defeito: o selo
+estava no painel germinativo, que é o teste que a nota manda adiar. Introduzido
+pelo próprio commit de correção do §70, que resolveu "dois prioritários" e
+criou "o prioritário errado" — o invariante codificado era "no máximo um", e
+faltava "o prioritário não pode ser o que a nota manda adiar".
+
+> Fontes: NCCN Genetics/Colorectal — distingue painel multigênico (mais de um
+> gene) de teste síndrome-específico; com perda de MLH1, BRAF V600E e/ou
+> metilação do promotor primeiro, BRAF mutado sugere esporádico, BRAF selvagem
+> sem metilação segue para germinativo. NSGC e CGA-ICC: dados insuficientes
+> para preferir um painel.
+>
+> **A confirmar no texto primário:** se BRAF e metilação são alternativas ou
+> sequenciais na versão vigente, e em que ponto exato o germinativo entra em
+> paciente jovem.
+
+### 38.9 Ovário — o grau pode vir da histologia, com três travas
+
+**Decisão: inferir quando o texto nomeia a entidade de forma inequívoca.**
+
+O carcinoma seroso de ovário tem **duas categorias apenas** — baixo grau e
+alto grau —, e o grau é parte do **nome da entidade**, não um atributo
+separado. São doenças biologicamente distintas: alto grau com instabilidade
+cromossômica alta e TP53 mutado; baixo grau com KRAS, BRAF, ERBB2. Pedir
+confirmação de algo que o próprio texto afirma é fricção sem ganho.
+
+**As três travas, que são o que torna isto seguro:**
+
+1. **Modalizador cancela a inferência.** "Provavelmente de alto grau",
+   "favorece alto grau", "sugestivo de", qualquer "?" — não infere, mantém o
+   campo pendente. Aí é inferência de verdade, e o motor não faz inferência de
+   laudo.
+2. **O grau inferido é marcado como inferido na tela**, do mesmo modo que a
+   leitura da IA já marca o que inferiu.
+3. **O documento diz a origem** — "alto grau, conforme a histologia
+   informada". Nunca afirma sem dizer de onde veio.
+
+Isto **não** afrouxa a regra vizinha, que continua valendo e é diferente:
+nunca deduzir grau a partir do **estágio**. Grau e estágio são eixos
+independentes; histologia e grau, na entidade serosa, não são.
+
+**Corrigido independentemente da decisão, por ser defeito:** o documento
+assinado imprimia "Carcinoma seroso **de alto grau** de ovário **com grau a
+confirmar** no laudo". A mesma frase afirmava e desmentia.
+
+> Fontes: WHO Classification of Female Genital Tumours, 5ª ed. (2020) —
+> sistema de dois níveis para carcinoma seroso. Reclassificação do GOG-158
+> pelo sistema de dois níveis: separa populações com sobrevida distinta.
+> Base molecular distinta entre alto e baixo grau.
