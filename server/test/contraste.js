@@ -151,6 +151,20 @@ async function medirTema(pagina, tema, entrar) {
   await pagina.emulateMedia({ colorScheme: tema === 'dark' ? 'dark' : 'light' });
   await pagina.evaluate((t) => document.documentElement.setAttribute('data-theme', t), tema);
   await pagina.waitForTimeout(120);
+  /* §92. Esperar as TRANSIÇÕES de cor terminarem. Superfícies levam 160ms
+   * para trocar de tema, e os 120ms acima às vezes não bastavam: a medida
+   * pegava o fundo no meio do caminho e reprovava ".field label" com
+   * 3,80:1 em uma rodada de sete, sem defeito nenhum na tela. Medição no
+   * meio do voo ensina a ignorar o teste (§67.6). Animações infinitas (o
+   * esqueleto) ficam de fora, senão a espera nunca termina. */
+  // Teto de 1s: animação pausada nunca termina, e a espera não pode travar a bateria.
+  await pagina.evaluate(() => Promise.race([
+    Promise.all(document.getAnimations()
+      .filter((a) => a.playState === 'running')
+      .filter((a) => { const t = a.effect && a.effect.getTiming ? a.effect.getTiming() : {}; return t.iterations !== Infinity; })
+      .map((a) => a.finished.catch(() => {}))),
+    new Promise((r) => setTimeout(r, 1000)),
+  ]));
 
   const resultados = [];
   for (const alvo of ALVOS) {
@@ -333,6 +347,9 @@ if (require.main === module) {
     console.log('');
     if (reprovados.length) {
       console.log(`REPROVARAM: ${reprovados.length}`);
+      // A lista acima mostra uma medida por alvo; a reprovada pode ser uma
+      // repetição do mesmo alvo em outra tela. Nomeia cada uma.
+      reprovados.forEach((r) => console.log(`  ✗ [${r.tema}] ${r.seletor} ${r.razao.toFixed(2)}:1 (mín ${r.minimo}) ${r.texto ? `"${String(r.texto).slice(0, 40)}"` : ''}`));
       process.exit(1);
     }
     console.log(`Contraste WCAG AA: ${vistos.size} medições, todas aprovadas, nos dois temas.`);

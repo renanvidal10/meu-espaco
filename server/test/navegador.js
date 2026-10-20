@@ -1220,6 +1220,38 @@ async function rodar(nome, dispositivo) {
       'nenhum critério, data ou "parceiro" aparece nos programas');
     linha(ok(tela.nomes.includes('Life Genomics'), `nomes: ${tela.nomes.join(' / ')}`),
       'o germinativo aparece só como "Life Genomics"');
+
+    /* §92. Fleury e Dasa depois da Life, nessa ordem, no germinativo. */
+    const posLife = tela.nomes.indexOf('Life Genomics');
+    linha(ok(posLife >= 0 && tela.nomes[posLife + 1] === 'Fleury Genômica' && tela.nomes[posLife + 2] === 'Dasa Genômica',
+      `ordem: ${tela.nomes.join(' / ')}`),
+    'Fleury Genômica e Dasa Genômica vêm depois da Life Genomics');
+
+    /* §92. Ícone, nome com selo e botão centrados na mesma linha. Mede o
+     * centro vertical de cada caixa; no celular o botão desce para a linha
+     * de baixo, então a conta vale para ícone e nome. Inclui um nome longo
+     * de propósito, para ver que a quebra não desalinha. */
+    const desalinhados = await p.evaluate(() => {
+      const fora = [];
+      const linhasProg = Array.from(document.querySelectorAll('#programs-dynamic .program-row'));
+      const longo = linhasProg[0].querySelector('.name').firstChild;
+      const original = longo.textContent;
+      longo.textContent = 'Programa com um nome bem comprido para obrigar a quebra de linha (Indústria)';
+      linhasProg.forEach((l) => {
+        const centro = (el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; };
+        const logo = l.querySelector('.logo');
+        const nome = l.querySelector('.who > div');
+        const acao = l.querySelector(':scope > a.link, :scope > .link-ausente');
+        const nomeTxt = l.querySelector('.name').textContent.trim().slice(0, 24);
+        if (Math.abs(centro(logo) - centro(nome)) > 2) fora.push(`${nomeTxt}: ícone e nome a ${Math.round(Math.abs(centro(logo) - centro(nome)))}px`);
+        const naMesmaLinha = acao && Math.abs(acao.getBoundingClientRect().top - nome.getBoundingClientRect().top) < nome.getBoundingClientRect().height;
+        if (acao && naMesmaLinha && Math.abs(centro(acao) - centro(nome)) > 2) fora.push(`${nomeTxt}: botão e nome a ${Math.round(Math.abs(centro(acao) - centro(nome)))}px`);
+      });
+      longo.textContent = original;
+      return fora;
+    });
+    linha(ok(desalinhados.length === 0, desalinhados.slice(0, 3).join(' | ')),
+      'ícone, nome e botão do programa centrados na mesma linha');
     await p.close();
   }
 

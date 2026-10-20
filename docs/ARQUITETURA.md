@@ -5141,3 +5141,105 @@ injetado) e lê do próprio PDF onde o texto começa e termina: exige pelo menos
 longos. **Provada**: com a versão publicada (e76415b) reprova acusando
 "esquerda 0.0mm" no app e "esquerda 0.0mm, direita 0.1mm" no arquivo baixado,
 que é a folha que o dono recebeu.
+
+## 91. Amostra do teste germinativo: sangue ou saliva (decidido em 20/10/2026)
+
+O dono notou que os testes germinativos diziam só "Sangue periférico", e o
+painel germinativo também é feito em saliva (swab bucal).
+
+**Fontes** (consultadas em 20/10/2026):
+- Fleury Genômica, Painel de Câncer Hereditário Expandido (87 genes):
+  *"Material: Swab/saliva ou sangue"*
+  (fleurygenomica.com.br/exames/painel-de-cancer-hereditario-expandido/);
+- Dasa Genômica, Painel NGS Câncer Colorretal Hereditário Ampliado: tipo de
+  amostra "Sangue" e "Swab", com auto-coleta de saliva por swab oral;
+- Meghnani V et al. *Performance Characterization and Validation of Saliva as
+  an Alternative Specimen Source for Detecting Hereditary Breast Cancer
+  Mutations by Next Generation Sequencing.* Int J Genomics, 2016: 98% de
+  concordância de variantes entre saliva e sangue pareados (BRCA1/2);
+- a ressalva: Perani A et al. *Hereditary predisposition to malignant myeloid
+  hemopathies: caution in use of saliva.* Front Oncol 13:1120829, 2023. Em
+  neoplasia hematológica a saliva vem infiltrada por células tumorais, e após
+  transplante alogênico é preciso DNA de fibroblasto de pele.
+
+O texto da NCCN Genetic/Familial High-Risk Assessment exige login e não foi lido
+diretamente; a decisão se apoia nas fontes acima.
+
+**Critério exato.** Todo teste germinativo do registro passa a dizer
+"Sangue periférico ou saliva (swab bucal)" (constante `AMOSTRA_GERMINATIVA` em
+`tumors.js`), na tela, na prévia do documento, no pedido impresso e no arquivo
+baixado. **A ressalva não é mostrada** porque não se aplica a nenhum caso do
+produto: todos os tumores do registro são sólidos. Ela depende de condição do
+paciente (doença hematológica ativa, transplante de medula alogênico,
+transfusão recente) que a triagem não coleta. Fica registrada aqui para quando
+o produto cobrir tumor hematológico.
+
+O pedido continua em uma folha e dentro da meia página (134mm, §87 e §90).
+
+**Trava:** `regras.test.js` exige a amostra exata em todos os testes
+germinativos de seis tumores; a auditoria clínica já aceitava "sangue ou
+saliva" como amostra germinativa.
+
+## 92. Fleury Genômica e Dasa Genômica, e o cartão de programa centrado (20/10/2026)
+
+### 92.1 Os dois laboratórios
+
+Pedido do dono: *"Adicionar Fleury Genômica e Dasa Genômica embaixo da Life
+Genomics como mais 2 fornecedores e redirecionar ao site deles também."*
+
+Regra 2 do CLAUDE.md: laboratório só entra num tumor com verificação
+documentada. Conferido em 20/10/2026, no site oficial de cada um:
+
+**Fleury Genômica.** A página da marca no site do grupo
+(grupofleury.com.br/nossas-marcas/fleury-genomica) aponta para
+fleurygenomica.com.br. Lá, o Painel de Câncer Hereditário Expandido (87 genes)
+lista, conferidos um a um, todos os genes que os testes germinativos deste
+registro pedem: BRCA1/2, PALB2, RAD51C, RAD51D, BRIP1, ATM, CHEK2, HOXB13,
+CDKN2A, STK11, TP53, PTEN, CDH1, APC, MUTYH, BMPR1A, SMAD4 e MLH1, MSH2, MSH6,
+PMS2, EPCAM. **Cobertura:** ovário, mama, próstata, pâncreas, colorretal e
+endométrio. **Endereço:** a página desse painel.
+
+**Dasa Genômica.** O site declara *"Fazemos parte da Dasa"* (dasagenomica.com/sobre).
+A página de Oncologia (oncogenética) descreve o painel de mama e ovário
+hereditário, e há páginas de exame para os painéis hereditários de colorretal,
+pâncreas e próstata. **Cobertura:** ovário, mama, colorretal, pâncreas e
+próstata. **Endométrio fica de fora:** não há painel de Lynch ou de endométrio
+nomeado, e a lista de genes dos painéis da Dasa é carregada só no navegador e
+não pôde ser lida. Incluir endométrio pelo painel colorretal seria analogia.
+**Endereço:** a página de Oncologia, que reúne os painéis.
+
+**Como aparecem.** Iguais à Life Genomics: nome e "Abrir portal", sem selo de
+parceria (§89). Entram pela mesma garantia que liga a Life a todo teste
+germinativo, agora filtrada pela cobertura de cada um, e nunca em teste
+somático.
+
+**Ordem.** `ORDEM_LABORATORIO` em `tumors.js`: Life, Fleury, Dasa, como o dono
+pediu. A regra anterior ordenava os laboratórios por nome e colocaria a Dasa
+primeiro. Como a `ORDEM_INDUSTRIA` (§56.3), é escolha de produto e não ranking
+clínico.
+
+**Travas:** `regras.test.js` exige a ordem, a cobertura de cada laboratório,
+a ausência da Dasa no endométrio e a ausência de laboratório no HRD somático;
+o navegador confere a ordem na tela de programas.
+
+### 92.2 O cartão centrado
+
+Com o cartão reduzido a ícone, nome com selo e botão (§89), o alinhamento ao
+topo do §57.5 deixava o botão mais baixo que o nome. Agora os três ficam
+centrados na mesma linha. No celular o botão desce para a linha de baixo, e
+ícone e nome ficam centrados entre si mesmo quando o nome quebra em duas
+linhas. Havia uma regra de celular do tempo em que a linha era flex
+(`align-items: flex-start`) que anulava o centro: saiu.
+
+**Trava:** o navegador mede o centro vertical de ícone, nome e botão em cada
+cartão, com um nome longo forçado para quebrar, nos dois aparelhos (até 2px).
+
+### 92.3 Uma instabilidade da bateria de contraste
+
+Ao rodar a bateria, `.field label` reprovou com 3,80:1 em uma rodada de sete,
+e passou nas outras seis, sem mudança no código. A troca de tema esperava
+120ms, e superfícies levam 160ms para mudar de cor: às vezes o fundo era
+medido no meio da transição. A bateria agora espera as transições terminarem
+(com teto de 1s, porque animação pausada nunca termina) e, quando reprova,
+nomeia cada medida reprovada. Antes ela mostrava só a primeira medida de cada
+alvo e escondia a que tinha reprovado.

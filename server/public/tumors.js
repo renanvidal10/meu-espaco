@@ -431,6 +431,18 @@
     fonte: 'Programa RAStrear (Amgen Biotecnologia do Brasil, operado pela Interplayers): colorretal metastático estágio IIIb e IV, KRAS/NRAS/BRAF em painel fechado, voucher por consultor. Endereço aberto e conferido em 16/10/2026.',
   };
 
+  /* §91. Amostra do teste germinativo: sangue OU saliva. Fontes: material
+   * aceito pelos laboratórios listados ("Swab/saliva ou sangue", Fleury
+   * Genômica, painel de câncer hereditário expandido; sangue ou swab oral,
+   * Dasa Genômica, painéis hereditários) e validação de saliva contra sangue
+   * em sequenciamento germinativo (Meghnani et al., Int J Genomics 2016: 98%
+   * de concordância em BRCA1/2). Ressalva da literatura (Perani et al., Front
+   * Oncol 2023): em neoplasia hematológica ativa ou após transplante
+   * alogênico, sangue e saliva não refletem a linhagem germinativa. Nenhum
+   * tumor deste registro é hematológico, então a ressalva não se aplica a
+   * nenhum teste aqui. Ver ARQUITETURA §91. */
+  const AMOSTRA_GERMINATIVA = 'Sangue periférico ou saliva (swab bucal)';
+
   const LIFE_GENOMICS = {
     // §89. Sem "laboratório parceiro" no nome: decisão do dono, para não
     // sugerir ganho da plataforma com o laboratório.
@@ -444,6 +456,46 @@
     verificadoEm: '2026-10-16',
     fonte: 'Laboratório comercial brasileiro de oncogenética, cobertura ampla.',
   };
+
+  /* §92. Mais dois laboratórios para o painel germinativo, pedido do dono,
+   * listados depois da Life Genomics. Regra 2 do CLAUDE.md: cada tumor só
+   * entra na cobertura com verificação documentada no site oficial, nunca por
+   * analogia. Conferido em 20/10/2026. */
+  const FLEURY_GENOMICA = {
+    name: 'Fleury Genômica',
+    tipo: 'laboratorio',
+    note: 'Painel de Câncer Hereditário Expandido (87 genes). Material: swab/saliva ou sangue.',
+    url: 'https://www.fleurygenomica.com.br/exames/painel-de-cancer-hereditario-expandido/',
+    // O painel de 87 genes inclui todos os genes que os testes germinativos
+    // deste registro pedem (BRCA1/2, PALB2, RAD51C/D, BRIP1, ATM, CHEK2,
+    // HOXB13, CDKN2A, STK11, TP53, PTEN, CDH1, APC, MUTYH, BMPR1A, SMAD4 e os
+    // genes de Lynch), conferidos um a um na página do exame.
+    cobertura: ['ovario', 'prostata', 'mama', 'pancreas', 'colorretal', 'endometrio'],
+    amostra: 'sangue',
+    verificadoEm: '2026-10-20',
+    fonte: 'fleurygenomica.com.br, página do Painel de Câncer Hereditário Expandido (87 genes, lista de genes e material). O site é o indicado pela página da marca Fleury Genômica em grupofleury.com.br/nossas-marcas/fleury-genomica.',
+  };
+
+  const DASA_GENOMICA = {
+    name: 'Dasa Genômica',
+    tipo: 'laboratorio',
+    note: 'Painéis hereditários por tumor: mama e ovário, colorretal, pâncreas e próstata. Material: sangue ou swab oral.',
+    url: 'https://dasagenomica.com/areas-de-atuacao/oncologia/',
+    // Só os tumores com painel hereditário NOMEADO no site oficial. Endométrio
+    // fica de fora: não há painel de Lynch ou de endométrio nomeado, e a lista
+    // de genes do painel colorretal não é legível fora do navegador.
+    cobertura: ['ovario', 'mama', 'colorretal', 'pancreas', 'prostata'],
+    amostra: 'sangue',
+    verificadoEm: '2026-10-20',
+    fonte: 'dasagenomica.com: página de Oncologia (painel de câncer de mama e ovário hereditário), e as páginas dos exames Painel NGS Câncer Colorretal Hereditário Ampliado, Painel NGS para Câncer de Pâncreas Hereditário e Painel NGS para Câncer de Próstata Hereditário. A página Sobre declara: "Fazemos parte da Dasa".',
+  };
+
+  /* §92. Ordem dos laboratórios, escolhida pelo dono (Life, depois Fleury,
+   * depois Dasa). Mesma lógica da ORDEM_INDUSTRIA (§56.3): é escolha de
+   * produto, não ranking clínico, e mora numa lista nomeada para ser
+   * auditável. */
+  const ORDEM_LABORATORIO = ['Life Genomics', 'Fleury Genômica', 'Dasa Genômica'];
+  const LABORATORIOS_GERMINATIVOS = [FLEURY_GENOMICA, DASA_GENOMICA];
   /* Os cinco endereços mostrados ao médico foram ABERTOS e conferidos em
      16/10/2026. A distinção importa: até então eles constavam como
      "verificados por busca", o que prova que a página existe e tem aquele
@@ -635,7 +687,7 @@
         // rastreio familiar e, em parte, elegibilidade a PARP. Os quatro
         // pareceres externos apontaram este mesmo ponto. Ver §37.
         name: 'Painel germinativo multigênico (BRCA1/2, RAD51C, RAD51D, BRIP1, PALB2 e genes de Lynch)',
-        sample: 'Sangue periférico', order: 'Sangue · germinativo',
+        sample: AMOSTRA_GERMINATIVA, order: 'Sangue · germinativo',
         description: 'Investiga predisposição hereditária, independente do resultado tumoral. Cerca de 20% das variantes patogênicas em ovário estão fora de BRCA1/2: restringir o painel a BRCA deixa essas portadoras sem diagnóstico e sem rastreio em cascata na família.',
         justify: 'Todo carcinoma epitelial invasivo de ovário, tuba uterina ou peritônio tem indicação de painel germinativo de predisposição hereditária ao diagnóstico, independentemente de idade e de histórico familiar.',
         programs: [LIFE_GENOMICS],
@@ -848,7 +900,7 @@
       const germinativo = {
         id: 'germinativo-prostata', kind: 'germinativo',
         name: 'Painel germinativo (BRCA1/2, ATM, CHEK2, PALB2, HOXB13, MMR)',
-        sample: 'Sangue periférico', order: 'Sangue · germinativo',
+        sample: AMOSTRA_GERMINATIVA, order: 'Sangue · germinativo',
         description: 'Investiga mutação hereditária, independente do resultado tumoral.',
         // Preenchida em cada ramo com o critério REAL. O texto genérico que
         // estava aqui ia impresso na solicitação e não justificava nada: dizia
@@ -1049,7 +1101,7 @@
       const germinativo = {
         id: 'germinativo-mama', kind: 'germinativo',
         name: 'Painel germinativo (BRCA1/2, PALB2 e genes de alto risco)',
-        sample: 'Sangue periférico', order: 'Sangue · germinativo', primary: true,
+        sample: AMOSTRA_GERMINATIVA, order: 'Sangue · germinativo', primary: true,
         stat: 'BRCA1/2 germinativo define elegibilidade a inibidor de PARP',
         description: 'Investiga mutação hereditária. Além de orientar rastreio familiar em cascata, define elegibilidade a inibidor de PARP em cenário adjuvante (alto risco, HER2-negativo) e metastático.',
         justify: `Critério atendido: ${motivos.join('; ')}. Indicação de teste germinativo com impacto em elegibilidade terapêutica e em rastreio familiar em cascata.`,
@@ -1178,7 +1230,7 @@
         // APC e RAD51C/D, todos com conduta de rastreio própria. TP53 NÃO
         // entra: não está na lista do NCCN. Ver §40.1.
         name: 'Painel germinativo (BRCA1/2, PALB2, ATM, CDKN2A, STK11, APC, RAD51C/D e genes de Lynch)',
-        sample: 'Sangue periférico', order: 'Sangue · germinativo', primary: true,
+        sample: AMOSTRA_GERMINATIVA, order: 'Sangue · germinativo', primary: true,
         stat: 'Indicação universal: todo adenocarcinoma ductal, em qualquer estágio',
         description: 'Indicado para todo paciente com adenocarcinoma ductal de pâncreas, independente de idade, estágio ou histórico familiar. Histórico familiar isolado não identifica a maioria dos portadores. O painel cobre os genes clinicamente acionáveis: além de BRCA1/2, PALB2 e ATM, inclui CDKN2A (melanoma), STK11 (Peutz-Jeghers), APC e RAD51C/D, cada um com conduta de rastreio própria na família.',
         justify: 'Adenocarcinoma ductal de pâncreas tem indicação de teste germinativo ao diagnóstico, independente de estágio ou histórico familiar.',
@@ -1297,7 +1349,7 @@
            * "o prioritário não pode ser o que a nota manda adiar", e por
            * isso a auditoria de 67.284 combinações não pegou. Agora, em dMMR,
            * quem lidera é a metilação; sem dMMR, vale a regra do §70. */
-          sample: 'Sangue periférico', order: 'Sangue · germinativo · prioridade', primary: mmrFeito && !dmmr,
+          sample: AMOSTRA_GERMINATIVA, order: 'Sangue · germinativo · prioridade', primary: mmrFeito && !dmmr,
           // A estatística é de série prospectiva NÃO selecionada por idade nem
           // por história familiar (15,5% de 361 pacientes, Uson Jr. et al.,
           // Clin Gastroenterol Hepatol 2022), vale para colorretal em geral,
@@ -1320,7 +1372,7 @@
           tests.push({
             id: 'germinativo-crc-familiar', kind: 'germinativo',
             name: 'Painel germinativo multigênico (APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11)',
-            sample: 'Sangue periférico', order: 'Sangue · germinativo',
+            sample: AMOSTRA_GERMINATIVA, order: 'Sangue · germinativo',
             description: 'História familiar oncológica relevante atende aos critérios de avaliação de risco genético, independentemente da idade e do status de MMR.',
             justify: `Carcinoma colorretal${idade !== null ? ` aos ${idade} anos` : ''} com história familiar oncológica relatada (${v.historico_familiar}): atende aos critérios de avaliação de risco genético, com indicação de painel germinativo multigênico independentemente do status de MMR.`,
             programs: [LIFE_GENOMICS],
@@ -1381,7 +1433,7 @@
          * único indicado: dMMR sem critério de idade precoce. */
         if (!precoce) tests.push({
           id: 'germinativo-lynch', kind: 'germinativo', name: 'Painel germinativo de Lynch (MLH1, MSH2, MSH6, PMS2, EPCAM)',
-          sample: 'Sangue periférico', order: 'Sangue · germinativo',
+          sample: AMOSTRA_GERMINATIVA, order: 'Sangue · germinativo',
           // Nem todo dMMR é Lynch, a maioria da perda de MLH1 é esporádica,
           // por metilação do promotor. Mandar todo dMMR direto ao germinativo
           // é encaminhamento indevido em volume: gera custo, fila em
@@ -1512,7 +1564,7 @@
         });
         tests.push({
           id: 'germinativo-lynch-endo', kind: 'germinativo', name: 'Painel germinativo de Lynch (MLH1, MSH2, MSH6, PMS2, EPCAM)',
-          sample: 'Sangue periférico', order: 'Sangue · germinativo',
+          sample: AMOSTRA_GERMINATIVA, order: 'Sangue · germinativo',
           description: 'Investigação germinativa após tumor com deficiência de reparo. ATENÇÃO À ORDEM: perda de MLH1/PMS2 exige primeiro metilação do promotor de MLH1. Metilado sugere causa esporádica; não metilado indica investigação germinativa. Perda de MSH2/MSH6, MSH6 isolada ou PMS2 isolada vai direto ao germinativo.',
           justify: 'Carcinoma de endométrio com deficiência de reparo (dMMR): indicação de investigação germinativa para síndrome de Lynch, após afastar causa esporádica quando houver perda de MLH1/PMS2.',
           programs: [LIFE_GENOMICS],
@@ -1714,21 +1766,29 @@
    * Foi assim que o teste da GSK sumiu do ovário (§36). A garantia mora aqui,
    * num lugar só, e vale para toda regra presente e futura.
    * ------------------------------------------------------------------ */
-  function garantirEncaminhamento(resultado) {
+  function garantirEncaminhamento(resultado, tumorId) {
     if (!resultado || !Array.isArray(resultado.tests)) return resultado;
     resultado.tests.forEach((teste) => {
       if (teste.kind !== 'germinativo') return;
-      const programas = Array.isArray(teste.programs) ? teste.programs : [];
+      let programas = Array.isArray(teste.programs) ? teste.programs : [];
       if (!programas.some((p) => p && p.name === LIFE_GENOMICS.name)) {
-        teste.programs = [LIFE_GENOMICS, ...programas];
+        programas = [LIFE_GENOMICS, ...programas];
       }
+      // §92. Os demais laboratórios entram só no tumor que cada um tem
+      // verificado (cobertura), nunca por analogia.
+      LABORATORIOS_GERMINATIVOS.forEach((lab) => {
+        if (lab.cobertura.includes(tumorId) && !programas.some((p) => p && p.name === lab.name)) {
+          programas = [...programas, lab];
+        }
+      });
+      teste.programs = programas;
     });
     return resultado;
   }
 
   function comEncaminhamento(tumor) {
     const original = tumor.classify;
-    tumor.classify = function (v) { return garantirEncaminhamento(original.call(this, v)); };
+    tumor.classify = function (v) { return garantirEncaminhamento(original.call(this, v), tumor.id); };
     return tumor;
   }
 
@@ -1955,8 +2015,10 @@
   function ordenarProgramas(programas) {
     const posicao = (p) => {
       const faixa = FAIXA[p.tipo] === undefined ? 1 : FAIXA[p.tipo];
-      const i = ORDEM_INDUSTRIA.indexOf(p.industria);
-      return { faixa, i: i < 0 ? ORDEM_INDUSTRIA.length : i, nome: String(p.industria || p.name || '') };
+      // §92. Laboratórios seguem a ORDEM_LABORATORIO, indústrias a ORDEM_INDUSTRIA.
+      const lista = p.tipo === 'laboratorio' ? ORDEM_LABORATORIO : ORDEM_INDUSTRIA;
+      const i = lista.indexOf(p.tipo === 'laboratorio' ? p.name : p.industria);
+      return { faixa, i: i < 0 ? lista.length : i, nome: String(p.industria || p.name || '') };
     };
     return (programas || []).slice().sort((a, b) => {
       const x = posicao(a);
@@ -1969,7 +2031,7 @@
 
   return {
     REGISTRY, ORDER, get, list, labels,
-    ORDEM_INDUSTRIA, ordenarProgramas,
+    ORDEM_INDUSTRIA, ORDEM_LABORATORIO, ordenarProgramas,
     fieldsOf, schemaFields, normalizar, acharTumorPorLabel, encaixarValor, isComum, CHAVES_COMUNS,
     helpers: { norm, lower, has, ehDmmr, filled, num, estadioNumero, estadioAvancado, estadioInicial, grauAlto, grauBaixo },
   };

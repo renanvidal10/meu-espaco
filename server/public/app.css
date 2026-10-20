@@ -1585,12 +1585,14 @@
 
   /* A linha era um flex com `justify-content: space-between`: o bloco de
      texto crescia até encostar no botão, e o botão subia e descia conforme o
-     texto. Grade de três colunas fixa as posições — ícone, conteúdo, ação —
-     e o alinhamento ao TOPO faz as ações de várias linhas formarem coluna. */
+     texto. Grade de três colunas fixa as posições: ícone, conteúdo, ação.
+     §92: alinhadas ao CENTRO. O alinhamento ao topo servia quando havia
+     descrição de várias linhas; com o cartão reduzido a nome e selo (§89),
+     ele deixava o botão mais baixo que o nome e o conjunto parecia torto. */
   .program-row {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: start;
+    align-items: center;
     column-gap: 14px;
     row-gap: 10px;
     padding: 16px 18px;
@@ -1607,15 +1609,14 @@
     border: 1px solid var(--accent-soft-border);
     display: flex; align-items: center; justify-content: center;
     font-size: var(--fs-sm); font-weight: 700; color: var(--accent);
-    margin-top: 1px;
   }
   .program-row .who { display: contents; }
   .program-row .who > div { grid-column: 2; grid-row: 1; min-width: 0; }
   .program-row > a.link, .program-row > .link-ausente { grid-column: 3; grid-row: 1; }
   .program-row .name {
     font-size: var(--fs-xs); font-weight: 650; color: var(--ink);
-    line-height: 1.35; margin-bottom: 5px;
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    line-height: 1.35;
+    display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap;
   }
   .program-row a.link {
     font-size: var(--fs-xs);
@@ -2367,7 +2368,6 @@
     .doc-preview .doc-row:nth-child(2),
     .doc-preview .doc-row.doc-teste-amostra { border-left: none; }
     .doc-preview { padding: 26px 22px 28px; }
-    .program-row { flex-direction: column; align-items: flex-start; gap: 12px; }
     .program-row .who { width: 100%; }
     .program-row a.link { width: 100%; justify-content: center; min-height: 44px; }
   }

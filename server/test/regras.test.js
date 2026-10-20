@@ -1694,3 +1694,50 @@ test('§38.9 a regra vizinha continua valendo: grau nunca vem do estágio', () =
   assert.strictEqual(r.state, 'provisorio',
     'estágio avançado passou a implicar alto grau — eixos independentes');
 });
+
+/* §91 e §92. Amostra do germinativo e laboratórios depois da Life Genomics. */
+function germinativosDeTodos() {
+  const casos = {
+    ovario: { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' },
+    mama: { subtipo_molecular: 'Triplo-negativo', idade: '40', sexo: 'Feminino' },
+    prostata: { extensao_doenca: 'Metastático' },
+    pancreas: { histologia: 'Adenocarcinoma' },
+    endometrio: { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'dMMR / MSI-alto' },
+    colorretal: { idade: '42', historico_familiar: 'pai com câncer colorretal aos 48 anos' },
+  };
+  const saida = [];
+  for (const [id, valores] of Object.entries(casos)) {
+    const { resultado } = triar(id, valores);
+    (resultado.tests || []).filter((t) => t.kind === 'germinativo').forEach((t) => saida.push({ id, teste: t }));
+  }
+  return saida;
+}
+
+test('todo teste germinativo aceita sangue ou saliva (§91)', () => {
+  const lista = germinativosDeTodos();
+  assert.ok(lista.length >= 5, `só ${lista.length} teste(s) germinativo(s) nos casos, o teste não mediria nada`);
+  lista.forEach(({ id, teste }) => {
+    assert.strictEqual(teste.sample, 'Sangue periférico ou saliva (swab bucal)', `${id}/${teste.id}: amostra "${teste.sample}"`);
+  });
+});
+
+test('Fleury e Dasa vêm depois da Life Genomics, e só onde foram verificados (§92)', () => {
+  const COBERTURA_DASA = ['ovario', 'mama', 'colorretal', 'pancreas', 'prostata'];
+  const COBERTURA_FLEURY = ['ovario', 'prostata', 'mama', 'pancreas', 'colorretal', 'endometrio'];
+  germinativosDeTodos().forEach(({ id, teste }) => {
+    const nomes = TUMORS.ordenarProgramas(teste.programs).map((p) => p.name);
+    const esperado = ['Life Genomics',
+      ...(COBERTURA_FLEURY.includes(id) ? ['Fleury Genômica'] : []),
+      ...(COBERTURA_DASA.includes(id) ? ['Dasa Genômica'] : [])];
+    assert.deepStrictEqual(nomes.filter((n) => esperado.includes(n) || /Genômica|Genomics/.test(n)), esperado,
+      `${id}/${teste.id}: ordem ${nomes.join(' > ')}`);
+  });
+  // Endométrio não tem painel nomeado da Dasa: não pode aparecer por analogia.
+  const { resultado } = triar('endometrio', { histologia: 'Endometrioide', estadiamento: 'IA', mmr_msi: 'dMMR / MSI-alto' });
+  const progs = resultado.tests.flatMap((t) => t.programs || []).map((p) => p.name);
+  assert.ok(!progs.includes('Dasa Genômica'), 'Dasa apareceu no endométrio sem verificação');
+  // Laboratório não aparece em teste somático.
+  const { resultado: ov } = triar('ovario', { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IIIC' });
+  const hrd = ov.tests.find((t) => t.id === 'hrd');
+  assert.ok(!(hrd.programs || []).some((p) => /Fleury|Dasa/.test(p.name)), 'laboratório germinativo no HRD somático');
+});
