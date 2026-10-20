@@ -4550,10 +4550,15 @@ separar ideias, parênteses para o acessório.
 anti-HER2), siglas e nomes próprios com hífen (PD-L1, T-DXd, BRCA1/2) e
 intervalos numéricos.
 
-**Estado atual (honestidade):** o texto antigo ainda contém travessões
-(centenas de ocorrências em `tumors.js`, `app.js`, `index.html`). A regra vale
-daqui para a frente; a limpeza do acervo existente é uma tarefa própria, a ser
-feita com teste automático que impeça a volta.
+**Estado atual (honestidade):** `tumors.js`, `app.js` e `index.html` foram
+limpos (comentários e texto visível). Os três rótulos de tipo de tumor com
+hífen ("Ginecológico - Ovário", "Ginecológico - Endométrio", "Pulmão - não
+pequenas células") ficam como estão: são chaves de dados trocadas com o
+servidor, com a IA e com os testes, não texto de leitura. Renomear exige
+migração à parte. A trava é `server/test/escrita.test.js`: falha se voltar
+qualquer travessão nesses três arquivos ou " - " entre letras em texto. Ainda
+não cobertos: `app.css`, `validacao.html`, `sw.js` e os textos montados no
+servidor (`pdf.js`, `index.js`, `email.js`).
 
 ## 38.6.1 Posição da nota de HER2 (decidida)
 

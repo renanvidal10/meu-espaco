@@ -1,5 +1,5 @@
 /**
- * Registro de tumores do OncoGenYX — fonte única de verdade.
+ * Registro de tumores do OncoGenYX, fonte única de verdade.
  *
  * Este arquivo é carregado nos dois lados:
  *   - servidor: require('./public/tumors')  -> monta o schema de extração
@@ -19,7 +19,7 @@
   'use strict';
 
   /* ------------------------------------------------------------------ *
-   * Helpers de leitura de campo — o médico escreve livre, o motor
+   * Helpers de leitura de campo, o médico escreve livre, o motor
    * precisa comparar. Tudo normalizado em minúsculas, sem acento.
    * ------------------------------------------------------------------ */
   function norm(value) {
@@ -35,7 +35,7 @@
   }
   // Deficiencia de reparo escrita do jeito que o medico digita no campo
   // editavel. O valor de enum ("dMMR / MSI-alto") ja contem "dmmr", entao a
-  // regra passava nos testes mesmo reconhecendo so essa forma — e um laudo
+  // regra passava nos testes mesmo reconhecendo so essa forma, e um laudo
   // digitado como "MSI alto" ou "MSI-H" perdia a indicacao de painel
   // germinativo de Lynch, caindo em "sem indicacao" no colorretal localizado.
   function ehDmmr(value) {
@@ -74,7 +74,7 @@
    * Lê TOKEN A TOKEN, e devolve o primeiro que tem forma de estádio. Ler token
    * a token é o que evita o erro que existiu aqui: uma busca por \bi\b em
    * "IIIA1(i)" encontrava o "i" entre parênteses e devolvia estádio 1 para uma
-   * doença estádio III — falso negativo em cima do critério do teste tumoral.
+   * doença estádio III, falso negativo em cima do critério do teste tumoral.
    */
   function estadioNumero(value) {
     const limpo = norm(value)
@@ -103,12 +103,12 @@
 
   // Grau alto/baixo tolerando escala numérica, ISUP e descrição verbal.
   /* §38.9. O hífen conta. "High-grade serous carcinoma" é como o laudo em
-   * inglês escreve — com hífen —, e `has(value, 'high grade')` compara contra
+   * inglês escreve, com hífen, , e `has(value, 'high grade')` compara contra
    * texto normalizado que preserva o hífen, então nunca casava. Trocar hífen
    * por espaço antes de comparar resolve as duas grafias de uma vez, aqui e
    * em qualquer termo futuro de duas palavras. */
   function semHifen(value) {
-    return norm(value).replace(/[-–—]/g, ' ').replace(/\s+/g, ' ');
+    return norm(value).replace(/[-\u2013\u2014]/g, ' ').replace(/\s+/g, ' ');
   }
   function grauAlto(value) {
     if (!filled(value)) return false;
@@ -196,8 +196,8 @@
    *
    * `has()` casa por substring, e isso produzia o pior defeito do documento
    * impresso: "Endometrioide" contém "endometrio", então montaDx() concluía
-   * que o sítio já estava escrito e imprimia "Carcinoma Endometrioide" — sem
-   * o órgão — numa solicitação de exame assinada.
+   * que o sítio já estava escrito e imprimia "Carcinoma Endometrioide", sem
+   * o órgão, numa solicitação de exame assinada.
    */
   function temPalavra(texto, termo) {
     const t = norm(texto);
@@ -255,7 +255,7 @@
   function grauDx(valor, histologia) {
     if (!filled(valor)) return '';
     const canonico = grauAlto(valor) ? 'alto grau' : (grauBaixo(valor) ? 'baixo grau' : lower(valor));
-    // "Carcinoma seroso de alto grau de ovário, alto grau" — o médico já
+    // "Carcinoma seroso de alto grau de ovário, alto grau", o médico já
     // escreveu o grau dentro da histologia e o campo o repetia na sequência.
     if (canonico && has(histologia, canonico)) return '';
     return canonico;
@@ -290,20 +290,20 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * Programas de acesso — curadoria manual, nunca gerada por IA.
+   * Programas de acesso, curadoria manual, nunca gerada por IA.
    * Reaproveitados entre tumores quando o parceiro de fato cobre aquele
    * tumor; nunca por analogia (foi assim que a GSK entrou por engano no
    * card de próstata na v0.6).
    * ------------------------------------------------------------------ */
   /* ------------------------------------------------------------------ *
-   * Programas de acesso — curadoria manual, com cobertura declarada.
+   * Programas de acesso, curadoria manual, com cobertura declarada.
    *
    * `cobertura` lista os IDs de tumor para os quais o programa foi
    * VERIFICADO. O teste "todo programa exibido cobre aquele tumor" quebra a
    * suíte se um programa aparecer fora da sua cobertura, o que torna
    * impossível repetir por analogia os dois incidentes que já aconteceram:
    *   - GSK entrou no card de próstata (o programa é de ovário);
-   *   - "Cuidar Mais - PAF" da Pfizer entrou em próstata e pulmão — PAF é
+   *   - "Cuidar Mais, PAF" da Pfizer entrou em próstata e pulmão, PAF é
    *     Polineuropatia Amiloidótica Familiar, amiloidose hereditária, não
    *     oncologia. O link levava o urologista a uma página de neurologia.
    *
@@ -311,20 +311,20 @@
    * mais que card errado.
    * ------------------------------------------------------------------ */
   /* ------------------------------------------------------------------ *
-   * NOME E ORDEM DOS PROGRAMAS DA INDÚSTRIA — §56.
+   * NOME E ORDEM DOS PROGRAMAS DA INDÚSTRIA, §56.
    *
    * Nome: "Nome do programa (Indústria patrocinadora)". Sempre, para todos.
    * Um padrão único impede que um programa ganhe destaque por escrever o
    * próprio nome de um jeito mais atraente que os outros.
    *
    * O custo NÃO entra no nome nem no selo de nenhum programa. Todos os
-   * programas de indústria listados aqui são sem custo para o paciente — ou
+   * programas de indústria listados aqui são sem custo para o paciente, ou
    * seja, "sem custo" no nome de UM deles não informa, só induz o clique
    * naquela plataforma. A informação continua na tela, dita uma vez e
    * valendo para todos (ver `programas-custo` em app.js).
    *
    * ORDEM: declarada aqui, explicitamente, e aplicada igual em todo tumor.
-   * Não é ranking clínico — não existe programa melhor que outro para o
+   * Não é ranking clínico, não existe programa melhor que outro para o
    * paciente; os critérios de elegibilidade é que diferem, e eles estão
    * escritos em cada card. É uma ordem comercial declarada pelo dono do
    * produto. Fica neste arquivo, em lista nomeada, justamente para que seja
@@ -341,24 +341,24 @@
     cobertura: ['ovario', 'prostata', 'mama', 'pulmao'],
     // O programa processa TECIDO TUMORAL. Oferecê-lo num teste germinativo,
     // cuja amostra é sangue periférico, manda o médico a um parceiro que não
-    // faz o exame solicitado — foi o que acontecia no card germinativo de
+    // faz o exame solicitado, foi o que acontecia no card germinativo de
     // mama. Ver §35.
     amostra: 'tecido',
     verificadoEm: '2026-10-16',
-    fonte: 'programaid.com.br/exames — mama, pulmão, ovário, próstata e LLC',
+    fonte: 'programaid.com.br/exames (mama, pulmão, ovário, próstata e LLC)',
   };
-  /* PFIZER EM PRÓSTATA — RETIRADO DO CARD (não apagado daqui, para não se
+  /* PFIZER EM PRÓSTATA, RETIRADO DO CARD (não apagado daqui, para não se
      perder o histórico da decisão).
      Busca dedicada em 22/09/2026 não encontrou nenhuma página, regulamento ou
      URL de programa da Pfizer que pague teste de BRCA/HRR em próstata no
      Brasil: só material clínico e o portal HRR dos ESTADOS UNIDOS
-     (talzennaxtandi.pfizerpro.com). A regra do projeto é explícita — nenhum
+     (talzennaxtandi.pfizerpro.com). A regra do projeto é explícita, nenhum
      programa entra por analogia, nem por plausibilidade de que "onde há
      droga-alvo há patrocínio". Volta ao card assim que houver fonte. §44.2 */
   // Teste HRD patrocinado, sem custo para o paciente, com metodologia myChoice
   // CDx (Myriad). O critério de elegibilidade é EXATAMENTE o mesmo que esta
-  // regra já usa para indicar HRD — seroso ou endometrioide de alto grau de
-  // ovário, tuba uterina ou peritônio — o que torna a ausência dele no card um
+  // regra já usa para indicar HRD, seroso ou endometrioide de alto grau de
+  // ovário, tuba uterina ou peritônio, o que torna a ausência dele no card um
   // erro grave: o médico via a indicação do exame e nenhuma via gratuita para
   // obtê-lo, quando ela existe.
   //
@@ -379,7 +379,7 @@
      * "KRAS G12C", "PD-L1" e "EGFR", que são nomes de gene, não critérios.
      * Quem sabe o que exclui um paciente é a curadoria, não o CSS. */
     destaques: ['de ALTO GRAU', 'EM PRIMEIRA LINHA'],
-    note: 'Elegível: carcinoma seroso ou endometrioide de ALTO GRAU de ovário, tuba uterina ou peritônio, EM PRIMEIRA LINHA de tratamento. A solicitação não é feita por portal — o médico pede ao laboratório parceiro (Lâmina), que inscreve o paciente, seleciona os blocos e encaminha para o teste.',
+    note: 'Elegível: carcinoma seroso ou endometrioide de ALTO GRAU de ovário, tuba uterina ou peritônio, EM PRIMEIRA LINHA de tratamento. A solicitação não é feita por portal: o médico pede ao laboratório parceiro (Lâmina), que inscreve o paciente, seleciona os blocos e encaminha para o teste.',
     url: 'https://laminalab.com.br/teste-deficiencia-de-recombinacao-homologa-hrd-em-cancer-de-ovario/',
     cobertura: ['ovario'],
     amostra: 'tecido',
@@ -389,17 +389,17 @@
     // caso em segunda linha encaminharia o paciente e levaria uma recusa.
     linhaDeTratamento: 'primeira',
     verificadoEm: '2026-10-16',
-    fonte: 'Patrocínio GSK confirmado (comunicado Myriad Genetics e BioSpace sobre a colaboração para ampliar acesso a HRD em 9 países, Brasil incluído) e página do Laboratório Lâmina com critério e via de solicitação. Portal do médico na GSK (gsk-on.com.br) não pôde ser verificado daqui — bloqueado pela política de rede do ambiente.',
+    fonte: 'Patrocínio GSK confirmado (comunicado Myriad Genetics e BioSpace sobre a colaboração para ampliar acesso a HRD em 9 países, Brasil incluído) e página do Laboratório Lâmina com critério e via de solicitação. Portal do médico na GSK (gsk-on.com.br) não pôde ser verificado daqui, bloqueado pela política de rede do ambiente.',
   };
 
   // Consórcio de cinco farmacêuticas (AstraZeneca, Bayer, BMS, Pfizer e Roche)
   // que custeia perfil genômico completo em pulmão não pequenas células. A
   // iniciativa começou em 2017 e já passou de 20 mil exames gratuitos. É a via
   // de acesso mais relevante deste tumor e não estava no card.
-  /* MAPEAMENTO PULMÃO — RETIRADO DO CARD.
+  /* MAPEAMENTO PULMÃO, RETIRADO DO CARD.
      O consórcio das cinco farmacêuticas foi montado a partir de material de
-     imprensa de 2021, e uma das cinco portas de entrada listadas ali — o
-     onTRacK, da Bayer — foi DESCONTINUADA em setembro de 2022, conforme
+     imprensa de 2021, e uma das cinco portas de entrada listadas ali, o
+     onTRacK, da Bayer, foi DESCONTINUADA em setembro de 2022, conforme
      comunicado da própria Bayer. Nenhuma confirmação pós-2022 de que o
      consórcio siga ativo foi encontrada, e o link em uso era de um
      comunicado de imprensa, não de um portal de inscrição. Um caminho morto
@@ -423,7 +423,7 @@
     industria: 'Amgen',
     // O painel fechado é o que recusa o pedido de um gene isolado. §67
     destaques: ['O painel é fechado'],
-    note: 'Perfil de RAS (KRAS e NRAS, incluindo KRAS G12C) e BRAF em colorretal metastático. O painel é fechado — não dá para pedir um gene isolado. Exige cadastro do médico com CRM e voucher liberado por consultor da Amgen.',
+    note: 'Perfil de RAS (KRAS e NRAS, incluindo KRAS G12C) e BRAF em colorretal metastático. O painel é fechado. Não dá para pedir um gene isolado. Exige cadastro do médico com CRM e voucher liberado por consultor da Amgen.',
     url: 'https://www.programarastrear.com.br/',
     cobertura: ['colorretal'],
     amostra: 'tecido',
@@ -432,9 +432,9 @@
   };
 
   const LIFE_GENOMICS = {
-    name: 'Life Genomics — laboratório parceiro de oncogenética',
+    name: 'Life Genomics (laboratório parceiro de oncogenética)',
     tipo: 'laboratorio',
-    note: 'Parceiro para painéis germinativos: processa sangue periférico e emite o laudo de predisposição hereditária. Não é programa patrocinado — confirme cobertura e valores no portal.',
+    note: 'Parceiro para painéis germinativos: processa sangue periférico e emite o laudo de predisposição hereditária. Não é programa patrocinado, confirme cobertura e valores no portal.',
     url: 'https://lifegenomics.com.br/',
     cobertura: ['ovario', 'prostata', 'mama', 'pancreas', 'colorretal', 'endometrio', 'pulmao'],
     // Laboratório completo: processa sangue e tecido.
@@ -446,7 +446,7 @@
      16/10/2026. A distinção importa: até então eles constavam como
      "verificados por busca", o que prova que a página existe e tem aquele
      conteúdo, mas não que ela carrega hoje. Esta sessão não consegue abrir
-     site nenhum — o proxy nega toda conexão externa —, então a confirmação
+     site nenhum, o proxy nega toda conexão externa, , então a confirmação
      veio de fora. Foi assim que o consórcio de pulmão sobreviveu quatro anos
      com uma porta morta dentro (§44.1). Ver §49.
 
@@ -457,11 +457,11 @@
     amostra: 'ambos',
     tipo: 'sem-via',
     // "Programa a mapear" lido por quem não conhece o projeto parece produto
-    // inacabado. O conteúdo é o mesmo — busca feita, nada encontrado — mas
+    // inacabado. O conteúdo é o mesmo, busca feita, nada encontrado, mas
     // dito de forma que serve ao médico: ele precisa saber por onde seguir.
     name: 'Sem via patrocinada verificada para este teste',
     verificadoEm: '2026-09-22',
-    note: 'A busca por programa da indústria para este exame neste tumor não retornou parceiro confirmado. Encaminhe pelo laboratório de anatomia patológica do serviço ou pelo convênio. Registrado como busca sem resultado — não como inexistência.',
+    note: 'A busca por programa da indústria para este exame neste tumor não retornou parceiro confirmado. Encaminhe pelo laboratório de anatomia patológica do serviço ou pelo convênio. Registrado como busca sem resultado, não como inexistência.',
     url: null,
     cobertura: null, // null = vale para qualquer tumor
   };
@@ -499,7 +499,7 @@
    *
    * O defeito: `filled()` só conhece as duas frases canônicas que a IA
    * devolve ("Não relatado", "Nenhum relatado"), por igualdade de string
-   * inteira. Qualquer outra forma de negativa — e o campo é editável à mão —
+   * inteira. Qualquer outra forma de negativa, e o campo é editável à mão,
    * contava como critério ATENDIDO. "Nega história familiar de câncer"
    * indicava painel germinativo e imprimia, no documento assinado:
    *
@@ -515,13 +515,13 @@
    *   "mãe com câncer de mama aos 58, nega outros casos"  → É HISTÓRICO.
    *
    * Procurar a palavra "nega" no texto inteiro inverteria esse caso, trocando
-   * um falso positivo por um falso negativo — e falso negativo aqui APAGA
+   * um falso positivo por um falso negativo, e falso negativo aqui APAGA
    * indicação de teste, que é o erro pior dos dois.
    *
    * A regra, conservadora de propósito: só é negativa quando o campo ABRE com
    * um marcador de negação E não nomeia nenhum parente. Havendo parente
    * nomeado em qualquer lugar do texto, há história, mesmo que o texto também
-   * negue alguma coisa. Na dúvida, o motor indica o teste — nunca o contrário.
+   * negue alguma coisa. Na dúvida, o motor indica o teste, nunca o contrário.
    *
    * "Desconhecido" e "não sabe" entram como ausência porque o critério é
    * história "relatada": o que não se sabe não foi relatado. É o mesmo que
@@ -543,11 +543,11 @@
   /* ================================================================== *
    * OVÁRIO
    * ================================================================== */
-  /* §82. O laudo chega em inglês com frequência — relatório de laboratório
+  /* §82. O laudo chega em inglês com frequência, relatório de laboratório
    * internacional, segunda opinião, artigo colado. E "High-grade serous
    * carcinoma", "HGSC", "Clear cell carcinoma" e "Endometrioid carcinoma"
    * caíam todos em `nao-reconhecida`, saindo com ZERO testes e a mensagem de
-   * histologia não epitelial — apagando a indicação germinativa UNIVERSAL do
+   * histologia não epitelial, apagando a indicação germinativa UNIVERSAL do
    * carcinoma epitelial de ovário. É o pior tipo de falso negativo: a tela
    * não diz "não sei ler", diz "não é epitelial", que é uma afirmação
    * clínica errada.
@@ -555,7 +555,7 @@
    * A tolerância ao inglês já existia num helper vizinho e não aqui:
    * `grauAlto()` reconhece "high grade" desde sempre. Era assimetria de
    * implementação, não decisão. Os sinônimos entram ao lado dos termos em
-   * português, na mesma lista — não há critério clínico novo, só a mesma
+   * português, na mesma lista, não há critério clínico novo, só a mesma
    * entidade escrita na outra língua. */
   const HISTOLOGIAS_EPITELIAIS = [
     'seroso', 'serous', 'hgsc', 'lgsc',
@@ -571,12 +571,12 @@
     id: 'ovario',
     label: 'Ginecológico - Ovário',
     short: 'Ovário',
-    detect: 'SÍTIO DE ORIGEM ovário, tuba uterina ou peritônio — "CA de ovário", "massa anexial", "carcinoma seroso de ovário", "tuba uterina", "implantes peritoneais", CA-125. A histologia endometrioide TAMBÉM existe no ovário: o que decide é o sítio, não a histologia.',
+    detect: 'SÍTIO DE ORIGEM ovário, tuba uterina ou peritônio: "CA de ovário", "massa anexial", "carcinoma seroso de ovário", "tuba uterina", "implantes peritoneais", CA-125. A histologia endometrioide TAMBÉM existe no ovário: o que decide é o sítio, não a histologia.',
     fields: [
       { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Seroso', decisivo: true,
         ai: 'Histologia do tumor de ovário (ex.: "Seroso", "Endometrioide", "Células claras", "Mucinoso", "Carcinossarcoma").' },
       { key: 'grau', label: 'Grau (laudo patológico)', placeholder: 'Ex.: Alto grau',
-        ai: 'Grau histopatológico: "Alto grau" ou "Baixo grau". "G3"/"grau 3" é alto grau; "G1"/"grau 1" é baixo grau. Nunca deduza a partir do estágio - grau e estágio são eixos independentes.' },
+        ai: 'Grau histopatológico: "Alto grau" ou "Baixo grau". "G3"/"grau 3" é alto grau; "G1"/"grau 1" é baixo grau. Nunca deduza a partir do estágio: grau e estágio são eixos independentes.' },
       { key: 'estadiamento', label: 'Estadiamento (FIGO)', placeholder: 'Ex.: IIIC',
         justify: 'estadiamento_justificativa',
         ai: 'Estágio FIGO no formato canônico romano (I-IV + subletra A/B/C). Normalize "3C" para "IIIC". Se não estiver escrito, infira dos achados cirúrgicos/patológicos (lateralidade, integridade da cápsula, linfonodos por sítio, achados peritoneais/omentais) e explique em estadiamento_justificativa.' },
@@ -584,7 +584,7 @@
     ],
     hint: 'Grau e estadiamento são eixos independentes: estágio (FIGO I-IV) mede a extensão da doença; grau é a leitura patológica do tecido. Só a histologia é obrigatória para rodar a triagem.',
     // Só sinaliza grau/estágio como pendentes quando eles realmente mudam o
-    // resultado - ou seja, quando a histologia é elegível ao par somático.
+    // resultado, ou seja, quando a histologia é elegível ao par somático.
     relevance(v) {
       // Sem histologia ainda não se sabe se grau e estágio importam. Dizer
       // "não influencia" nesse momento é informação errada: influencia sim,
@@ -602,7 +602,7 @@
       // não-borderline"). Tumor de baixo potencial de malignidade não é
       // carcinoma e não faz parte do espectro BRCA-associado que sustenta a
       // indicação universal. Este é o único item da revisão clínica que RETIRA
-      // exame — por isso a saída não é silenciosa: diz o que fazer.
+      // exame, por isso a saída não é silenciosa: diz o que fazer.
       // Ver ARQUITETURA.md §30.5.
       if (has(v.histologia, 'borderline', 'baixo potencial', 'baixo grau de malignidade', 'limitrofe')) {
         return {
@@ -618,11 +618,11 @@
       if (!epitelial) {
         // "Fora desta regra" não é "sem indicação de teste". Carcinoma de
         // pequenas células hipercalcêmico (SMARCA4) e tumores dos cordões
-        // sexuais (STK11, DICER1) TÊM indicação genética própria — dizer
+        // sexuais (STK11, DICER1) TÊM indicação genética própria, dizer
         // apenas "não reconhecida" fazia o médico ler como "não testar".
         return {
           state: 'nao-reconhecida',
-          message: `"${v.histologia}" não é uma histologia epitelial de ovário e não é coberta por esta regra. Isso não significa ausência de indicação genética: histologias não epiteliais têm indicação própria — carcinoma de pequenas células hipercalcêmico associa-se a SMARCA4, e tumores dos cordões sexuais a STK11 (Peutz-Jeghers) e DICER1. Encaminhe ao serviço de oncogenética.`,
+          message: `"${v.histologia}" não é uma histologia epitelial de ovário e não é coberta por esta regra. Isso não significa ausência de indicação genética: histologias não epiteliais têm indicação própria, carcinoma de pequenas células hipercalcêmico associa-se a SMARCA4, e tumores dos cordões sexuais a STK11 (Peutz-Jeghers) e DICER1. Encaminhe ao serviço de oncogenética.`,
         };
       }
 
@@ -634,7 +634,7 @@
         // pareceres externos apontaram este mesmo ponto. Ver §37.
         name: 'Painel germinativo multigênico (BRCA1/2, RAD51C, RAD51D, BRIP1, PALB2 e genes de Lynch)',
         sample: 'Sangue periférico', order: 'Sangue · germinativo',
-        description: 'Investiga predisposição hereditária, independente do resultado tumoral. Cerca de 20% das variantes patogênicas em ovário estão fora de BRCA1/2 — restringir o painel a BRCA deixa essas portadoras sem diagnóstico e sem rastreio em cascata na família.',
+        description: 'Investiga predisposição hereditária, independente do resultado tumoral. Cerca de 20% das variantes patogênicas em ovário estão fora de BRCA1/2: restringir o painel a BRCA deixa essas portadoras sem diagnóstico e sem rastreio em cascata na família.',
         justify: 'Todo carcinoma epitelial invasivo de ovário, tuba uterina ou peritônio tem indicação de painel germinativo de predisposição hereditária ao diagnóstico, independentemente de idade e de histórico familiar.',
         programs: [LIFE_GENOMICS],
       };
@@ -647,7 +647,7 @@
         // seroso de alto grau de ovário testadas prospectivamente com
         // myChoice CDx foram HRD positivas (corte GIS ≥ 42). §47.7
         stat: 'Metade dos serosos de alto grau de ovário é HRD positiva (PAOLA-1)',
-        description: 'Avalia deficiência de recombinação homóloga no tecido tumoral (já inclui a análise de BRCA1/2 tumoral no mesmo teste). Apoia a decisão de manutenção com inibidor de PARP — a indicação final depende do medicamento, do status de BRCA, da linha de tratamento, da resposta à platina e da aprovação regulatória vigente.',
+        description: 'Avalia deficiência de recombinação homóloga no tecido tumoral (já inclui a análise de BRCA1/2 tumoral no mesmo teste). Apoia a decisão de manutenção com inibidor de PARP. A indicação final depende do medicamento, do status de BRCA, da linha de tratamento, da resposta à platina e da aprovação regulatória vigente.',
         justify: 'Carcinoma seroso ou endometrioide de alto grau em estágio avançado: indicação de avaliação de status HRD tumoral em tempo útil para apoiar a decisão de manutenção após quimioterapia à base de platina.',
         programs: [HRD_PATROCINADO, PROGRAMA_ID],
       };
@@ -657,23 +657,23 @@
           state: 'parcial', tests: [germinativo],
           title: 'Este caso tem indicação para teste germinativo',
           summary: `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')}. O critério para o teste somático (HRD) não foi atendido.`,
-          notes: [{ tag: 'Somático - critério não atendido', title: 'HRD Somático não indicado por esta regra',
+          notes: [{ tag: 'Somático: critério não atendido', title: 'HRD Somático não indicado por esta regra',
             body: 'O teste somático de HRD é específico para histologia serosa ou endometrioide de alto grau em estágio III/IV. Reavalie se histologia, grau ou estágio forem atualizados.' }],
         };
       }
 
       /* §38.9. O grau pode vir da histologia, com três travas.
        *
-       * O carcinoma seroso de ovário tem DUAS categorias apenas — baixo grau
-       * e alto grau — e o grau é parte do NOME da entidade, não um atributo
+       * O carcinoma seroso de ovário tem DUAS categorias apenas, baixo grau
+       * e alto grau, e o grau é parte do NOME da entidade, não um atributo
        * separado: são doenças biologicamente distintas (alto grau com
        * instabilidade cromossômica e TP53 mutado; baixo grau com KRAS, BRAF,
        * ERBB2). Pedir confirmação de algo que o próprio texto afirma é
-       * fricção sem ganho — e produzia, no documento ASSINADO, a frase
+       * fricção sem ganho, e produzia, no documento ASSINADO, a frase
        * "Carcinoma seroso DE ALTO GRAU ... com GRAU A CONFIRMAR no laudo".
        * A mesma frase afirmava e desmentia.
        *
-       * TRAVA 1 — modalizador cancela a inferência. "Provavelmente de alto
+       * TRAVA 1, modalizador cancela a inferência. "Provavelmente de alto
        * grau", "favorece alto grau", "sugestivo de", qualquer "?": aí é
        * inferência de verdade, e o motor não infere laudo. Mantém pendente.
        *
@@ -687,7 +687,7 @@
       const histologiaModaliza = MODALIZADOR.test(String(v.histologia || ''));
       /* A sigla é resolvida ANTES de ler o grau. `montaDx` já expandia HGSC
        * para a entidade canônica no diagnóstico impresso, mas a leitura do
-       * grau olhava o texto cru — então "HGSC" saía certo no papel e pendente
+       * grau olhava o texto cru, então "HGSC" saía certo no papel e pendente
        * na regra. Mesma informação, dois caminhos, duas respostas. */
       const histoCanonica = SIGLAS[norm(v.histologia)] || v.histologia;
       const grauDaHistologia = histologiaModaliza ? null
@@ -706,15 +706,15 @@
           state: 'parcial', tests: [germinativo],
           title: 'Este caso tem indicação para teste germinativo',
           summary: `${montaDx(v.histologia, 'ovário', 'Carcinoma epitelial de ovário')}${filled(v.estadiamento) ? ', estágio ' + v.estadiamento : ''}. O critério para o teste somático (HRD) não foi atendido.`,
-          notes: [{ tag: 'Somático - critério não atendido', title: 'HRD Somático não indicado por esta regra',
+          notes: [{ tag: 'Somático: critério não atendido', title: 'HRD Somático não indicado por esta regra',
             body: 'O teste somático de HRD é específico para alto grau em estágio III/IV.' }],
         };
       }
 
       const confirmado = altoGrau && avancado;
       // Um campo preenchido em notação que não sabemos ler conta como
-      // pendente. Sem isso o texto saía com a lacuna vazia — "Confirme  no
-      // laudo" — num documento que o médico assina.
+      // pendente. Sem isso o texto saía com a lacuna vazia, "Confirme  no
+      // laudo", num documento que o médico assina.
       const grauPendente = !altoGrau && !baixoGrau;
       const estagioPendente = !avancado && !inicial;
       const faltando = [grauPendente ? 'grau' : null, estagioPendente ? 'estágio' : null].filter(Boolean).join(' e ');
@@ -731,7 +731,7 @@
        * no documento assinado, dentro da própria justificativa. O médico
        * nunca assina uma afirmação sem saber de onde ela saiu. */
       /* O texto da histologia quase sempre JÁ nomeia o grau ("carcinoma
-       * seroso de alto grau") — repetir produziria "de alto grau de ovário,
+       * seroso de alto grau"), repetir produziria "de alto grau de ovário,
        * alto grau, estágio IIIC". Quando a entidade já diz, só se acrescenta
        * de onde veio; quando não diz (um "G3" solto, por exemplo), nomeia-se
        * o grau e a origem. */
@@ -747,7 +747,7 @@
       const notaGrauInferido = grauInferido ? [{
         tag: 'Lido da histologia',
         title: 'O grau veio do texto da histologia, não do campo',
-        body: `A histologia informada nomeia a entidade de ${grauDaHistologia} grau, e o carcinoma seroso de ovário tem duas categorias apenas — o grau faz parte do nome da doença. O campo de grau continua em branco na revisão; se o laudo disser outra coisa, corrija lá e a triagem recalcula.`,
+        body: `A histologia informada nomeia a entidade de ${grauDaHistologia} grau, e o carcinoma seroso de ovário tem duas categorias apenas: o grau faz parte do nome da doença. O campo de grau continua em branco na revisão; se o laudo disser outra coisa, corrija lá e a triagem recalcula.`,
       }] : [];
 
       return {
@@ -794,7 +794,7 @@
       { key: 'categoria_risco_localizado', label: 'Categoria de risco (se localizado)', placeholder: 'Ex.: Alto',
         justify: 'categoria_risco_justificativa',
         options: ['Baixo', 'Intermediário favorável', 'Intermediário desfavorável', 'Alto', 'Muito alto'],
-        ai: 'Categoria de risco NCCN - só preencher quando a doença for localizada ou N1. Infira de PSA + Gleason/Grade Group + estágio clínico T, e só quando tiver os três com confiança. Baixo: cT1-cT2a, GG1, PSA<10. Intermediário favorável: GG2 predominância padrão 3, <50% fragmentos, no máximo 1 fator. Intermediário desfavorável: GG2-3 com >=50% fragmentos ou 2-3 fatores. Alto: cT3a ou GG4-5 ou PSA>20. Muito alto: cT3b-T4 ou padrão primário 5 ou >4 fragmentos GG4-5.' },
+        ai: 'Categoria de risco NCCN: só preencher quando a doença for localizada ou N1. Infira de PSA + Gleason/Grade Group + estágio clínico T, e só quando tiver os três com confiança. Baixo: cT1-cT2a, GG1, PSA<10. Intermediário favorável: GG2 predominância padrão 3, <50% fragmentos, no máximo 1 fator. Intermediário desfavorável: GG2-3 com >=50% fragmentos ou 2-3 fatores. Alto: cT3a ou GG4-5 ou PSA>20. Muito alto: cT3b-T4 ou padrão primário 5 ou >4 fragmentos GG4-5.' },
       { key: 'ascendencia_ashkenazi', label: 'Ascendência Ashkenazi', placeholder: 'Ex.: Não relatado',
         options: ['Sim', 'Não relatado'],
         ai: '"Sim" se ascendência judaica Ashkenazi for mencionada, "Não relatado" se negada, vazio se não mencionada.' },
@@ -819,7 +819,7 @@
        * prosa ("Metastático hormônio-sensível (mHSPC)"). O campo é editável,
        * e o médico escreve como o laudo escreve: M1, M1b, M1c. Nenhum desses
        * contém "metastatico", então a doença metastática era classificada
-       * como localizada e o caso saía SEM INDICAÇÃO — perdendo germinativo,
+       * como localizada e o caso saía SEM INDICAÇÃO, perdendo germinativo,
        * HRR e MSI de uma vez. Falso negativo, que é o erro pior.
        *
        * `\bM1\b` com limite de palavra, para não casar com PSA, Gleason nem
@@ -867,7 +867,7 @@
         programs: [PROGRAMA_ID],
       };
 
-      // MSI/dMMR é recomendação específica de mCRPC — define elegibilidade a
+      // MSI/dMMR é recomendação específica de mCRPC, define elegibilidade a
       // pembrolizumabe na doença refratária. Não vale para mHSPC. Ver §39.4.
       const msi = {
         id: 'msi-prostata', kind: 'somatico', name: 'Pesquisa de MSI / dMMR',
@@ -922,7 +922,7 @@
           state: 'parcial', tests: [germinativo],
           title: 'Este caso tem indicação para teste germinativo',
           summary: `Doença localizada com critério de indicação germinativa (${motivos.join(', ')}).`,
-          notes: [{ tag: 'Somático - critério não atendido', title: 'Painel somático HRR não indicado por esta regra',
+          notes: [{ tag: 'Somático: critério não atendido', title: 'Painel somático HRR não indicado por esta regra',
             body: 'O painel HRR é biomarcador de doença metastática. Reavalie se a doença progredir.' },
           ...consideracoes],
         };
@@ -952,14 +952,14 @@
         warn: true,
         tag: 'A confirmar na revisão',
         title: 'Categoria de risco em branco',
-        body: 'Risco alto ou muito alto tem indicação de teste germinativo. Sem o campo preenchido, a triagem não pode avaliar esse critério — e não assume que ele não foi atendido. Volte à revisão e complete, ou informe Gleason, PSA e estágio clínico para a leitura inferir a categoria.',
+        body: 'Risco alto ou muito alto tem indicação de teste germinativo. Sem o campo preenchido, a triagem não pode avaliar esse critério, e não assume que ele não foi atendido. Volte à revisão e complete, ou informe Gleason, PSA e estágio clínico para a leitura inferir a categoria.',
       }];
 
       return {
         state: 'sem-indicacao',
         title: 'Sem indicação de teste genético por esta regra',
         summary: consideracoes.length
-          ? 'Nenhum critério de indicação formal atendido, mas há elemento que a diretriz coloca como consideração — veja a nota abaixo.'
+          ? 'Nenhum critério de indicação formal atendido, mas há elemento que a diretriz coloca como consideração. Veja a nota abaixo.'
           : resumoSemIndicacao,
         notes: [...notaRiscoPendente,
           { tag: 'Sem indicação', title: 'Nenhum teste genético indicado no momento',
@@ -1001,8 +1001,8 @@
       // onde ser escrito. Ver ARQUITETURA.md §30.1.
       { key: 'sexo', label: 'Sexo', placeholder: 'Ex.: Feminino',
         options: ['Feminino', 'Masculino'],
-        ai: 'Sexo do paciente. "Masculino" quando o material indicar paciente homem (pronome, tratamento, "paciente masculino", nome masculino acompanhado de menção explícita). Vazio se não for possível determinar — não presuma feminino por ser câncer de mama.' },
-      /* §38.5. O campo existia em próstata e não existia em mama — assimetria
+        ai: 'Sexo do paciente. "Masculino" quando o material indicar paciente homem (pronome, tratamento, "paciente masculino", nome masculino acompanhado de menção explícita). Vazio se não for possível determinar: não presuma feminino por ser câncer de mama.' },
+      /* §38.5. O campo existia em próstata e não existia em mama, assimetria
        * interna, não decisão: o NCCN trata ascendência Ashkenazi como critério
        * independente, e em paciente COM câncer de mama nenhuma história
        * familiar adicional é necessária para atendê-lo. Sem o campo, o caso
@@ -1030,7 +1030,7 @@
       // Critério germinativo NCCN: sexo masculino em qualquer idade, idade <=50,
       // triplo-negativo em qualquer idade, doença metastática, ou histórico
       // familiar relevante. O critério masculino é independente de todos os
-      // outros — é o subgrupo com maior prevalência de BRCA2 patogênico, e a
+      // outros, é o subgrupo com maior prevalência de BRCA2 patogênico, e a
       // indicação vale mesmo sem história familiar. Ver ARQUITETURA.md §30.1.
       const ashkenazi = has(v.ascendencia_ashkenazi, 'sim');
       const motivos = [
@@ -1072,7 +1072,7 @@
       if (!tests.length) {
         /* §38.4. A divergência etária deixa de ser silenciosa.
          *
-         * O motor mantém o gatilho do NCCN — 50 anos ou menos —, por coerência
+         * O motor mantém o gatilho do NCCN, 50 anos ou menos, , por coerência
          * com a regra de desempate do §38.1. Mas até aqui o caso de 51 a 65
          * anos saía apenas como "sem indicação", seco, e o médico não tinha
          * como saber que existe recomendação internacional em sentido
@@ -1087,7 +1087,7 @@
         const notaDivergencia = naFaixaDaDivergencia ? [{
           tag: 'Divergência entre diretrizes',
           title: `Aos ${idade} anos, NCCN e ASCO-SSO discordam`,
-          body: 'Esta triagem segue o NCCN, cujo gatilho isolado de idade é 50 anos ou menos. A ASCO-SSO de 2024 recomenda oferecer teste BRCA1/2 a todo paciente diagnosticado aos 65 anos ou menos, independentemente das características do tumor. A divergência é conhecida e está registrada — a decisão de testar fora do critério do NCCN é sua.',
+          body: 'Esta triagem segue o NCCN, cujo gatilho isolado de idade é 50 anos ou menos. A ASCO-SSO de 2024 recomenda oferecer teste BRCA1/2 a todo paciente diagnosticado aos 65 anos ou menos, independentemente das características do tumor. A divergência é conhecida e está registrada. A decisão de testar fora do critério do NCCN é sua.',
         }] : [];
         return {
           state: 'sem-indicacao',
@@ -1101,14 +1101,14 @@
 
       // Consideração, não indicação: em doença metastática há biomarcadores que
       // mudam conduta e costumam passar em branco por não estarem no painel
-      // genético. HER2-low nem é teste novo — é releitura da imuno-histoquímica
+      // genético. HER2-low nem é teste novo, é releitura da imuno-histoquímica
       // que já existe no laudo. Ver §41.3.
       const notas = [];
       if (metastatico) {
         notas.push({
           tag: 'Decisão do médico',
           title: 'Três biomarcadores que costumam passar em branco',
-          body: 'HER2-low (imuno-histoquímica 1+ ou 2+ com FISH negativo) não é um teste novo — é releitura do laudo que já existe, e abre linha com anticorpo conjugado. Fusão de NTRK e MSI-alto/dMMR/TMB-alto abrem terapias agnósticas ao sítio. Nenhum dos três é recomendação obrigatória nesta situação; valem como consideração.',
+          body: 'HER2-low (imuno-histoquímica 1+ ou 2+ com FISH negativo) não é um teste novo, é releitura do laudo que já existe, e abre linha com anticorpo conjugado. Fusão de NTRK e MSI-alto/dMMR/TMB-alto abrem terapias agnósticas ao sítio. Nenhum dos três é recomendação obrigatória nesta situação; valem como consideração.',
         });
       }
 
@@ -1172,7 +1172,7 @@
       const germinativo = {
         id: 'germinativo-pancreas', kind: 'germinativo',
         // A lista é a do NCCN: 13 genes clinicamente acionáveis. O painel
-        // antigo tinha BRCA1/2, PALB2, ATM e MMR — faltavam CDKN2A, STK11,
+        // antigo tinha BRCA1/2, PALB2, ATM e MMR, faltavam CDKN2A, STK11,
         // APC e RAD51C/D, todos com conduta de rastreio própria. TP53 NÃO
         // entra: não está na lista do NCCN. Ver §40.1.
         name: 'Painel germinativo (BRCA1/2, PALB2, ATM, CDKN2A, STK11, APC, RAD51C/D e genes de Lynch)',
@@ -1271,7 +1271,7 @@
           id: 'germinativo-crc-precoce', kind: 'germinativo',
           name: 'Painel germinativo multigênico (APC, MUTYH, genes de Lynch, BMPR1A, SMAD4, PTEN, STK11)',
           /* §70. `primary: !dmmr` marcava este painel como prioritário sempre
-           * que o status de MMR era desconhecido — que é exatamente quando o
+           * que o status de MMR era desconhecido, que é exatamente quando o
            * teste de MMR também entra, e ele já nasce prioritário. Resultado:
            * DOIS testes prioritários no mesmo caso, em 468 combinações.
            *
@@ -1280,7 +1280,7 @@
            * dois "primeiros". Quando a triagem é provisória, são também duas
            * pílulas "confirmar critério".
            *
-           * Prioritário é o teste que LIDERA este resultado — um só. Com o
+           * Prioritário é o teste que LIDERA este resultado, um só. Com o
            * MMR na lista, ele lidera: é o rastreio universal que orienta o
            * germinativo. Sem ele (status já conhecido), o painel lidera. */
           /* §38.8(c). O selo de prioridade segue a ORDEM CLÍNICA.
@@ -1292,13 +1292,13 @@
            * o teste que o texto mandava adiar.
            *
            * O invariante codificado era "no máximo um prioritário". Faltava
-           * "o prioritário não pode ser o que a nota manda adiar" — e por
+           * "o prioritário não pode ser o que a nota manda adiar", e por
            * isso a auditoria de 67.284 combinações não pegou. Agora, em dMMR,
            * quem lidera é a metilação; sem dMMR, vale a regra do §70. */
           sample: 'Sangue periférico', order: 'Sangue · germinativo · prioridade', primary: mmrFeito && !dmmr,
           // A estatística é de série prospectiva NÃO selecionada por idade nem
           // por história familiar (15,5% de 361 pacientes, Uson Jr. et al.,
-          // Clin Gastroenterol Hepatol 2022) — vale para colorretal em geral,
+          // Clin Gastroenterol Hepatol 2022), vale para colorretal em geral,
           // não só abaixo dos 50. Restringi-la a <50 numa rodada anterior foi
           // erro meu, corrigido aqui. Ver §37.
           stat: 'Variante germinativa patogênica em cerca de 1 a cada 6 pacientes com colorretal, em série não selecionada por idade ou história familiar',
@@ -1327,7 +1327,7 @@
           notasExtras.push({
             tag: 'Decisão do médico',
             title: 'Painel germinativo pode ser considerado mesmo sem critério formal',
-            body: 'Acima dos 50 anos, com tumor pMMR e sem história familiar, o painel germinativo multigênico não é recomendação formal — a diretriz o coloca como "pode ser considerado". Vale saber: em série prospectiva não selecionada por idade ou história familiar, 15,5% dos pacientes com colorretal tinham variante patogênica, e cerca de 60% deles estavam fora dos critérios dirigidos (Uson Jr. et al., Clin Gastroenterol Hepatol 2022). A decisão é sua.',
+            body: 'Acima dos 50 anos, com tumor pMMR e sem história familiar, o painel germinativo multigênico não é recomendação formal: a diretriz o coloca como "pode ser considerado". Vale saber: em série prospectiva não selecionada por idade ou história familiar, 15,5% dos pacientes com colorretal tinham variante patogênica, e cerca de 60% deles estavam fora dos critérios dirigidos (Uson Jr. et al., Clin Gastroenterol Hepatol 2022). A decisão é sua.',
           });
         }
       }
@@ -1341,14 +1341,14 @@
         });
         /* §38.8(b). A metilação vira PEDIDO, não só texto.
          *
-         * A nota logo acima manda fazer a metilação ANTES do germinativo — e
+         * A nota logo acima manda fazer a metilação ANTES do germinativo, e
          * o passo um não tinha card, não tinha amostra, não tinha programa e
          * não entrava no documento impresso. O médico lia "faça antes" e não
          * tinha o que assinar. Era defeito, não critério: a sequência
          * desenhada na tela (§63) prometia uma ordem cujo primeiro degrau não
          * existia.
          *
-         * É teste de TECIDO, somático, e lidera a sequência — por isso é ele
+         * É teste de TECIDO, somático, e lidera a sequência, por isso é ele
          * que leva o selo de prioridade neste ramo, resolvendo de uma vez o
          * §38.8(c): o prioritário passa a ser o que a nota manda fazer
          * primeiro, em vez de o que ela manda adiar. */
@@ -1364,7 +1364,7 @@
         /* §38.8(a). Um painel germinativo, não dois.
          *
          * Quando o caso é precoce E dMMR, o motor emitia DOIS painéis
-         * germinativos no mesmo resultado — e o multigênico acima já contém
+         * germinativos no mesmo resultado, e o multigênico acima já contém
          * os genes de Lynch (MLH1, MSH2, MSH6, PMS2, EPCAM), além dos de
          * polipose. Dois pedidos sobrepostos, mesma amostra de sangue, mesmo
          * encaminhamento: custo, fila em oncogenética e confusão para quem
@@ -1380,7 +1380,7 @@
         if (!precoce) tests.push({
           id: 'germinativo-lynch', kind: 'germinativo', name: 'Painel germinativo de Lynch (MLH1, MSH2, MSH6, PMS2, EPCAM)',
           sample: 'Sangue periférico', order: 'Sangue · germinativo',
-          // Nem todo dMMR é Lynch — a maioria da perda de MLH1 é esporádica,
+          // Nem todo dMMR é Lynch, a maioria da perda de MLH1 é esporádica,
           // por metilação do promotor. Mandar todo dMMR direto ao germinativo
           // é encaminhamento indevido em volume: gera custo, fila em
           // oncogenética e ansiedade familiar sem indicação.
@@ -1441,7 +1441,7 @@
     id: 'endometrio',
     label: 'Ginecológico - Endométrio',
     short: 'Endométrio',
-    detect: 'SÍTIO DE ORIGEM endométrio ou corpo uterino — "carcinoma de endométrio", "endometrial", "biópsia/curetagem de endométrio", "histeroscopia", sangramento pós-menopausa, POLE, classificação molecular de endométrio.',
+    detect: 'SÍTIO DE ORIGEM endométrio ou corpo uterino: "carcinoma de endométrio", "endometrial", "biópsia/curetagem de endométrio", "histeroscopia", sangramento pós-menopausa, POLE, classificação molecular de endométrio.',
     fields: [
       { key: 'histologia', label: 'Histologia', placeholder: 'Ex.: Endometrioide', decisivo: true,
         ai: 'Histologia do carcinoma de endométrio (ex.: "Endometrioide", "Seroso", "Células claras", "Carcinossarcoma").' },
@@ -1465,7 +1465,7 @@
 
       /* §38.6. HER2 entra como NOTA DE AÇÃO, não como card de teste.
        *
-       * A pergunta nunca foi clínica — o NCCN recomenda HER2 para seroso ou
+       * A pergunta nunca foi clínica, o NCCN recomenda HER2 para seroso ou
        * carcinossarcoma avançado ou metastático, sem ambiguidade. A pergunta
        * era de ESCOPO: HER2 por imuno-histoquímica não é teste genético, e a
        * plataforma se apresenta como triagem de teste genético. Virar card
@@ -1475,7 +1475,7 @@
        * médico recebe o que muda a conduta, e o card continua dizendo com
        * precisão o que é e o que não é.
        *
-       * HER2 aqui não define só trastuzumabe somado à quimioterapia — define
+       * HER2 aqui não define só trastuzumabe somado à quimioterapia, define
        * também acesso a trastuzumabe-deruxtecana. Os números estão em §38.6
        * com a ressalva que merecem (n pequeno, intervalo largo) e não entram
        * na tela: uma nota clínica não é lugar de intervalo de confiança. */
@@ -1519,11 +1519,11 @@
 
       // A tela se contradizia: dizia "nenhum teste indicado" e, no mesmo card,
       // "considere completar POLE e p53". MMR isolado não fecha a
-      // classificação — um tumor pMMR ainda pode ser POLEmut ou p53abn, e a
+      // classificação, um tumor pMMR ainda pode ser POLEmut ou p53abn, e a
       // diferença muda a conduta adjuvante nos dois extremos (desescalonar em
       // POLEmut, intensificar em p53abn). Ver ARQUITETURA.md §30.4.
       // E dMMR também precisa: o algoritmo é hierárquico e POLE PREVALECE
-      // sobre MMRd — um tumor dMMR que também seja POLEmut é classificado
+      // sobre MMRd, um tumor dMMR que também seja POLEmut é classificado
       // como POLEmut, com conduta adjuvante oposta. Restringir este teste ao
       // pMMR contradizia o texto do próprio card e o documento de validação
       // clínica, que dizem exatamente isso. §47.5
@@ -1533,8 +1533,8 @@
           name: 'Complementar classificação molecular (POLE e p53)', primary: true,
           sample: 'Tecido tumoral', order: 'Tumoral · somático · prioridade',
           stat: 'Quatro grupos moleculares; MMR sozinho define apenas um deles',
-          description: 'Sequenciamento do domínio exonuclease de POLE e imuno-histoquímica de p53. O algoritmo é hierárquico (POLE prevalece sobre MMRd, que prevalece sobre p53 anormal), então um tumor pMMR ainda pode ser POLEmut ou p53 anormal — grupos com prognóstico oposto entre si. Só variante classificada como patogênica ou provavelmente patogênica no domínio exonuclease classifica o tumor como POLEmut: uma VUS em POLE não classifica.',
-          justify: `Carcinoma de endométrio com ${dmmr ? 'deficiência de reparo' : 'MMR proficiente'}: a classificação molecular permanece incompleta sem POLE e p53. O algoritmo é hierárquico e POLE prevalece sobre MMRd, de modo que o grupo molecular — e a decisão de terapia adjuvante — só se define com os três marcadores.`,
+          description: 'Sequenciamento do domínio exonuclease de POLE e imuno-histoquímica de p53. O algoritmo é hierárquico (POLE prevalece sobre MMRd, que prevalece sobre p53 anormal), então um tumor pMMR ainda pode ser POLEmut ou p53 anormal: grupos com prognóstico oposto entre si. Só variante classificada como patogênica ou provavelmente patogênica no domínio exonuclease classifica o tumor como POLEmut: uma VUS em POLE não classifica.',
+          justify: `Carcinoma de endométrio com ${dmmr ? 'deficiência de reparo' : 'MMR proficiente'}: a classificação molecular permanece incompleta sem POLE e p53. O algoritmo é hierárquico e POLE prevalece sobre MMRd, de modo que o grupo molecular (e a decisão de terapia adjuvante) só se define com os três marcadores.`,
           programs: [A_MAPEAR],
         });
       }
@@ -1611,7 +1611,7 @@
       if (!filled(v.extensao_doenca)) {
         return {
           state: 'insuficiente',
-          message: 'Extensão da doença não identificada. Em pulmão ela decide entre a pesquisa dirigida da janela adjuvante e o painel amplo da doença avançada — volte à revisão e complete o campo.',
+          message: 'Extensão da doença não identificada. Em pulmão ela decide entre a pesquisa dirigida da janela adjuvante e o painel amplo da doença avançada. Volte à revisão e complete o campo.',
         };
       }
 
@@ -1637,7 +1637,7 @@
             sample: 'Tecido tumoral (peça cirúrgica)', order: 'Tumoral · somático · prioridade',
             stat: 'Terapia adjuvante dirigida é categoria 1 em EGFR mutado e em ALK rearranjado',
             // Precisão de estágio: os três marcadores NÃO cobrem a mesma faixa.
-            // EGFR (ADAURA) e ALK (ALINA) são IB a IIIA — ALK com IB a partir
+            // EGFR (ADAURA) e ALK (ALINA) são IB a IIIA, ALK com IB a partir
             // de 4 cm. PD-L1 (IMpower010) é II a IIIA. Dizer "IB a IIIB" era
             // impreciso nas duas pontas. Ver §41.
             description: 'Em doença ressecável, EGFR e ALK definem elegibilidade a terapia-alvo adjuvante nos estágios IB a IIIA (em ALK, o IB conta a partir de 4 cm), e PD-L1 orienta a imunoterapia adjuvante nos estágios II a IIIA, após quimioterapia à base de platina. Um painel amplo cobre os três e evita nova solicitação de tecido.',
@@ -1645,7 +1645,7 @@
             programs: [PD_POINT, PROGRAMA_ID],
           }],
           title: 'Este caso tem indicação para 1 teste',
-          summary: 'Doença ressecável: EGFR, ALK e PD-L1 definem a elegibilidade a terapia adjuvante — a janela é agora, não à progressão.',
+          summary: 'Doença ressecável: EGFR, ALK e PD-L1 definem a elegibilidade a terapia adjuvante: a janela é agora, não à progressão.',
           notes: [{ tag: 'Janela', title: 'A decisão adjuvante depende deste resultado',
             body: 'Adiar o teste para depois da progressão perde a indicação adjuvante, cujo benefício em sobrevida livre de doença não é recuperável na doença avançada.' }],
         };
@@ -1676,7 +1676,7 @@
         /* §38.7. PD-L1 nomeado, pelo mesmo mecanismo do §38.6.
          *
          * Era assimetria interna do motor: o card de doença RESSECÁVEL já
-         * nomeia PD-L1, e o de metastática não — embora PD-L1 seja mais
+         * nomeia PD-L1, e o de metastática não, embora PD-L1 seja mais
          * decisivo na metastática, onde é ele que define a primeira linha na
          * ausência de driver acionável.
          *
@@ -1689,7 +1689,7 @@
           nivel: 'acao',
           tag: 'Fora do painel genético',
           title: 'PD-L1 precisa ser pedido à parte',
-          body: 'Sem driver acionável, é o nível de PD-L1 que define a primeira linha. Ele é imuno-histoquímica, não entra no painel molecular acima e não sai no mesmo laudo — peça junto, no mesmo material, antes de iniciar o tratamento. Alguns medicamentos exigem ensaio específico aprovado pela agência regulatória.',
+          body: 'Sem driver acionável, é o nível de PD-L1 que define a primeira linha. Ele é imuno-histoquímica, não entra no painel molecular acima e não sai no mesmo laudo. Peça junto, no mesmo material, antes de iniciar o tratamento. Alguns medicamentos exigem ensaio específico aprovado pela agência regulatória.',
         }],
       };
     },
@@ -1707,7 +1707,7 @@
    *
    * Todo teste germinativo precisa sair da tela com o laboratório de
    * oncogenética ligado. Deixar isso a cargo de cada regra funciona até
-   * alguém escrever uma regra nova e esquecer — e o esquecimento é
+   * alguém escrever uma regra nova e esquecer, e o esquecimento é
    * silencioso: o card aparece sem lugar nenhum para o médico solicitar.
    * Foi assim que o teste da GSK sumiu do ovário (§36). A garantia mora aqui,
    * num lugar só, e vale para toda regra presente e futura.
@@ -1750,17 +1750,17 @@
    *
    * Histórico das duas tentativas, porque a segunda falhou em produção:
    *
-   * v1.2 — uma chave por campo, compartilhada entre tumores. Quebrou porque
+   * v1.2, uma chave por campo, compartilhada entre tumores. Quebrou porque
    *   "extensao_doenca" tem listas de valores diferentes em cinco tumores, e
    *   o schema levava a lista de um só. mCRPC era impossível de extrair.
    *
-   * v1.3 — chave com prefixo por tumor ("ovario__histologia"). Corrigiu a
+   * v1.3, chave com prefixo por tumor ("ovario__histologia"). Corrigiu a
    *   colisão e criou outra falha, pior: 39 propriedades das quais 35 têm de
    *   vir vazias, com nomes que não existem em vocabulário clínico nenhum.
    *   Em uso real o modelo preenchia os campos de chave simples (idade,
    *   histórico familiar) e deixava vazios TODOS os de chave prefixada.
    *
-   * v1.6 — chave simples de novo (19 campos, nomes naturais), mas o `enum`
+   * v1.6, chave simples de novo (19 campos, nomes naturais), mas o `enum`
    *   de um campo compartilhado é a UNIÃO dos valores de todos os tumores
    *   que o usam, e a descrição diz quais valores pertencem a qual subtipo.
    *   Depois da resposta, `normalizar()` valida o valor contra a lista do
@@ -1820,7 +1820,7 @@
       // Só colapsa numa descrição quando ela é IDÊNTICA em todos os tumores.
       // "histologia" existe nos sete com orientações diferentes: usar a do
       // ovário para todos é a mesma falha da v1.2, só que na descrição em vez
-      // do enum — o modelo receberia "ex.: Seroso, Endometrioide" para um
+      // do enum, o modelo receberia "ex.: Seroso, Endometrioide" para um
       // caso de pulmão.
       const descricoesIguais = campo.porTumor.every((p) => p.ai === campo.porTumor[0].ai);
 
@@ -1872,7 +1872,7 @@
   }
 
   // Encaixa o valor devolvido na lista de valores daquele tumor. Se não bater
-  // exatamente, tenta por aproximação — melhor um valor próximo, que a regra
+  // exatamente, tenta por aproximação, melhor um valor próximo, que a regra
   // entende, do que campo vazio, que apaga a indicação.
   function encaixarValor(valor, opcoes) {
     const bruto = String(valor || '').trim();
@@ -1885,7 +1885,7 @@
     // resposta curta casava com qualquer opcao que contivesse aquela letra:
     // "M" (de masculino) virava "Feminino", porque "feminino" contem "m". Um
     // erro desses inverte o sexo do paciente no formulario e nao aparece em
-    // lugar nenhum — o campo fica preenchido, so que com o valor oposto.
+    // lugar nenhum, o campo fica preenchido, so que com o valor oposto.
     const MINIMO_PARA_INCLUSAO = 4;
     const porInclusao = opcoes.find((o) => {
       const a = norm(o);
@@ -1941,13 +1941,13 @@
   }
 
   /* §56. A ordem dos programas é decisão do registro, não da tela. A tela
-   * apenas chama esta função — assim existe UM lugar onde a ordem está
+   * apenas chama esta função, assim existe UM lugar onde a ordem está
    * escrita, e ele é o mesmo arquivo que a suíte de testes audita.
    *
    * Três faixas, nesta sequência: programa de indústria (na ordem declarada
    * em ORDEM_INDUSTRIA), laboratório parceiro, e por último a ausência de via
    * verificada. Indústria não listada em ORDEM_INDUSTRIA entra depois das
-   * listadas, em ordem alfabética — nunca some, nunca fura a fila. */
+   * listadas, em ordem alfabética, nunca some, nunca fura a fila. */
   const FAIXA = { patrocinado: 0, laboratorio: 1, 'sem-via': 2 };
 
   function ordenarProgramas(programas) {

@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <!-- Sem esta linha o Safari do iPhone assume uma tela de 980px e encolhe a
-     página inteira - foi o que fazia tudo aparecer minúsculo no celular.
+     página inteira, foi o que fazia tudo aparecer minúsculo no celular.
      viewport-fit=cover deixa o fundo ir até a borda; o recuo do notch e do
      indicador de home é devolvido pelo env(safe-area-inset-*) no CSS. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>OncoGenYX - Triagem genômica em oncologia</title>
+<title>OncoGenYX: triagem genômica em oncologia</title>
 <meta name="description" content="Triagem de indicação de teste genético germinativo e somático em oncologia, com base em diretrizes nacionais e internacionais vigentes." />
 <meta name="color-scheme" content="light dark" />
 <!-- §78. Estas duas cores pintam a barra do sistema no celular e a moldura da
@@ -23,7 +23,7 @@
 <!-- §78. Pré-visualização do link.
      Sem estas linhas, mandar o endereço para um oncologista no WhatsApp ou no
      LinkedIn mostrava um endereço cru, sem título, sem descrição e sem
-     imagem. Era a primeira coisa que o médico via da plataforma — e a que
+     imagem. Era a primeira coisa que o médico via da plataforma, e a que
      mais dizia "isto é um teste de alguém", por mais cuidada que a tela
      estivesse do outro lado do clique.
      __ORIGEM__ é trocado pelo servidor pelo endereço real: estas marcações
@@ -36,7 +36,7 @@
 <meta property="og:url" content="__ORIGEM__/" />
 <!-- §79. Este texto é o MESMO que está desenhado na imagem, e a fonte dele é
      test/gerar-cartao.js. Mantidos à mão nos dois lugares, divergiriam sem
-     ninguém notar — a imagem é binária e as marcações são texto, e nunca se
+     ninguém notar, a imagem é binária e as marcações são texto, e nunca se
      olha os dois ao mesmo tempo. A bateria do aplicativo compara. -->
 <meta property="og:title" content="Apoio à decisão genética do seu paciente." />
 <meta property="og:description" content="Qual teste solicitar e por quê. Triagem baseada em diretrizes. Não é indicação terapêutica." />
@@ -76,7 +76,7 @@
         <strong>OncoGenYX</strong>
       </div>
       <h2>A triagem genômica que cabe na sua consulta.</h2>
-      <p>Leia o laudo, identifique a indicação e gere a solicitação assinável — em minutos, com rastreabilidade de diretriz.</p>
+      <p>Leia o laudo, identifique a indicação e gere a solicitação assinável, em minutos, com rastreabilidade de diretriz.</p>
       <ul class="gate-points">
         <li>
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
@@ -88,7 +88,7 @@
         </li>
         <li>
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-          <span>Nenhum dado de paciente é armazenado — o caso vive só na sua sessão</span>
+          <span>Nenhum dado de paciente é armazenado: o caso vive só na sua sessão</span>
         </li>
       </ul>
       <p class="gate-aside-foot">Uso restrito a profissionais de saúde habilitados.</p>
@@ -101,7 +101,7 @@
 
       <div class="gate-alert" id="gate-alert" style="display:none;" role="status"></div>
 
-      <!-- ACESSO SIMPLES (nome + CRM) - modo padrão da fase de validação -->
+      <!-- ACESSO SIMPLES (nome + CRM), modo padrão da fase de validação -->
       <form class="gate-view" id="view-acesso" onsubmit="return doAcesso(event)">
         <h1>Entrar na plataforma</h1>
         <p class="gate-sub">Identifique-se para começar. Nome e CRM são usados para assinar as solicitações que você gerar.</p>
@@ -245,7 +245,7 @@
   </div>
   <!-- §65. O botão só existe quando instalar é possível: some em aparelho já
        instalado e em navegador que não suporta. Botão que não faz nada é pior
-       que botão ausente — ensina a desconfiar da barra inteira. -->
+       que botão ausente, ensina a desconfiar da barra inteira. -->
   <button class="instalar-btn" id="instalar-btn" type="button" onclick="abrirInstalar()" hidden>
     <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><polyline points="8 11 12 15 16 11"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
     <span class="instalar-rotulo">Instalar app</span>
@@ -273,7 +273,7 @@
 
 <main id="conteudo-principal">
 
-  <!-- SCREEN 1 - INGESTÃO -->
+  <!-- SCREEN 1, INGESTÃO -->
   <section class="screen active" id="screen-0">
     <div class="eyebrow" id="eyebrow-0"></div>
     <h1>Descreva o caso</h1>
@@ -310,7 +310,7 @@
             voz pertence ao campo onde o texto dela aparece.
 
          Agora é UM compositor: o campo é a superfície, e as ações moram na
-         barra de dentro — anexar à esquerda, agir à direita. Três blocos
+         barra de dentro, anexar à esquerda, agir à direita. Três blocos
          viram um objeto só. -->
     <div class="mode-panel active" id="mode-form">
       <div class="compositor" id="dropzone">
@@ -335,12 +335,12 @@
             </div>
             <span class="voice-time mono" id="voice-time">00:00</span>
           </div>
-          <p class="hint" style="margin:8px 0 0;">O texto falado aparece direto no campo acima, em tempo real, à medida que você fala - o áudio nunca sai do seu navegador. Funciona no Chrome e no Edge; peça permissão de microfone quando o navegador solicitar.</p>
+          <p class="hint" style="margin:8px 0 0;">O texto falado aparece direto no campo acima, em tempo real, à medida que você fala: o áudio nunca sai do seu navegador. Funciona no Chrome e no Edge; peça permissão de microfone quando o navegador solicitar.</p>
           <p class="hint" id="voice-unsupported" role="status" style="display:none; margin-top:8px; color:var(--warn);">Seu navegador não suporta ditado por voz nativo. Tente no Chrome ou Edge, ou digite/cole o texto diretamente.</p>
         </div>
 
         <div class="ocr-disclaimer" id="ocr-disclaimer" style="display:none;">
-          PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto - tudo é combinado na estruturação do caso.
+          PDF e foto anexados são lidos automaticamente pelo motor de extração. Você também pode complementar com texto: tudo é combinado na estruturação do caso.
         </div>
         <div class="ocr-disclaimer" id="extract-error" role="alert" style="display:none; background:#fde2e2; color:#7a1f1f;"></div>
 
@@ -388,10 +388,10 @@
 
   </section>
 
-  <!-- SCREEN 2 - REVISÃO -->
+  <!-- SCREEN 2, REVISÃO -->
   <section class="screen" id="screen-1">
     <div class="case-banner">
-      <span>Caso identificado por código — nada é salvo no servidor</span>
+      <span>Caso identificado por código: nada é salvo no servidor</span>
       <span class="code lock"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Caso <span class="mono" id="case-code-1">-</span></span>
     </div>
 
@@ -440,10 +440,10 @@
     </div>
   </section>
 
-  <!-- SCREEN 3 - RESULTADO -->
+  <!-- SCREEN 3, RESULTADO -->
   <section class="screen" id="screen-2">
     <div class="case-banner">
-      <span>Triagem baseada em diretrizes - não é indicação terapêutica</span>
+      <span>Triagem baseada em diretrizes, não é indicação terapêutica</span>
       <span class="code lock"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Caso <span class="mono" id="case-code-2">-</span></span>
     </div>
 
@@ -495,7 +495,7 @@
     </div>
 
     <div class="disclaimer">
-      Esta triagem indica <strong>qual exame solicitar e por quê</strong>, com base em diretrizes clínicas nacionais e internacionais vigentes. Não constitui recomendação terapêutica nem substitui aconselhamento genético - casos com critério para síndrome hereditária devem ser encaminhados ao especialista.
+      Esta triagem indica <strong>qual exame solicitar e por quê</strong>, com base em diretrizes clínicas nacionais e internacionais vigentes. Não constitui recomendação terapêutica nem substitui aconselhamento genético: casos com critério para síndrome hereditária devem ser encaminhados ao especialista.
     </div>
 
     <div class="foot-nav">
@@ -504,11 +504,11 @@
     </div>
   </section>
 
-  <!-- SCREEN 4 - PROGRAMAS -->
+  <!-- SCREEN 4, PROGRAMAS -->
   <section class="screen" id="screen-3">
     <div class="eyebrow" id="eyebrow-3"></div>
     <h1>Programas de acesso e modelo de solicitação</h1>
-    <p class="lede">Informe o nome do paciente e baixe a solicitação pronta para assinar. A plataforma direciona ao portal oficial — nunca processa o pedido.</p>
+    <p class="lede">Informe o nome do paciente e baixe a solicitação pronta para assinar. A plataforma direciona ao portal oficial, nunca processa o pedido.</p>
     <p class="hint" id="programs-note" role="status" style="display:none; margin: -10px 0 20px;"></p>
     <div class="validate-flag">
       <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
@@ -534,7 +534,7 @@
     <details class="reident-note">
       <summary>
         <span class="reident-icon"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-        <span class="reident-text">O nome fica só neste navegador — caso <span class="mono" id="case-code-3">-</span></span>
+        <span class="reident-text">O nome fica só neste navegador, caso <span class="mono" id="case-code-3">-</span></span>
       </summary>
       <p class="reident-text">Ele não entra no motor de triagem e não é gravado em nenhum servidor: preenche apenas estes documentos, aqui no seu navegador. Quando o nome está escrito no material anexado, vem preenchido daí; confira e corrija se preciso.</p>
     </details>
@@ -543,7 +543,7 @@
     <div id="programs-dynamic"></div>
 
     <div class="disclaimer">
-      Documento gerado a partir dos dados que você confirmou nesta sessão. Revise sempre antes de assinar e enviar - a plataforma preenche o formulário, mas a responsabilidade pela solicitação é do médico assistente.
+      Documento gerado a partir dos dados que você confirmou nesta sessão. Revise sempre antes de assinar e enviar: a plataforma preenche o formulário, mas a responsabilidade pela solicitação é do médico assistente.
     </div>
 
     <div class="foot-nav">
@@ -565,7 +565,7 @@
         <span class="n">1</span>
         <div>
           <strong>O material vai inteiro para um modelo de IA</strong>
-          <span>O texto que você digita e o PDF ou foto que anexa são enviados à Anthropic, nos Estados Unidos, para a leitura automática. Se o laudo contiver nome, CPF ou prontuário, esses dados vão junto — a plataforma não os remove.</span>
+          <span>O texto que você digita e o PDF ou foto que anexa são enviados à Anthropic, nos Estados Unidos, para a leitura automática. Se o laudo contiver nome, CPF ou prontuário, esses dados vão junto. A plataforma não os remove.</span>
         </div>
       </div>
       <div class="modal-passo">
@@ -594,7 +594,7 @@
 <!-- ===================== INSTALAR O APLICATIVO ===================== -->
 <!-- §65. O iPhone NÃO deixa um site pedir instalação por código: não existe
      API. O único caminho é o médico abrir o compartilhar do Safari e escolher
-     "Adicionar à Tela de Início". Por isso o passo a passo não é enfeite — no
+     "Adicionar à Tela de Início". Por isso o passo a passo não é enfeite, no
      iOS ele É o mecanismo. No Android existe a API, e aí o botão instala de
      verdade; o passo a passo fica como reserva. -->
 <div class="modal-fundo" id="instalar" role="dialog" aria-modal="true" aria-labelledby="inst-titulo">
@@ -604,7 +604,7 @@
 
     <!-- §77. O caso que some sem ninguém saber: o médico recebe o link por
          WhatsApp, LinkedIn ou Instagram e abre DENTRO do aplicativo de
-         mensagem. Esse navegador embutido não instala nada — não tem a API
+         mensagem. Esse navegador embutido não instala nada, não tem a API
          do Android nem o "Adicionar à Tela de Início" do Safari. Sem este
          aviso, o passo a passo manda procurar um botão que não existe ali, e
          o médico conclui que a plataforma é que está quebrada. -->
@@ -634,7 +634,7 @@
         <span class="n">1</span>
         <div>
           <strong>Abra esta página no Safari</strong>
-          <span>Precisa ser o Safari. Chrome e Firefox no iPhone não conseguem instalar — é limitação do sistema, não da plataforma.</span>
+          <span>Precisa ser o Safari. Chrome e Firefox no iPhone não conseguem instalar: é limitação do sistema, não da plataforma.</span>
         </div>
       </div>
       <div class="modal-passo">
@@ -693,14 +693,14 @@
         <span class="n">1</span>
         <div>
           <strong>Use o Chrome ou o Edge</strong>
-          <span>No Firefox e no Safari do Mac não existe instalação — a plataforma funciona igual, mas continua dentro de uma aba.</span>
+          <span>No Firefox e no Safari do Mac não existe instalação. A plataforma funciona igual, mas continua dentro de uma aba.</span>
         </div>
       </div>
       <div class="modal-passo">
         <span class="n">2</span>
         <div>
           <strong>Clique em "Instalar agora" abaixo</strong>
-          <span>Se o botão não aparecer, procure o ícone de instalar na barra de endereço, à direita — um monitor com uma seta para baixo.</span>
+          <span>Se o botão não aparecer, procure o ícone de instalar na barra de endereço, à direita: um monitor com uma seta para baixo.</span>
         </div>
       </div>
       <div class="modal-passo">
@@ -720,12 +720,12 @@
     </div>
 
     <!-- §77. Três dúvidas que aparecem sempre, e que fechadas custam uma
-         linha. Abertas de início, viram parede de texto — foi a crítica do
+         linha. Abertas de início, viram parede de texto, foi a crítica do
          dono ao site que serviu de referência. -->
     <details class="inst-duvidas" id="inst-duvidas">
       <summary>Dúvidas rápidas</summary>
       <p><strong>Ocupa espaço no aparelho?</strong> Praticamente nada. Não é um download de loja: é esta própria página, guardada como atalho.</p>
-      <p><strong>Funciona sem internet?</strong> A tela abre, mas a leitura do caso precisa de conexão — ela acontece no servidor.</p>
+      <p><strong>Funciona sem internet?</strong> A tela abre, mas a leitura do caso precisa de conexão. Ela acontece no servidor.</p>
       <p><strong>Como desinstalo?</strong> Igual a qualquer aplicativo: segure o ícone e escolha apagar.</p>
     </details>
 
@@ -774,7 +774,7 @@
   </div>
 </div>
 
-<!-- ===================== GENA — assistente flutuante ===================== -->
+<!-- ===================== GENA, assistente flutuante ===================== -->
 <div class="gena" id="gena">
 
   <button class="gena-fab" id="gena-fab" type="button" onclick="toggleGena()" aria-label="Abrir a Gena, assistente de triagem" aria-expanded="false">

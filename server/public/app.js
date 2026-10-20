@@ -1,7 +1,7 @@
 'use strict';
 // ===================== AUTENTICAÇÃO =====================
   // O token de sessão fica em localStorage e acompanha toda chamada à API.
-  // Nome e CRM vêm da conta no servidor - não são mais digitados por sessão.
+  // Nome e CRM vêm da conta no servidor, não são mais digitados por sessão.
   const TOKEN_KEY = 'oncogenyx.session';
   let doctorName = '';
   let doctorCRM = '';
@@ -47,7 +47,7 @@
     // Portal cativo de hotel responde HTML com status 200: sem esta guarda o
     // médico via "Cannot read properties of undefined" na caixa de erro.
     if (payload === null) {
-      throw new Error('A resposta do servidor veio em formato inesperado. Isso costuma ser rede com portal de acesso — abra uma página qualquer no navegador, aceite a conexão e tente de novo.');
+      throw new Error('A resposta do servidor veio em formato inesperado. Isso costuma ser rede com portal de acesso: abra uma página qualquer no navegador, aceite a conexão e tente de novo.');
     }
     return payload;
   }
@@ -57,7 +57,7 @@
     const initials = doctorName.replace(/^Dra?\.\s*/i, '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
     document.getElementById('doctor-chip-avatar').textContent = initials || 'MD';
     // Os documentos de solicitação são gerados na tela de programas e já
-    // nascem com nome e CRM - só precisam ser refeitos se já existirem.
+    // nascem com nome e CRM, só precisam ser refeitos se já existirem.
     if (typeof lastResult !== 'undefined' && lastResult) renderPrograms();
   }
 
@@ -133,7 +133,7 @@
   }
 
   // Modo de acesso vindo do servidor. Enquanto não é conhecido, a tela fica
-  // no modo simples - que é o padrão - para não piscar entre dois formulários.
+  // no modo simples, que é o padrão, para não piscar entre dois formulários.
   let authMode = 'simples';
 
   async function doAcesso(event) {
@@ -315,7 +315,7 @@
   (function listarTumoresCobertos() {
     const el = document.getElementById('tumores-cobertos');
     if (!el) return;
-    // Eram sete pílulas cinza, que o olho lê como filtro clicável — e não
+    // Eram sete pílulas cinza, que o olho lê como filtro clicável, e não
     // são. A mesma informação numa linha de texto some como ruído e continua
     // respondendo "meu caso está no escopo?". §50
     const nomes = TUMORS.list().map((t) => t.short);
@@ -324,7 +324,7 @@
 
   // ===================== BOAS-VINDAS =====================
   // Mostrado uma vez por navegador. Reabrir é sempre possível pelo link
-  // "Como funciona" - a explicação não some para quem quiser consultar.
+  // "Como funciona", a explicação não some para quem quiser consultar.
   const BOAS_VINDAS_KEY = 'oncogenyx.boas-vindas.v1';
   let focoAntesDoModal = null;
 
@@ -332,7 +332,7 @@
   // Os dois modais declaravam `aria-modal="true"` e não prendiam o foco: um
   // Tab a partir do botão do rodapé já saía para a página de trás, e
   // Shift+Tab a partir do botão de fechar caía direto num controle da tela 1.
-  // Para leitor de tela e para teclado, a promessa de modalidade era falsa —
+  // Para leitor de tela e para teclado, a promessa de modalidade era falsa,
   // o usuário continuava navegando por um conteúdo que estava visualmente
   // bloqueado, sem nenhuma pista de que havia saído do diálogo.
   const FOCAVEIS = [
@@ -388,7 +388,7 @@
     if (focoAntesDoModal && focoAntesDoModal.focus) focoAntesDoModal.focus();
   }
 
-  // Clique no fundo e Esc fecham - um modal sem saída óbvia irrita mais do
+  // Clique no fundo e Esc fecham, um modal sem saída óbvia irrita mais do
   // que a informação que ele carrega.
   document.getElementById('boas-vindas').addEventListener('click', (e) => {
     if (e.target.id === 'boas-vindas') fecharBoasVindas();
@@ -400,7 +400,7 @@
   });
 
   // Privacidade: aberto pelo link do passo 1 e pelo modal de boas-vindas.
-  // Sempre disponível — não é aviso que aparece uma vez e some.
+  // Sempre disponível, não é aviso que aparece uma vez e some.
   let focoAntesDaPrivacidade = null;
 
   function abrirPrivacidade() {
@@ -434,7 +434,7 @@
    *   Então, no iOS, o passo a passo NÃO é documentação de apoio: é o
    *   mecanismo inteiro.
    *
-   * O botão some quando instalar não é possível — já instalado, ou navegador
+   * O botão some quando instalar não é possível, já instalado, ou navegador
    * sem suporte. Botão que não faz nada ensina a desconfiar da barra toda. */
   let promptDeInstalacao = null;
   let focoAntesDoInstalar = null;
@@ -452,7 +452,7 @@
    *
    * É o modo de falhar que nunca chega como reclamação: o médico recebe o
    * link por WhatsApp ou LinkedIn, abre DENTRO do aplicativo de mensagem, e
-   * aquele navegador não instala nada — não tem a API do Android nem o
+   * aquele navegador não instala nada, não tem a API do Android nem o
    * "Adicionar à Tela de Início" do Safari. Sem aviso, o passo a passo manda
    * procurar um botão que ali não existe, e a conclusão do médico é que a
    * plataforma está quebrada.
@@ -460,7 +460,7 @@
    * Detecta-se o que é detectável e diz-se só o que se sabe. Facebook,
    * Instagram, LinkedIn e Line se identificam na assinatura do navegador; a
    * webview genérica do Android traz " wv". O navegador interno do WhatsApp
-   * no iPhone não se distingue com segurança — por isso o aviso é redigido
+   * no iPhone não se distingue com segurança, por isso o aviso é redigido
    * para servir a qualquer aplicativo, sem citar nome nenhum. */
   function navegadorEmbutido() {
     const ua = navigator.userAgent || '';
@@ -542,8 +542,8 @@
     setTimeout(() => {
       const alvo = document.getElementById(promptDeInstalacao && !jaInstalado ? 'inst-instalar' : 'inst-fechar');
       /* §77. `focus()` rola o elemento para a vista, e "Fechar" mora no pé do
-       * modal: quem abria sem botão de instalar — justamente o iPhone e o
-       * navegador embutido — chegava com o painel já rolado até embaixo, com
+       * modal: quem abria sem botão de instalar, justamente o iPhone e o
+       * navegador embutido, chegava com o painel já rolado até embaixo, com
        * o passo 1 e o aviso de bloqueio fora da tela. O foco é posto sem
        * rolagem, e o painel volta ao topo. */
       if (alvo) {
@@ -607,7 +607,7 @@
   })();
 
   // Troca a especialidade ativa. `manual: true` significa que o médico
-  // corrigiu a identificação automática - nesse caso a justificativa da IA
+  // corrigiu a identificação automática, nesse caso a justificativa da IA
   // deixa de valer e os campos são remontados vazios para o novo subtipo.
   function setSubtype(id, { manual = false } = {}) {
     if (!TUMORS.get(id)) return;
@@ -664,7 +664,7 @@
           .concat(field.options.map((o) => `<option value="${o}">${o}</option>`))
           .join('');
         // Valor extraído que não bate exatamente com a lista vira opção
-        // própria em vez de sumir - melhor mostrar o que a IA leu.
+        // própria em vez de sumir, melhor mostrar o que a IA leu.
         if (value && !field.options.includes(value)) {
           // API de DOM em vez de HTML: o valor vem da saída do modelo e
           // interpolado cru permitia injetar atributo no <option>.
@@ -683,7 +683,7 @@
       input.value = value;
       // Amarelo só em campo que muda o resultado. Pintar todo campo vazio de
       // alerta transforma "opcional" em "erro" e treina o médico a ignorar
-      // o aviso - inclusive quando ele importa.
+      // o aviso, inclusive quando ele importa.
       input.classList.toggle('missing', Boolean(field.decisivo) && !value);
       input.addEventListener('input', onFieldInput);
       input.addEventListener('change', onFieldInput);
@@ -743,7 +743,7 @@
   }
 
   // Código do caso: identificador de sessão, não é o nome do paciente.
-  // Prefixo neutro (não mais "GYN-") - o subtipo só é conhecido depois da
+  // Prefixo neutro (não mais "GYN-"), o subtipo só é conhecido depois da
   // extração, então o código do caso não pode presumir qual é.
   const caseCode = 'CASO-' + String(Math.floor(1000 + Math.random() * 9000));
   document.querySelectorAll('#case-code-1, #case-code-2, #case-code-3').forEach((el) => { el.textContent = caseCode; });
@@ -751,7 +751,7 @@
   // Extração real: envia texto + arquivos (PDF/foto) para o backend, que usa a
   // API da Anthropic com saída estruturada (Camada 3 real, não regex). A
   // própria extração identifica o subtipo oncológico (tipo_tumor no
-  // retorno) - não é mais escolhido manualmente antes de enviar.
+  // retorno), não é mais escolhido manualmente antes de enviar.
   async function extractCase(text) {
     const formData = new FormData();
     formData.append('text', text || '');
@@ -764,8 +764,8 @@
 
   function currentSources() {
     const sources = [];
-    pdfFiles.forEach((f) => sources.push('Laudo em PDF - ' + f.name));
-    photoFiles.forEach((f) => sources.push('Foto do laudo - ' + f.name));
+    pdfFiles.forEach((f) => sources.push('Laudo em PDF: ' + f.name));
+    photoFiles.forEach((f) => sources.push('Foto do laudo: ' + f.name));
     if (document.getElementById('case-text').value.trim()) sources.push('Texto ou transcrição colada');
     if (recSeconds > 0) sources.push('Ditado por voz (' + document.getElementById('voice-time').textContent + ')');
     return sources;
@@ -784,7 +784,7 @@
   }
 
   // Nome do paciente extraído do material anexado (PDF/foto), se identificável.
-  // Nunca é mostrado nas telas de revisão/triagem - só pré-preenche o campo
+  // Nunca é mostrado nas telas de revisão/triagem, só pré-preenche o campo
   // isolado da tela final de solicitação (ver renderDocs()).
   let extractedPatientName = '';
 
@@ -825,8 +825,8 @@
 
       // A justificativa não é enfeite: é o indicador de confiança da leitura.
       // Medido contra a API real, em toda extração CORRETA o modelo explicou
-      // por que identificou aquele subtipo; em TODA falha — tanto o abandono
-      // (tudo vazio) quanto a troca de ovário por endométrio — ela veio
+      // por que identificou aquele subtipo; em TODA falha, tanto o abandono
+      // (tudo vazio) quanto a troca de ovário por endométrio, ela veio
       // vazia. É um sinal que cobre os dois modos de falha, custa zero
       // chamada extra, e o único jeito de errar para o lado seguro é pedir
       // confirmação. Ver ARQUITETURA.md §33.5.
@@ -835,10 +835,10 @@
       const semJustificativa = !String(extracted.tipo_tumor_justificativa || '').trim();
 
       // Conflito de sítio conferido pelo servidor no texto do material: é a
-      // suspeita mais forte que existe, porque não veio de palpite nenhum —
+      // suspeita mais forte que existe, porque não veio de palpite nenhum,
       // veio de o material nomear um sítio e a leitura ter escolhido o outro.
       if (extracted.subtipo_corrigido_de) {
-        tipoJustEl.textContent = `A leitura havia classificado como ${extracted.subtipo_corrigido_de}, e foi corrigido para ${extracted.tipo_tumor} porque é o sítio nomeado no material. Confirme antes de seguir — a triagem inteira depende disto.`;
+        tipoJustEl.textContent = `A leitura havia classificado como ${extracted.subtipo_corrigido_de}, e foi corrigido para ${extracted.tipo_tumor} porque é o sítio nomeado no material. Confirme antes de seguir. A triagem inteira depende disto.`;
         tipoJustEl.className = 'hint confirmar-subtipo';
         tipoJustEl.style.display = '';
         campoSubtipo.classList.add('confirmar');
@@ -848,7 +848,7 @@
         tipoJustEl.style.display = '';
         campoSubtipo.classList.remove('confirmar');
       } else {
-        tipoJustEl.textContent = 'A leitura não explicou por que escolheu este subtipo — nos casos em que isso acontece a identificação erra com mais frequência. Confirme o subtipo antes de seguir; trocar aqui remonta os campos e as regras.';
+        tipoJustEl.textContent = 'A leitura não explicou por que escolheu este subtipo. Nos casos em que isso acontece, a identificação erra com mais frequência. Confirme o subtipo antes de seguir; trocar aqui remonta os campos e as regras.';
         tipoJustEl.className = 'hint confirmar-subtipo';
         tipoJustEl.style.display = '';
         campoSubtipo.classList.add('confirmar');
@@ -877,7 +877,7 @@
   /* O que o médico JÁ preencheu na tela, para a Gena não perguntar de novo.
    *
    * O prompt dela proíbe explicitamente "perguntar o que a pessoa acabou de
-   * dizer com outras palavras — o erro que mais faz uma conversa parecer
+   * dizer com outras palavras, o erro que mais faz uma conversa parecer
    * robô". Mas ela não tinha como saber: cada conversa começava do zero,
    * mesmo com o caso já estruturado na tela atrás do painel. O médico
    * preenchia histologia, grau e estágio no passo 2, abria a Gena, e ela
@@ -902,7 +902,7 @@
   // Conversa real com o modelo (/api/chat), não roteiro fixo: a Gena entende
   // resposta em linguagem natural e sinaliza sozinha quando o caso está
   // completo o bastante para ir para a triagem estruturada.
-  const GENA_GREETING = 'Oi! Sou a Gena. Me conte o caso do seu jeito — histologia, estágio, o que tiver em mãos — que eu organizo e levo para a triagem.';
+  const GENA_GREETING = 'Oi! Sou a Gena. Me conte o caso do seu jeito (histologia, estágio, o que tiver em mãos) e eu organizo e levo para a triagem.';
   let genaMessages = [];
   let genaReadySummary = '';
   let genaBusy = false;
@@ -951,12 +951,12 @@
    * O médico usa isto entre consultas, muitas vezes com as mãos ocupadas e o
    * laudo na outra. Digitar é o gargalo. O navegador já traz reconhecimento
    * de fala e síntese de voz nativos: nenhuma dependência nova, nenhum custo
-   * por minuto, e o áudio não sai do aparelho — o que importa num app que
+   * por minuto, e o áudio não sai do aparelho, o que importa num app que
    * promete que o material do paciente não circula. Ver §51.
    *
    * Regras de comportamento:
    * A Gena NÃO fala de volta: foi decisão do dono do produto, e é a decisão
-   * certa — um app que fala sozinho numa sala de consulta é um problema, não
+   * certa, um app que fala sozinho numa sala de consulta é um problema, não
    * um recurso. O microfone serve para ditar PARA o campo de texto: continua
    * sendo conversa digitada, só sem ocupar as mãos.
    */
@@ -1051,7 +1051,7 @@
    *
    * Antes, uma falha de rede renderizava "Tive um problema" e acabava ali: a
    * mensagem do médico já estava no histórico, sem resposta e sem caminho de
-   * volta. Para tentar de novo ele teria que digitar tudo outra vez — num
+   * volta. Para tentar de novo ele teria que digitar tudo outra vez, num
    * aparelho em corredor de hospital, com sinal oscilando, é onde a conversa
    * morre. Agora o erro vem com um botão que reenvia a mesma mensagem. */
   async function genaChamar() {
@@ -1130,7 +1130,7 @@
   let photoFiles = [];
 
   // Alguns navegadores/SO não preenchem file.type de forma confiável para
-  // todo PDF (fica vazio em vez de "application/pdf") - cair pra extensão
+  // todo PDF (fica vazio em vez de "application/pdf"), cair pra extensão
   // evita que o arquivo seja silenciosamente ignorado no drag-and-drop.
   function isPdfFile(f) {
     return f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
@@ -1148,7 +1148,7 @@
   function formatoNaoSuportado(f) {
     const ehHeic = /heic|heif/i.test(f.type) || /\.(heic|heif)$/i.test(f.name);
     if (ehHeic) {
-      return `"${f.name}" está em HEIC, o formato padrão de foto do iPhone, que a leitura automática não abre. Abra a foto, toque em Compartilhar e escolha "Copiar foto" — a cópia sai em JPEG. Ou anexe um print da tela.`;
+      return `"${f.name}" está em HEIC, o formato padrão de foto do iPhone, que a leitura automática não abre. Abra a foto, toque em Compartilhar e escolha "Copiar foto": a cópia sai em JPEG. Ou anexe um print da tela.`;
     }
     if (/\.(bmp|tiff?)$/i.test(f.name)) {
       return `"${f.name}" está num formato que a leitura automática não abre. Converta para JPEG ou PNG, ou anexe um print da tela.`;
@@ -1160,7 +1160,7 @@
 
   // Checa o arquivo no próprio navegador, antes de subir. Um PDF de 0 byte
   // (típico de arquivo que ainda está no iCloud e não foi baixado) só daria
-  // erro depois da chamada paga - e com uma mensagem que não ajuda em nada.
+  // erro depois da chamada paga, e com uma mensagem que não ajuda em nada.
   function problemaNoArquivo(f) {
     const formato = formatoNaoSuportado(f);
     if (formato) return formato;
@@ -1199,11 +1199,11 @@
   }
 
   // Redesenha os dois tiles (nome/contagem, miniaturas) e a lista de chips
-  // removíveis a partir do estado atual de pdfFiles/photoFiles - chamado
+  // removíveis a partir do estado atual de pdfFiles/photoFiles, chamado
   // sempre que um arquivo é adicionado ou removido, pra nunca dessincronizar.
   /* §60. "Limpar tudo" é ação destrutiva e rara, e ficava sempre na tela com
    * o mesmo peso da ação principal. Agora ela só existe quando há algo para
-   * limpar — texto digitado ou arquivo anexado. Um botão que não tem o que
+   * limpar, texto digitado ou arquivo anexado. Um botão que não tem o que
    * fazer é ruído, e ruído ao lado de um botão destrutivo é pior: ensina o
    * médico a ignorar aquele canto da tela. */
   function atualizarRascunho() {
@@ -1264,7 +1264,7 @@
   }
 
   // Reseta a tela de ingestão inteira: arquivos, texto, ditado por voz e
-  // conversa com o OncoBot - pra começar um caso do zero sem recarregar a página.
+  // conversa com o OncoBot, pra começar um caso do zero sem recarregar a página.
   function clearIntake() {
     pdfFiles = [];
     photoFiles = [];
@@ -1280,7 +1280,7 @@
 
     // O nome do paciente é a única informação identificável que o app toca.
     // Ele sobrevivia ao "Iniciar novo caso" e reaparecia no documento da
-    // paciente seguinte — com o diagnóstico correto dela. Ver §46.1
+    // paciente seguinte, com o diagnóstico correto dela. Ver §46.1
     const campoNome = document.getElementById('patient-name');
     if (campoNome) campoNome.value = '';
     extractedPatientName = '';
@@ -1304,7 +1304,7 @@
     if (unknown.length) {
       const errorBox = document.getElementById('extract-error');
       const names = unknown.map((f) => f.name).join(', ');
-      errorBox.textContent = `Não reconheci "${names}" como PDF ou imagem - anexe pelos tiles "Laudo em PDF" ou "Foto do laudo", ou confira o formato do arquivo.`;
+      errorBox.textContent = `Não reconheci "${names}" como PDF ou imagem. Anexe pelos tiles "Laudo em PDF" ou "Foto do laudo", ou confira o formato do arquivo.`;
       errorBox.style.display = '';
     }
   }
@@ -1347,14 +1347,14 @@
     return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
   }
 
-  // Selo "N testes indicados" no topo do resultado - resposta imediata de
+  // Selo "N testes indicados" no topo do resultado, resposta imediata de
   // "quantos e quais", em vez de exigir ler o parágrafo inteiro do veredito.
   function setCountPill(count, titulo) {
     const pill = document.getElementById('verdict-count-pill');
     if (count === null) { pill.style.display = 'none'; return; }
     /* §57.3. A contagem aparecia TRÊS vezes no mesmo painel: no selo, no
      * título ("Este caso tem indicação para 2 testes") e no resumo ("Solicite
-     * os 2 testes abaixo"). Repetir um número não o torna mais claro — enche
+     * os 2 testes abaixo"). Repetir um número não o torna mais claro, enche
      * o painel e faz o médico reler para conferir se são três informações ou
      * a mesma. O título é texto clínico, vem do registro; o selo é decisão de
      * tela. Então é o selo que sai quando o título já diz o número. */
@@ -1388,7 +1388,7 @@
     renderTestSteps(tests, result);
     renderNotes(blocked ? [] : (result.notes || []));
 
-    // Sem teste indicado não existe programa de acesso para mostrar - o
+    // Sem teste indicado não existe programa de acesso para mostrar, o
     // botão volta para a revisão em vez de levar a uma tela vazia.
     liberarPasso(2);
     if (tests.length) {
@@ -1417,7 +1417,7 @@
       const cauda = corte > 0 ? desc.slice(corte + 2) : '';
       /* §63. O número vira NÓ DE UM TRILHO, não um selo dentro de um card
        * solto. Quando a triagem indica dois testes, a ordem entre eles é
-       * clínica — no endométrio dMMR, pedir o germinativo antes da metilação
+       * clínica, no endométrio dMMR, pedir o germinativo antes da metilação
        * de MLH1 encaminha ao geneticista uma paciente cuja perda é
        * esporádica. Dois cards idênticos empilhados comunicam "menu, escolha
        * um". Um trilho comunica "primeiro este, depois aquele". */
@@ -1432,8 +1432,8 @@
             <summary>Por que este teste</summary>
             ${cauda ? `<p>${esc(cauda)}</p>` : ''}
             ${/* §63.2. test.justify é o texto que vai IMPRESSO no pedido, no
-                  campo "Justificativa clínica", acima da assinatura do médico
-                  — e não aparecia em lugar nenhum da tela. O médico assinava
+                  campo "Justificativa clínica", acima da assinatura do médico,
+                  e não aparecia em lugar nenhum da tela. O médico assinava
                   uma justificativa que nunca tinha lido. */''}
             ${test.justify ? `<div class="justificativa-assinada">
               <span class="rotulo">Vai assim no pedido, acima da sua assinatura</span>
@@ -1458,8 +1458,8 @@
      * aberta, ACIMA dos cards que ela governa. A que só explica uma ausência
      * é elaboração e recolhe.
      *
-     * Antes disto, a regra de sequenciamento mais perigosa do app — pedir
-     * metilação de MLH1 ANTES do germinativo — ficava atrás de um clique,
+     * Antes disto, a regra de sequenciamento mais perigosa do app, pedir
+     * metilação de MLH1 ANTES do germinativo, ficava atrás de um clique,
      * enquanto 55 palavras de texto jurídico ficavam totalmente abertas logo
      * abaixo. Ver §53. */
     const lista = notes || [];
@@ -1490,7 +1490,7 @@
   const ICONE_LAB = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg>';
   const ICONE_DNA = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 16 1.5 1.5"/><path d="m14 8-1.5-1.5"/><path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993"/><path d="m16.5 10.5 1 1"/><path d="m17 6-2.891-2.891"/><path d="M2 15c6.667-6 13.333 0 20-6"/><path d="m20 9 .891.891"/><path d="M3.109 14.109 4 15"/><path d="m6.5 12.5 1 1"/><path d="m7 18 2.891 2.891"/><path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993"/></svg>';
 
-  // Monta um card por teste efetivamente indicado - nunca um teste que a
+  // Monta um card por teste efetivamente indicado, nunca um teste que a
   // triagem não indicou, para não oferecer ao médico uma opção que não se
   // aplica ao caso que ele acabou de rodar.
   function renderPrograms() {
@@ -1508,7 +1508,7 @@
     if (!tests.length) {
       container.innerHTML = '';
       mostrarSecao(false);
-      note.textContent = 'Esta triagem não indicou nenhum teste genético para o caso informado - por isso nenhum programa de acesso é mostrado.';
+      note.textContent = 'Esta triagem não indicou nenhum teste genético para o caso informado, por isso nenhum programa de acesso é mostrado.';
       note.style.display = '';
       return;
     }
@@ -1517,16 +1517,16 @@
 
     const diagnostico = t.diagnosis(values);
     // "Nenhum relatado" / "Não relatado" são negativas explícitas, não
-    // conteúdo - entrariam no documento como "Caso com diagnóstico acima
+    // conteúdo, entrariam no documento como "Caso com diagnóstico acima
     // descrito, nenhum relatado." se fossem tratadas como texto.
     const testesPrevios = H.filled(values.testes_previos) ? values.testes_previos.trim() : '';
     const historico = H.filled(values.historico_familiar) ? values.historico_familiar.trim() : '';
     const date = todayBR();
     const provisorio = result.state === 'provisorio';
-    const doctor = `${doctorName} - CRM ${doctorCRM}`;
+    const doctor = `${doctorName}, CRM ${doctorCRM}`;
 
     /* §66. A frase sobre custo era repetida DENTRO de cada card de teste, com
-     * o mesmo texto. Ela não fala de um teste — fala dos programas de
+     * o mesmo texto. Ela não fala de um teste, fala dos programas de
      * indústria, que são os mesmos em toda a tela. Repetida, ela some: o olho
      * aprende que aquele parágrafo cinza não muda e para de lê-lo. Dita uma
      * vez, no topo, ela ainda informa. */
@@ -1543,7 +1543,7 @@
       /* §81. A correção do §47.6 ficou pela metade, e o caso que sobrou é o
        * MAIS comum: o texto de testes prévios quase sempre começa pelo nome
        * do gene. "BRCA germinativo negativo em 2021" saía "bRCA germinativo
-       * negativo em 2021" no documento que o médico assina — e some na tela,
+       * negativo em 2021" no documento que o médico assina, e some na tela,
        * porque a tela mostra `test.justify` sem este prefixo. Só aparece no
        * papel, que é onde menos se pode errar.
        * Agora a inicial só desce quando rebaixá-la não destrói nada: palavra
@@ -1562,11 +1562,11 @@
 
       // O selo diz, antes de qualquer leitura, o que aquela linha é: via sem
       // custo da indústria, laboratório parceiro, ou nenhuma via verificada.
-      // E quando não há endereço, a linha precisa dizer POR ONDE se solicita —
+      // E quando não há endereço, a linha precisa dizer POR ONDE se solicita,
       // uma linha sem botão e sem explicação parece produto quebrado. Ver §44.
       /* §56. O selo dizia "Sem custo" em cada programa de indústria. Como
        * TODOS os programas de indústria listados são sem custo, o selo não
-       * distinguia nada — só empurrava o clique para quem o exibia primeiro.
+       * distinguia nada, só empurrava o clique para quem o exibia primeiro.
        * O selo passou a dizer o que o programa É; o custo é dito uma vez, na
        * linha acima da lista, valendo para todos. */
       const SELO = {
@@ -1576,7 +1576,7 @@
       };
       /* Cortar a nota do programa em 78 CARACTERES partia a frase no meio do
        * critério. No teste HRD da GSK, o que ficava visível era
-       * "Elegível: carcinoma seroso ou…" — e o que sumia atrás do "mais" era
+       * "Elegível: carcinoma seroso ou…", e o que sumia atrás do "mais" era
        * "de ALTO GRAU" e "EM PRIMEIRA LINHA de tratamento", ou seja, os dois
        * critérios que RECUSAM o paciente, mais o aviso de que a solicitação
        * não é por portal. O médico lia a metade que inclui e não lia a metade
@@ -1601,7 +1601,7 @@
 
       /* §67. Marca-texto nos trechos que o registro declarou como excludentes.
        * Aplicado DEPOIS do escape de HTML, sobre o texto já seguro, e só nas
-       * ocorrências exatas que o registro listou — nunca por padrão de letra
+       * ocorrências exatas que o registro listou, nunca por padrão de letra
        * maiúscula, que confundiria nome de gene com critério. */
       const marcarDestaques = (textoEscapado, destaques) => {
         if (!destaques || !destaques.length) return textoEscapado;
@@ -1638,22 +1638,22 @@
 
       return `
       <div class="card program-card">
-        <!-- §57. A pílula ficava INLINE no fim do h3. Com um nome longo —
+        <!-- §57. A pílula ficava INLINE no fim do h3. Com um nome longo,
              "Painel germinativo multigênico (BRCA1/2, RAD51C, RAD51D, BRIP1,
-             PALB2 e genes de Lynch)" tem 88 caracteres — o título quebrava em
+             PALB2 e genes de Lynch)" tem 88 caracteres, o título quebrava em
              duas linhas e a pílula pousava no meio da segunda, colada na
              última palavra. Era a origem do "tudo um em cima do outro". Como
              status, ela pertence ACIMA do nome: diz em que pé está o item que
              vem a seguir, e nunca mais depende de onde o texto quebrou. -->
         <!-- §63.4. O MESMO NÚMERO da tela de resultado. As duas telas listam
              os mesmos testes na mesma ordem, e na tela de programas cada um
-             virava um card idêntico ao anterior — sem nada que dissesse "este
+             virava um card idêntico ao anterior, sem nada que dissesse "este
              é o teste 1 que você acabou de ler". O número é a única ponte
              necessária, e custa um elemento. -->
         <div class="prog-topo">
           <div class="prog-cabeca">
             <span class="step-num">${i + 1}</span>
-            <span class="pill ${provisional ? 'warn' : 'ok'}">${provisional ? 'indicação provável - confirmar' : 'indicado neste caso'}</span>
+            <span class="pill ${provisional ? 'warn' : 'ok'}">${provisional ? 'indicação provável: confirmar' : 'indicado neste caso'}</span>
           </div>
           <h3>${esc(test.name)}</h3>
         </div>
@@ -1663,7 +1663,7 @@
           <summary><span class="doc-rotulo">Solicitação pronta para assinar</span></summary>
           <!-- §66.2. "Editar campos" morava FORA do documento, numa fileira de
                ações repetida em cada card e visível mesmo com o documento
-               fechado — um botão oferecendo editar algo que não está na tela.
+               fechado, um botão oferecendo editar algo que não está na tela.
                Mora agora dentro do documento aberto, encostado no que ele
                edita, e some junto com ele. -->
           <div class="doc-ferramentas">
@@ -1671,7 +1671,7 @@
           </div>
           <div class="doc-preview">
             <!-- §64. A marca era conteúdo de um ::before em CSS. No
-                 celular ela colidia com o tipo do documento — duas caixas
+                 celular ela colidia com o tipo do documento, duas caixas
                  adjacentes sem respiro, uma delas quebrando em duas linhas:
                  "OncoGenYXFORMULÁRIO DE SOLICITAÇÃO". Pseudo-elemento também
                  não é mensurável por teste, nem legível por leitor de tela.
@@ -1721,7 +1721,7 @@
     document.querySelectorAll('#programs-dynamic .doc-name').forEach((el) => { el.textContent = name; });
 
     /* §55. Sem nome, o documento é uma solicitação de exame cujo campo do
-     * paciente diz "(preencha o nome do paciente)" — e era possível baixar e
+     * paciente diz "(preencha o nome do paciente)", e era possível baixar e
      * assinar exatamente isso. Documento assinado sem paciente não é um
      * rascunho: é um pedido em branco com a assinatura de um médico. O botão
      * de baixar só existe quando há nome. */
@@ -1744,7 +1744,7 @@
     }
     /* §81. O mesmo raciocínio do §55, aplicado ao campo que o §55 esqueceu.
      * "Editar campos" torna editável TODA célula do documento, inclusive a
-     * justificativa clínica — e era possível apagá-la por inteiro e baixar
+     * justificativa clínica, e era possível apagá-la por inteiro e baixar
      * assim mesmo. Sai um papel com a marca da plataforma, o campo
      * JUSTIFICATIVA CLÍNICA em branco e a assinatura do médico embaixo.
      * Documento assinado sem justificativa não é um rascunho: é uma
@@ -1767,7 +1767,7 @@
     alvo.classList.add('print-target');
 
     /* §64.2. No iPhone, com o app instalado na tela de início, NÃO EXISTE
-     * impressão: `window.print()` não abre nada e não lança erro — o médico
+     * impressão: `window.print()` não abre nada e não lança erro, o médico
      * toca o botão e não acontece coisa alguma. Foi exatamente o relato.
      *
      * Não dá para detectar a falha depois do fato (print não devolve nada),
@@ -1793,13 +1793,13 @@
 
   /* Monta o documento como arquivo autocontido: a folha de estilo do app não
    * acompanha, então o essencial vai embutido. É o mesmo documento, não uma
-   * segunda versão dele — o conteúdo sai do DOM que o médico acabou de ver. */
+   * segunda versão dele, o conteúdo sai do DOM que o médico acabou de ver. */
   function documentoAutocontido(alvo) {
     const papel = alvo.querySelector('.doc-preview');
     const nome = (document.getElementById('patient-name').value || '').trim();
     return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Solicitação - ${esc(nome)}</title>
+<title>Solicitação: ${esc(nome)}</title>
 <style>
   @page { margin: 16mm; }
   body { margin: 0; padding: 22px; background: #fff; color: #1c1c1c;
@@ -1837,11 +1837,11 @@
     const aba = window.open(endereco, '_blank');
     if (!aba) {
       // Aba bloqueada: entrega o arquivo. Pior que abrir, melhor que nada
-      // acontecer — que é o que acontecia antes.
+      // acontecer, que é o que acontecia antes.
       const nome = (document.getElementById('patient-name').value || 'solicitacao').trim();
       const a = document.createElement('a');
       a.href = endereco;
-      a.download = `Solicitacao - ${nome}.html`;
+      a.download = `Solicitacao ${nome}.html`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1856,7 +1856,7 @@
   window.addEventListener('afterprint', sairDoModoImpressao);
   // O afterprint não é confiável: em Chromium headless ele nunca dispara, e no
   // Safari do iPhone é irregular. Sem uma segunda saída, a tela fica presa no
-  // modo impressão — sem topbar, sem passos, sem botões — e só volta com F5.
+  // modo impressão, sem topbar, sem passos, sem botões, e só volta com F5.
   // Duas redes: um tempo de segurança e a própria navegação entre passos.
   let saidaDeImpressao = null;
   function entrarNoModoImpressao() {
@@ -1889,7 +1889,7 @@
   }
 
   // Ditado por voz real via reconhecimento de fala nativo do navegador
-  // (Web Speech API) - roda só no dispositivo do médico, sem enviar áudio
+  // (Web Speech API), roda só no dispositivo do médico, sem enviar áudio
   // a nenhum servidor. Funciona em Chrome/Edge; navegadores sem suporte
   // (ex.: Firefox) recebem um aviso em vez de um botão que não faz nada.
   function toggleRecording() {
@@ -1932,7 +1932,7 @@
       };
       speechRecognition.onerror = (event) => {
         if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-          document.getElementById('voice-unsupported').textContent = 'Permissão de microfone negada - autorize o acesso ao microfone no navegador e tente de novo.';
+          document.getElementById('voice-unsupported').textContent = 'Permissão de microfone negada. Autorize o acesso ao microfone no navegador e tente de novo.';
           document.getElementById('voice-unsupported').style.display = '';
         }
       };
@@ -1949,7 +1949,7 @@
   // "3 Resultado da triagem" mostrava o card do veredito com o glifo ✓ VERDE
   // de sucesso, título "Resultado da triagem", texto "-" e zero testes
   // listados. Para um oncologista, um card verde com check e sem teste nenhum
-  // lê exatamente como "nenhum teste indicado" — que é um veredito clínico,
+  // lê exatamente como "nenhum teste indicado", que é um veredito clínico,
   // não uma tela vazia. É o pior modo de falha que esta interface tinha.
   let passoMaximo = 0;
 
@@ -1996,7 +1996,7 @@
       if (idx === alvo) el.setAttribute('aria-current', 'step');
       else el.removeAttribute('aria-current');
       // Se a barra de passos estiver rolando (telas estreitas), traz o passo
-      // atual para a área visível - senão o médico avança e o indicador de
+      // atual para a área visível, senão o médico avança e o indicador de
       // onde ele está fica fora da tela.
       if (idx === alvo && el.scrollIntoView) {
         el.scrollIntoView({ behavior: comportamentoDeRolagem(), block: 'nearest', inline: 'center' });
@@ -2018,13 +2018,13 @@
    *
    * 1. O ESTADO ESCONDIDO SÓ NASCE AQUI. `.revela` não existe no HTML. Se
    *    esta função não rodar, se o navegador não tiver IntersectionObserver,
-   *    se o script quebrar antes — nada chega a ficar invisível. É o §67
+   *    se o script quebrar antes, nada chega a ficar invisível. É o §67
    *    cumprido ao pé da letra, e a lição do PDF em branco.
    * 2. SÓ O QUE ESTÁ ABAIXO DA DOBRA. Esconder o que o médico já está vendo
    *    para revelar em seguida seria piscada, não apresentação.
    * 3. REDE DE SEGURANÇA. Passados 12s, tudo é liberado de qualquer forma.
-   *    Um observador que não dispara — navegador com comportamento próprio,
-   *    elemento que nunca cruza o limiar — não pode deixar conteúdo clínico
+   *    Um observador que não dispara, navegador com comportamento próprio,
+   *    elemento que nunca cruza o limiar, não pode deixar conteúdo clínico
    *    escondido. O prazo é longo de propósito: curto demais desligaria a
    *    revelação antes de o médico terminar de ler a primeira tela.
    */
@@ -2048,7 +2048,7 @@
 
     /* A posição é medida em relação ao TOPO DO DOCUMENTO, não ao da janela.
      * Medir pela janela parecia certo e estava errado: esta função roda logo
-     * depois do `scrollTo` para o topo, que é SUAVE — a rolagem ainda está
+     * depois do `scrollTo` para o topo, que é SUAVE, a rolagem ainda está
      * em curso, `scrollY` ainda marca a posição da tela anterior, e a conta
      * de "abaixo da dobra" saía toda deslocada. Medido assim, um caso de
      * ovário marcava 1 de 4 blocos na tela de programas e nenhum na de
@@ -2089,7 +2089,7 @@
   // Troca de tela era completamente silenciosa: o foco ficava no <body> e nada
   // era falado. Quem usa leitor de tela acionava "Estruturar caso", a tela
   // mudava, e a única pista era o Tab seguinte retomar de um ponto arbitrário
-  // do DOM. Mover o foco para o título resolve as duas coisas de uma vez — o
+  // do DOM. Mover o foco para o título resolve as duas coisas de uma vez, o
   // anúncio e o ponto de partida da navegação.
   function anunciarTela(i) {
     const tela = document.getElementById('screen-' + i);
@@ -2109,7 +2109,7 @@
   });
   sincronizarPassos();
   // §60. O ladrilho "Texto" marcava a si mesmo quando havia texto digitado.
-  // Ele não existe mais — o campo é a própria superfície. O que ainda importa
+  // Ele não existe mais, o campo é a própria superfície. O que ainda importa
   // é o compositor saber que tem conteúdo, para "Limpar tudo" só aparecer
   // quando houver o que limpar.
   document.getElementById('case-text').addEventListener('input', atualizarRascunho);
@@ -2122,7 +2122,7 @@
   renderFields({});
 
   // ===================== PLAUD =====================
-  // Três estados possíveis, todos honestos - nunca simulamos uma transcrição:
+  // Três estados possíveis, todos honestos, nunca simulamos uma transcrição:
   //   indisponível  -> credenciais ainda não liberadas para esta instalação
   //   desconectado  -> disponível, o médico precisa autorizar via OAuth
   //   conectado     -> lista as gravações reais e importa a transcrição
@@ -2290,7 +2290,7 @@
 
     // O MESMO aviso vai para as duas telas. Quando a extração falha o médico
     // fica na tela 1 e lê ali; quando dá certo ele avança para a revisão e lê
-    // lá. Renderizar só na tela 1 era um aviso que ninguém via — inclusive o
+    // lá. Renderizar só na tela 1 era um aviso que ninguém via, inclusive o
     // de PDF com assinatura digital, que existia desde a v1.5.
     const naRevisao = document.getElementById('avisos-revisao');
     if (naRevisao) {
