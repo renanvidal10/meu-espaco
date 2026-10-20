@@ -1125,14 +1125,16 @@ async function rodar(nome, dispositivo) {
     linha(ok(apagados.length === 0, `invisível com movimento reduzido: ${apagados.slice(0, 3).join(' | ')}`),
       'com movimento reduzido, nada de clínico some da tela');
 
-    // O trilho (pseudo-elemento) também não pode ficar em escala zero.
-    const trilho = await p.evaluate(() => {
-      const el = document.querySelector('#test-steps .test-step:not(:last-child) .trilho');
-      if (!el) return 'ausente';
-      return getComputedStyle(el, '::after').transform;
+    // §88. O bloco da contagem também entra com movimento, e também não pode
+    // sumir quando o movimento está desligado.
+    const contagem = await p.evaluate(() => {
+      const el = document.getElementById('verdict-glyph');
+      const cs = getComputedStyle(el);
+      return { opacidade: cs.opacity, transform: cs.transform, texto: el.textContent.trim() };
     });
-    linha(ok(!/matrix\(1, 0, 0, 0|scaleY\(0/.test(String(trilho)), `trilho: ${trilho}`),
-      'o trilho continua desenhado sem animação');
+    linha(ok(parseFloat(contagem.opacidade) > 0.99 && !/matrix\(0|scale\(0/.test(contagem.transform) && contagem.texto,
+      `contagem: ${JSON.stringify(contagem)}`),
+    'a contagem em destaque continua visível sem animação');
     await p.close();
   }
 
@@ -1564,7 +1566,10 @@ async function rodar(nome, dispositivo) {
     await entrar(p);
 
     const conferir = () => p.evaluate(() => {
-      const par = [['secao-solicitar', 'test-steps'], ['secao-programas', 'programs-dynamic']];
+      /* §88. A tela de resultado não tem mais cabeçalho "O que solicitar": o
+       * veredito virou o cabeçalho do painel. A regra continua valendo para
+       * a lista de testes em si, que some quando está vazia. */
+      const par = [['test-steps', 'test-steps'], ['secao-programas', 'programs-dynamic']];
       return par.map(([idSecao, idLista]) => {
         const s = document.getElementById(idSecao);
         const l = document.getElementById(idLista);
@@ -1592,6 +1597,75 @@ async function rodar(nome, dispositivo) {
       'com triagem, cada cabeçalho acompanha a própria lista');
     linha(ok(depois.every((x) => x.visivel), 'nenhum cabeçalho apareceu mesmo com lista cheia'),
       'as duas seções aparecem quando há o que mostrar');
+    await p.close();
+  }
+
+  /* ---------- §88. o painel de resultado não perde nada do registro ---------- *
+   * A proposta B recolhe a descrição, a evidência e a justificativa dentro de
+   * cada linha. Recolher é permitido; perder não é. Este teste compara o que
+   * o motor devolveu com o que a tela tem (aberta ou fechada), campo a campo,
+   * e confere que a contagem em destaque é o número de testes da lista.
+   * -------------------------------------------------------------------- */
+  {
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => erros.push('painel: ' + e.message));
+    const caso = { tipo_tumor: 'Ginecológico - Ovário', histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IVC', idade: '61' };
+    await mockExtracao(p, caso);
+    await entrar(p);
+    await p.fill('#case-text', 'caso de ovário');
+    await p.click('#btn-extract');
+    await p.waitForSelector('#screen-1.active');
+    await p.click('button:has-text("Rodar triagem")');
+    await p.waitForSelector('#screen-2.active');
+
+    const t = TUMORS.get('ovario');
+    const v = {};
+    t.fields.forEach((f) => { v[f.key] = ''; });
+    Object.assign(v, { histologia: 'Seroso', grau: 'Alto grau', estadiamento: 'IVC', idade: '61' });
+    const esperado = t.classify(v);
+
+    const tela = await p.evaluate(() => ({
+      numero: document.querySelector('#verdict-glyph .glyph-num').textContent.trim(),
+      rotulo: document.getElementById('verdict-glyph').getAttribute('aria-label'),
+      linhas: Array.from(document.querySelectorAll('#test-steps .test-step')).map((d) => ({
+        fechado: !d.open,
+        // textContent inclui o que está recolhido: é o que existe na tela.
+        texto: d.textContent.replace(/\s+/g, ' '),
+        titulo: d.querySelector('h4').textContent.trim(),
+      })),
+    }));
+
+    linha(ok(tela.numero === String(esperado.tests.length) && tela.linhas.length === esperado.tests.length,
+      `contagem ${tela.numero}, linhas ${tela.linhas.length}, motor ${esperado.tests.length}`),
+    'a contagem em destaque é o número de testes da lista');
+    linha(ok(/2 testes indicados/.test(tela.rotulo || ''), `rótulo para leitor de tela: ${tela.rotulo}`),
+      'a contagem tem rótulo para leitor de tela');
+    linha(ok(tela.linhas.every((l) => l.fechado), 'alguma linha nasceu aberta'),
+      'as linhas de teste nascem fechadas');
+
+    const faltas = [];
+    esperado.tests.forEach((teste, i) => {
+      const linhaTela = tela.linhas[i];
+      if (!linhaTela) { faltas.push(`${teste.id}: sem linha`); return; }
+      const norm = (x) => String(x || '').replace(/\s+/g, ' ').trim();
+      // O nome inteiro, mesmo dividido em título e linha de genes.
+      const pedacosNome = norm(teste.name).replace(/[()]/g, ' ').split(/\s+/).filter(Boolean);
+      pedacosNome.forEach((w) => { if (!linhaTela.texto.includes(w)) faltas.push(`${teste.id}: "${w}" do nome`); });
+      // A descrição aparece em dois parágrafos (primeira frase e o resto),
+      // com a evidência entre eles: confere cada parte.
+      const d = norm(teste.description);
+      const corte = d.indexOf('. ');
+      const partes = corte > 0 ? [d.slice(0, corte + 1), d.slice(corte + 2)] : [d];
+      partes.forEach((parte, n) => { if (parte && !linhaTela.texto.includes(parte)) faltas.push(`${teste.id}: descrição, parte ${n + 1}`); });
+      for (const campo of ['stat', 'justify', 'sample']) {
+        if (teste[campo] && !linhaTela.texto.includes(norm(teste[campo]))) faltas.push(`${teste.id}: ${campo}`);
+      }
+    });
+    linha(ok(faltas.length === 0, `informação do registro ausente da tela: ${faltas.join(' | ')}`),
+      'nome, descrição, evidência, amostra e justificativa estão todos na tela');
+    linha(ok(tela.linhas[1] && tela.linhas[1].titulo === 'Painel germinativo multigênico',
+      `título do painel: "${tela.linhas[1] && tela.linhas[1].titulo}"`),
+    'nome longo com genes vira título curto e linha de genes');
     await p.close();
   }
 

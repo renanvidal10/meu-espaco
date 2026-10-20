@@ -511,24 +511,26 @@
     <div class="eyebrow" id="eyebrow-2"></div>
     <h1>Resultado da triagem</h1>
 
-    <div class="verdict" id="verdict-box" aria-live="polite">
-      <span class="glyph" id="verdict-glyph">✓</span>
-      <div>
-        <span class="verdict-count-pill" id="verdict-count-pill" style="display:none;"></span>
-        <h2 id="verdict-title">Resultado da triagem</h2>
-        <p id="verdict-text">-</p>
+    <!-- §88. Veredito e testes num painel só (proposta B escolhida pelo
+         dono). O cabeçalho do painel abre com a CONTAGEM em destaque: é a
+         primeira coisa que o médico precisa ver. Cada teste é uma linha que
+         mostra nome, prioridade, tipo e amostra; descrição, evidência e
+         justificativa abrem no toque. -->
+    <div class="resultado-painel" id="resultado-painel">
+      <div class="verdict" id="verdict-box" aria-live="polite">
+        <span class="glyph" id="verdict-glyph" role="img"><b class="glyph-num">-</b><span class="glyph-rot"></span></span>
+        <div>
+          <h2 id="verdict-title">Resultado da triagem</h2>
+          <p id="verdict-text">-</p>
+        </div>
       </div>
-    </div>
 
-    <!-- Nota que MUDA A ORDEM DO PEDIDO vem antes do card que ela governa:
-         quem lê de cima para baixo encontra a regra de sequência antes de
-         assinar a solicitação, não depois. Ver §45.2 e §54. -->
-    <!-- §76. Cabeçalho de seção ANTES da nota de ação, não entre ela e os
-         passos: a nota governa a ORDEM do pedido e precisa continuar colada
-         no que ela governa. -->
-    <p class="secao" id="secao-solicitar" hidden><span class="secao-traco" aria-hidden="true"></span>O que solicitar</p>
-    <div id="verdict-notes-acao"></div>
-    <div class="test-steps" id="test-steps"></div>
+      <!-- Nota que MUDA A ORDEM DO PEDIDO vem antes dos testes que ela
+           governa: quem lê de cima para baixo encontra a regra de sequência
+           antes de assinar a solicitação, não depois. Ver §45.2 e §54. -->
+      <div id="verdict-notes-acao"></div>
+      <div class="test-steps" id="test-steps" hidden></div>
+    </div>
     <div id="verdict-notes"></div>
 
     <!-- Regras que valem para QUALQUER resultado, em qualquer tumor. Vieram

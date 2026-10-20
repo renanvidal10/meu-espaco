@@ -1,13 +1,13 @@
 'use strict';
 const path=require('path');const {execSync}=require('child_process');
-const {arquivoDeDadosTemporario}=require('/home/user/meu-espaco/server/test/temporario.js');
+const {arquivoDeDadosTemporario}=require(__dirname+'/temporario.js');
 let pw;try{pw=require('playwright');}catch{pw=require(path.join(execSync('npm root -g').toString().trim(),'playwright'));}
 let falhas=0;const ok=(c,m)=>{console.log((c?'  ✓ ':'  ✗ ')+m);if(!c)falhas++;};
 (async()=>{
-  const {criarStub}=require('/home/user/meu-espaco/server/test/stub-anthropic.js');
+  const {criarStub}=require(__dirname+'/stub-anthropic.js');
   const stub=criarStub();const ps=await stub.ouvir(0);
   const porta=7900+Math.floor(Math.random()*90);const BASE=`http://127.0.0.1:${porta}`;
-  const srv=require('child_process').spawn(process.execPath,['/home/user/meu-espaco/server/index.js'],{env:{...process.env,PORT:String(porta),NODE_ENV:'test',DATA_FILE:arquivoDeDadosTemporario('pwa'),ANTHROPIC_API_KEY:'x',ANTHROPIC_BASE_URL:`http://127.0.0.1:${ps}`,DATABASE_URL:'',RESEND_API_KEY:'',APP_ORIGIN:''},stdio:['ignore','ignore','ignore']});
+  const srv=require('child_process').spawn(process.execPath,[__dirname+'/../index.js'],{env:{...process.env,PORT:String(porta),NODE_ENV:'test',DATA_FILE:arquivoDeDadosTemporario('pwa'),ANTHROPIC_API_KEY:'x',ANTHROPIC_BASE_URL:`http://127.0.0.1:${ps}`,DATABASE_URL:'',RESEND_API_KEY:'',APP_ORIGIN:''},stdio:['ignore','ignore','ignore']});
   for(let i=0;i<120;i++){try{if((await fetch(BASE+'/api/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,200));}
 
   console.log('\n=== ARQUIVOS DO APLICATIVO ===');
@@ -73,7 +73,7 @@ let falhas=0;const ok=(c,m)=>{console.log((c?'  ✓ ':'  ✗ ')+m);if(!c)falhas+
    * ver um cartão dizendo uma coisa na imagem e outra no título.
    * test/gerar-cartao.js é a fonte; aqui se exige que as marcações repitam.
    * Mudar o texto sem gerar a imagem de novo reprova nesta linha. */
-  const cartao=require('/home/user/meu-espaco/server/test/gerar-cartao.js');
+  const cartao=require(__dirname+'/gerar-cartao.js');
   // Neste arquivo a mensagem é impressa tanto no acerto quanto na falha, então
   // ela descreve O QUE SE VERIFICA — não o defeito. "og:description diverge do
   // cartão" com um ✓ na frente diz o contrário do que aconteceu.

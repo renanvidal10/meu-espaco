@@ -558,22 +558,15 @@
      "0 testes indicados" e "1 teste indicado" — números errados na resposta
      central do produto, bem onde o médico olha primeiro. O selo surge com o
      valor certo desde o primeiro quadro; o que se move é ele, não o número. */
-  .verdict-count-pill { animation: selo-entra 420ms var(--ease) 120ms both; }
+  /* §88. Quem entra agora é o bloco da contagem, pela mesma regra. */
+  .verdict .glyph { animation: selo-entra 420ms var(--ease) 120ms both; }
   @keyframes selo-entra {
     from { opacity: 0; transform: scale(.82) translateY(4px); }
     to { opacity: 1; transform: none; }
   }
 
-  /* --- 3. Uma luz atravessa o veredito, uma vez ------------------------- */
-  .verdict::after {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.18) 50%, transparent 65%);
-    transform: translateX(120%);
-    pointer-events: none;
-    animation: varrer 1100ms var(--ease) 200ms both;
-  }
-  @keyframes varrer { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
+  /* --- 3. (§88) A luz que atravessava o veredito saiu junto com o degradê:
+     sobre o cabeçalho claro ela não se via, e era decoração. ------------- */
 
   /* --- 4. Esqueleto enquanto a leitura acontece -------------------------
      No lugar de um rótulo "Lendo caso...", a forma do que vem. A espera
@@ -592,20 +585,15 @@
   .esqueleto .osso.medio { width: 78%; }
   @keyframes brilhar { from { background-position: 100% 50%; } to { background-position: 0 50%; } }
 
-  /* --- 5. O trilho se desenha -------------------------------------------
-     O nó 1 aparece, a linha desce até o 2, o 2 aparece. A ordem entre os
-     testes é clínica; aqui o movimento DIZ a ordem, não só a mostra. */
+  /* --- 5. Os nós entram em ordem ---------------------------------------
+     O nó 1 aparece, depois o 2. A ordem entre os testes é clínica; aqui o
+     movimento DIZ a ordem, não só a mostra. (§88: o trilho que ligava os
+     nós saiu com a proposta B; as linhas do painel já dizem a sequência.) */
   .screen.active .test-step .step-num { animation: no-entra 320ms var(--ease) both; }
-  .screen.active .test-step:nth-child(2) .step-num { animation-delay: 420ms; }
-  .screen.active .test-step:nth-child(3) .step-num { animation-delay: 840ms; }
+  .screen.active .test-step:nth-child(2) .step-num { animation-delay: 220ms; }
+  .screen.active .test-step:nth-child(3) .step-num { animation-delay: 440ms; }
   @keyframes no-entra { from { transform: scale(0); } to { transform: scale(1); } }
 
-  .test-step .trilho::after { transform-origin: top; }
-  .screen.active .test-step:not(:last-child) .trilho::after {
-    animation: trilho-desce 420ms var(--ease) 120ms both;
-  }
-  .screen.active .test-step:nth-child(2) .trilho::after { animation-delay: 540ms; }
-  @keyframes trilho-desce { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 
   /* --- 6. Marca-texto no critério que EXCLUI ----------------------------
      O traço é fundo do próprio texto, não um bloco atrás dele: bloco com
@@ -640,15 +628,12 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .verdict::after { display: none; }
     .esqueleto .osso { animation: none; background-image: none; }
-    .verdict-count-pill,
+    .verdict .glyph,
     .test-step .step-num,
-    .test-step .trilho::after,
     mark.marca-criterio { animation: none; }
   }
   @media print {
-    .verdict::after { display: none !important; }
     .esqueleto { display: none !important; }
   }
 
@@ -1306,9 +1291,6 @@
   .field input.value.missing { color: var(--warn); border-style: dashed; background: var(--warn-soft); }
   .field input.value.missing::placeholder { color: var(--warn); opacity: 0.75; }
 
-  .verdict.negative { background: var(--warn); }
-  .verdict.negative .glyph { background: var(--accent-veil); border-color: var(--accent-veil-strong); }
-  .verdict.negative .verdict-count-pill { color: var(--warn); }
 
   .pill {
     display: inline-flex;
@@ -1323,53 +1305,56 @@
   .pill.warn { background: var(--warn-soft); color: var(--warn); }
 
   /* ---- result screen ---- */
-  /* §57. O veredito era um retângulo de cor chapada — grande, plano e sem
-     hierarquia interna, o tipo de bloco que faz uma tela parecer um aviso de
-     sistema. Ganha o mesmo tratamento da ação principal: gradiente de dois
-     tons do mesmo azul, filete de luz no topo e sombra tingida da própria
-     cor. E um brilho radial no canto superior esquerdo, onde o glifo está,
-     que faz a leitura começar por ele. */
-  .verdict {
-    position: relative;
-    display: flex;
-    gap: 18px;
-    align-items: flex-start;
-    padding: 26px 28px;
+  /* §88. Proposta B, escolhida pelo dono. Veredito e testes moram num
+     PAINEL só: o veredito é o cabeçalho, os testes são as linhas. Saíram o
+     degradê azul, a luz que atravessava o bloco e a faixa "O que solicitar":
+     o dono via a tela como "poluída e confusa", e eram três camadas de
+     decoração antes do primeiro teste. */
+  .resultado-painel {
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: var(--r-lg);
-    background-color: var(--accent);
-    background-image: var(--acao);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      var(--elev-2);
+    box-shadow: var(--elev-1);
     overflow: hidden;
   }
-  .verdict::before {
-    content: '';
-    position: absolute;
-    top: -40%; left: -8%;
-    width: 380px; height: 380px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0) 68%);
-    pointer-events: none;
+  /* O cabeçalho tem fundo próprio, um degrau de cor acima do painel: é o
+     ponto de partida da leitura. */
+  /* Grade: o número e o título lado a lado; o resumo embaixo, na largura
+     toda. Com o resumo na coluna do título, no celular ele virava uma faixa
+     estreita de cinco linhas e o número boiava no meio da altura. */
+  .verdict {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 16px;
+    row-gap: 12px;
+    align-items: center;
+    padding: 20px 22px;
+    background: var(--accent-soft);
+    border-bottom: 1px solid var(--accent-soft-border);
   }
-  .verdict > * { position: relative; }
+  /* A contagem em DESTAQUE (pedido do dono): número grande num bloco da cor
+     da marca, com a palavra embaixo. É a primeira coisa que o olho encontra
+     no painel e responde "quantos?" sem ler o título. */
   .verdict .glyph {
-    width: 38px; height: 38px; border-radius: var(--r-md);
-    /* Véu fraco, não forte: o véu forte clareava tanto o chip que o glifo
-       branco por cima caía para 2,85:1 — abaixo do mínimo de 3:1 para
-       elemento gráfico. O contorno é que dá a borda, não a opacidade. */
-    background: var(--accent-veil);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    flex: none;
+    width: 64px; height: 64px;
+    border-radius: var(--r-md);
+    background: var(--accent);
     color: var(--accent-ink);
-    display: flex; align-items: center; justify-content: center;
-    font-size: var(--fs-md); font-weight: 700; flex-shrink: 0;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: var(--elev-1);
   }
-    /* O veredito clínico é a resposta que o médico veio buscar, e estava em
-     16px — o mesmo tamanho do texto legal do rodapé — enquanto o rótulo
-     genérico "Resultado da triagem" ocupava 26px. O app gritava o rótulo e
-     sussurrava a resposta. Ver §45. */
-  .verdict h2 { font-size: var(--fs-lg); font-weight: 650; margin-bottom: 6px; color: var(--accent-ink); letter-spacing: -0.02em; text-wrap: balance; line-height: 1.25; }
-  .verdict p { margin: 0; font-size: var(--fs-xs); color: var(--accent-ink-2); line-height: 1.55; max-width: 60ch; }
+  .verdict .glyph .glyph-num { font-size: var(--fs-xl); font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+  .verdict .glyph .glyph-rot { font-size: var(--fs-2xs); font-weight: 600; line-height: 1.2; margin-top: 2px; color: var(--accent-ink-2); }
+  .verdict .glyph .glyph-rot:empty { display: none; }
+  .verdict .glyph.zero { background: var(--surface); color: var(--ink-muted); border: 2px solid var(--border); box-shadow: none; }
+  .verdict .glyph.zero .glyph-rot { color: var(--ink-muted); }
+  .verdict > div { display: contents; }
+  .verdict h2 { font-size: var(--fs-lg); font-weight: 700; margin: 0; color: var(--ink); letter-spacing: -0.02em; text-wrap: balance; line-height: 1.25; }
+  .verdict p { grid-column: 1 / -1; margin: 0; font-size: var(--fs-sm); color: var(--ink-muted); line-height: 1.5; max-width: 60ch; }
+  /* Triagem que não concluiu: o mesmo painel em tom de cautela. */
+  .verdict.negative { background: var(--warn-soft); border-bottom-color: var(--warn-soft-border, var(--border)); }
+  .verdict.negative .glyph { background: var(--warn); color: var(--accent-ink); }
 
   .test-pair {
     display: grid;
@@ -1394,64 +1379,58 @@
   .test-card p { font-size: var(--fs-xs); color: var(--ink-muted); line-height: 1.45; margin: 0 0 7px; }
   .test-card .src { font-size: var(--fs-2xs); color: var(--ink-faint); border-top: 1px solid var(--border); padding-top: 6px; margin-top: 3px; }
 
-  /* Passos numerados do resultado pareado — deixa claro, de cara, que são
-     2 testes distintos a solicitar, com o HRD (maior taxa de achado) em destaque. */
-  /* §63. SEQUÊNCIA, NÃO LISTA.
-     Eram cards iguais empilhados com 14px de respiro entre eles — leitura de
-     menu: "escolha um". A ordem entre os testes é clínica, e o app precisa
-     dizer isso com a forma, não só com o número. Um trilho contínuo liga os
-     passos: o olho percorre de cima para baixo e entende "primeiro este,
-     depois aquele". Os cards perderam a moldura: sobre um trilho, a borda de
-     cada um recortava a sequência em pedaços de novo. */
-  .test-steps { margin-top: 22px; display: flex; flex-direction: column; }
-  .test-step {
+  /* §88. Cada teste é uma linha do painel que se abre no toque. Fechada:
+     ordem, nome, prioridade, tipo e amostra, o bastante para saber o que
+     pedir. Aberta: a primeira frase da descrição, a evidência, o porquê e o
+     texto que vai no pedido assinado. O número continua dizendo a ordem
+     (§63): a sequência é clínica, e o nó 1 em cor cheia marca a prioridade. */
+  .test-steps { display: flex; flex-direction: column; }
+  .test-step { border: none; background: transparent; }
+  .test-step + .test-step { border-top: 1px solid var(--border); }
+  .test-step > summary {
+    list-style: none; cursor: pointer;
     display: grid;
-    grid-template-columns: 30px minmax(0, 1fr);
-    column-gap: 16px;
-    padding: 0 0 22px;
-    background: transparent;
-    border: none;
+    grid-template-columns: 30px minmax(0, 1fr) 20px;
+    column-gap: 14px;
+    align-items: start;
+    padding: 16px 22px;
+    transition: background-color var(--mov-rapido) var(--ease);
   }
-  .test-step:last-child { padding-bottom: 0; }
-
-  /* Coluna do trilho: o nó e a linha que desce até o próximo nó. */
-  .test-step .trilho { position: relative; display: flex; justify-content: center; }
-  .test-step:not(:last-child) .trilho::after {
-    content: '';
-    position: absolute;
-    top: 32px; bottom: -22px; left: 50%;
-    width: 2px; margin-left: -1px;
-    background: var(--border);
-  }
+  .test-step > summary::-webkit-details-marker { display: none; }
+  .test-step > summary::marker { content: ''; }
+  @media (hover: hover) { .test-step > summary:hover { background: var(--surface-2); } }
+  .test-step > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: var(--r-sm); }
   .test-step .step-num {
-    position: relative; z-index: 1;
     width: 30px; height: 30px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: var(--fs-xs); font-weight: 700;
     background: var(--surface); color: var(--ink-muted);
     border: 2px solid var(--border);
   }
-  /* O passo prioritário marca o nó, não a borda de um card: a ênfase fica na
-     posição da sequência, que é o que importa. */
   .test-step.primary .step-num {
     background-color: var(--accent);
-    background-image: var(--acao);
     color: var(--accent-ink);
-    border-color: transparent;
-    box-shadow: 0 2px 8px -3px color-mix(in srgb, var(--accent) 70%, transparent);
+    border-color: var(--accent);
   }
-  .test-step.primary:not(:last-child) .trilho::after { background: var(--accent-soft-border); }
-  .test-step .step-body { min-width: 0; padding-top: 3px; }
-
-  /* Rodapé do passo: amostra e estatística na MESMA linha. Eram dois níveis
-     empilhados num card que já tinha seis — ordem, título, descrição,
-     "por que", selo e amostra. Seis degraus para um teste. */
-  .test-step .rodape-teste {
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-    margin-top: 10px;
+  .test-step .step-cabeca { min-width: 0; display: flex; flex-direction: column; gap: 4px; padding-top: 3px; }
+  .test-step h4 { font-size: var(--fs-md); font-weight: 700; margin: 0; letter-spacing: -0.01em; line-height: 1.3; text-wrap: balance; }
+  .test-step .step-apoio { font-size: var(--fs-xs); color: var(--ink-muted); line-height: 1.45; }
+  .test-step .step-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: var(--fs-xs); color: var(--ink-muted); }
+  .test-step .step-prio {
+    font-size: var(--fs-2xs); font-weight: 700; color: var(--accent);
+    background: var(--accent-soft); padding: 2px 8px; border-radius: var(--r-full);
   }
-  .test-step .rodape-teste .src { margin: 0; }
-
+  .test-step .step-amostra { display: inline-flex; align-items: center; gap: 4px; }
+  .test-step .step-amostra .ic { width: 15px; height: 15px; color: var(--ink-faint); }
+  .test-step .chevron { color: var(--ink-faint); padding-top: 6px; display: flex; }
+  .test-step .chevron svg { width: 18px; height: 18px; transition: transform var(--mov-rapido) var(--ease); }
+  .test-step[open] .chevron svg { transform: rotate(180deg); }
+  .test-step .step-body { padding: 0 22px 18px 66px; min-width: 0; }
+  /* A descrição é texto clínico: fica no corpo (§43). */
+  .test-step p { font-size: var(--fs-sm); color: var(--ink); line-height: 1.5; margin: 0 0 10px; }
+  .test-step .step-body > .step-evid { display: flex; gap: 8px; font-size: var(--fs-xs); color: var(--ink-muted); line-height: 1.45; }
+  .test-step .step-evid .ic { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--accent); }
+  .test-step .step-body > .step-cauda { font-size: var(--fs-xs); color: var(--ink-muted); }
   /* §63.2. A justificativa que vai impressa, acima da assinatura. */
   .justificativa-assinada {
     margin-top: 10px;
@@ -1467,31 +1446,20 @@
     color: var(--ink-faint); margin-bottom: 5px;
   }
   .justificativa-assinada p { font-size: var(--fs-xs); color: var(--ink); margin: 0; line-height: 1.5; }
-  .test-step .order { font-size: var(--fs-2xs); color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
-  .test-step h4 { font-size: var(--fs-md); font-weight: 700; margin: 2px 0 6px; letter-spacing: -0.01em; text-wrap: balance; }
-  .test-step p { font-size: var(--fs-sm); color: var(--ink-muted); line-height: 1.5; margin: 0 0 8px; }
-  .test-step .stat-badge {
-    display: inline-block;
-    font-size: var(--fs-2xs);
-    font-weight: 600;
-    color: var(--accent);
-    background: var(--surface);
-    border: 1px solid var(--accent-soft-border);
-    border-radius: var(--r-full);
-    padding: 2px 9px;
-    margin-bottom: 7px;
+  .test-step .justificativa-assinada { margin-top: 4px; }
+  .test-steps[hidden] { display: none; }
+  /* A nota que muda a ordem do pedido mora DENTRO do painel, entre o
+     veredito e os testes que ela governa (§54). */
+  .resultado-painel #verdict-notes-acao { margin: 0; padding: 16px 22px 0; }
+  .resultado-painel #verdict-notes-acao:not(:empty) + .test-steps:not(:empty) { margin-top: 6px; border-top: 1px solid var(--border); }
+  @media (max-width: 560px) {
+    .verdict { padding: 18px 16px; column-gap: 14px; }
+    .verdict .glyph { width: 56px; height: 56px; }
+    .test-step > summary { padding: 14px 16px; column-gap: 12px; grid-template-columns: 28px minmax(0, 1fr) 18px; }
+    .test-step .step-num { width: 28px; height: 28px; }
+    .test-step .step-body { padding: 0 16px 16px 56px; }
+    .resultado-painel #verdict-notes-acao { padding: 14px 16px 0; }
   }
-  .test-step .detalhe-teste > summary {
-    list-style: none; cursor: pointer; display: inline-block;
-    font-size: var(--fs-2xs); font-weight: 600; color: var(--accent);
-    padding: 4px 0; margin-bottom: 4px;
-  }
-  .test-step .detalhe-teste > summary::-webkit-details-marker { display: none; }
-  .test-step .detalhe-teste > summary::marker { content: ''; }
-  .test-step .detalhe-teste[open] > summary { color: var(--ink-faint); }
-  .test-step .detalhe-teste > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-xs); }
-  .test-step .detalhe-teste p { margin: 0 0 8px; }
-  .test-step .src { font-size: var(--fs-2xs); color: var(--ink-faint); }
 
   .note-card {
     margin-top: 12px;
@@ -1582,20 +1550,6 @@
 
   /* selo com a contagem de testes - resposta rápida "quantos e quais",
      sem precisar ler o parágrafo inteiro do veredito. */
-  .verdict-count-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--fs-2xs);
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    color: var(--accent);
-    background: var(--accent-ink);
-    padding: 2px 8px;
-    border-radius: var(--r-full);
-    margin-bottom: 5px;
-  }
-  .verdict-count-pill.zero { color: var(--ink-muted); }
 
   /* ---- voice intake ---- */
   .voice-panel { display: none; margin-top: 14px; }

@@ -12,7 +12,8 @@ Branch: `claude/design-resultado-3179de`. Nada publicado, nada enviado ao GitHub
    * `mockup/resultado-propostas/captura.js`: sobe no app local, injeta a proposta e fotografa.
    * `mockup/resultado-propostas/capturas/`: fotos (celular claro e escuro, computador)
      e `comparacao-celular.png` com as quatro lado a lado.
-3. Propostas entregues ao dono. **Aguardando a escolha.**
+3. Propostas entregues ao dono. **Escolhida: B, com destaque da contagem. IMPLEMENTADA (§88).**
+   Fotos do resultado final em `mockup/resultado-propostas/final/`.
 
 ## As propostas
 
@@ -54,16 +55,7 @@ amostra (o tipo vem de `test.kind`, a prioridade de `test.primary`).
 
 ## Próximo passo exato
 
-Depois da escolha do dono:
-1. Implementar a proposta em `server/public/app.js` (`renderTestSteps`, `runTriage`,
-   `setCountPill`), `index.html` (bloco `#verdict-box` e `#secao-solicitar`) e `app.css`.
-2. Cuidar do estado "bloqueado" (dados insuficientes) e do "provisório"
-   (pílula "confirmar critério"), que não aparecem neste caso.
-3. Ajustar travas existentes que citam `.verdict`, `.test-step`, `.step-num`, `.stat-badge`
-   (estetica, contraste, acessibilidade, navegador) e criar teste de regressão
-   para a divisão de nome e genes.
-4. `npm test`, baterias de navegador e contraste, fotos em celular e computador,
-   mostrar ao dono antes de qualquer publicação. Registrar em ARQUITETURA.md.
-
-Para refazer as fotos: subir o app em `server/` (porta 5791) e rodar
-`node mockup/resultado-propostas/captura.js mockup/resultado-propostas/capturas http://127.0.0.1:5791`.
+1. Mostrar ao dono a tela de resultado implementada (fotos em `final/`) e esperar o ok.
+2. Esperar a resposta sobre o critério de elegibilidade (opção 1 ou 2) e implementar a
+   tela de programas conforme a seção acima.
+3. Nada de publicação ou push sem o ok do dono e do coordenador.

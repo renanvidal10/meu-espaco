@@ -1829,21 +1829,27 @@
     return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
   }
 
-  // Selo "N testes indicados" no topo do resultado, resposta imediata de
-  // "quantos e quais", em vez de exigir ler o parágrafo inteiro do veredito.
-  function setCountPill(count, titulo) {
-    const pill = document.getElementById('verdict-count-pill');
-    if (count === null) { pill.style.display = 'none'; return; }
-    /* §57.3. A contagem aparecia TRÊS vezes no mesmo painel: no selo, no
-     * título ("Este caso tem indicação para 2 testes") e no resumo ("Solicite
-     * os 2 testes abaixo"). Repetir um número não o torna mais claro, enche
-     * o painel e faz o médico reler para conferir se são três informações ou
-     * a mesma. O título é texto clínico, vem do registro; o selo é decisão de
-     * tela. Então é o selo que sai quando o título já diz o número. */
-    if (titulo && new RegExp(`\\b${count}\\b`).test(titulo)) { pill.style.display = 'none'; return; }
-    pill.textContent = count === 0 ? '0 testes indicados' : count === 1 ? '1 teste indicado' : `${count} testes indicados`;
-    pill.classList.toggle('zero', count === 0);
-    pill.style.display = '';
+  /* §88. A contagem em DESTAQUE no início do painel, pedido do dono: o
+   * médico precisa ver de relance quantos testes foram indicados. Os
+   * títulos do registro variam ("para 2 testes", "para teste germinativo",
+   * "provável para 2 testes"), então o número não pode depender de o título
+   * trazê-lo: é um elemento próprio, igual em todos os tumores. Substitui o
+   * selo do §57.3, que só aparecia quando o título não tinha o número. */
+  function setContagem(count, blocked) {
+    const glifo = document.getElementById('verdict-glyph');
+    const num = glifo.querySelector('.glyph-num');
+    const rot = glifo.querySelector('.glyph-rot');
+    glifo.classList.toggle('zero', !blocked && count === 0);
+    if (blocked) {
+      num.textContent = '!';
+      rot.textContent = '';
+      glifo.setAttribute('aria-label', 'Triagem não concluída');
+      return;
+    }
+    num.textContent = String(count);
+    rot.textContent = count === 1 ? 'teste' : 'testes';
+    glifo.setAttribute('aria-label', count === 0 ? 'Nenhum teste indicado'
+      : count === 1 ? '1 teste indicado' : `${count} testes indicados`);
   }
 
   const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
@@ -1860,12 +1866,12 @@
     const box = document.getElementById('verdict-box');
     const nextBtn = document.getElementById('verdict-next-btn');
     box.classList.toggle('negative', blocked);
-    document.getElementById('verdict-glyph').textContent = blocked ? '!' : '✓';
+    document.getElementById('resultado-painel').classList.toggle('negative', blocked);
     document.getElementById('verdict-title').textContent = blocked
       ? (result.state === 'insuficiente' ? 'Dados insuficientes para triagem' : 'Perfil não reconhecido por esta regra')
       : result.title;
     document.getElementById('verdict-text').textContent = blocked ? result.message : result.summary;
-    setCountPill(blocked ? null : tests.length, blocked ? '' : result.title);
+    setContagem(tests.length, blocked);
 
     renderTestSteps(tests, result);
     renderNotes(blocked ? [] : (result.notes || []));
@@ -1886,53 +1892,77 @@
     goTo(2);
   }
 
+  const ICONE_AMOSTRA = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5V2"/><path d="M8.5 2h7"/><path d="M14.5 16h-5"/></svg>';
+  const ICONE_EVIDENCIA = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-6"/></svg>';
+
+  /* §88. Nome com lista entre parênteses no fim vira nome + linha de apoio.
+   * "Painel germinativo multigênico (BRCA1/2, RAD51C, RAD51D, BRIP1, PALB2 e
+   * genes de Lynch)" era um título de 88 caracteres em quatro linhas no
+   * celular; o nome é o título, os genes são o detalhe. O texto não muda,
+   * só se divide. */
+  function partirNomeDoTeste(nome) {
+    const m = /^(.+?)\s*\(([^()]+)\)\s*$/.exec(String(nome || ''));
+    return m ? { titulo: m[1], apoio: m[2] } : { titulo: String(nome || ''), apoio: '' };
+  }
+
+  /* §88. A sobrelinha "TUMORAL · SOMÁTICO · PRIORIDADE" disputava com o
+   * título. O primeiro termo (Tumoral, Sangue) repete a amostra, que já
+   * aparece ao lado; "prioridade" vira selo; o resto fica como está no
+   * registro ("somático", "germinativo", "universal"). Nada se perde. */
+  function lerOrdem(order) {
+    const partes = String(order || '').split('·').map((x) => x.trim()).filter(Boolean);
+    const prioridade = partes.some((x) => /^prioridade$/i.test(x));
+    const resto = partes.slice(1).filter((x) => !/^prioridade$/i.test(x))
+      .map((x) => x.charAt(0).toUpperCase() + x.slice(1));
+    return { prioridade, tipo: resto.join(' · ') };
+  }
+
   function renderTestSteps(tests, result) {
     const wrap = document.getElementById('test-steps');
     const provisorio = result.state === 'provisorio';
     wrap.innerHTML = tests.map((test, i) => {
-      // A descrição chega a 315 caracteres e ficava toda aberta em cada card.
-      // A primeira frase diz o que é o teste; o resto é o porquê, e abre sob
-      // demanda. Ver §45.
+      // A descrição chega a 315 caracteres. A primeira frase diz o que é o
+      // teste; o resto é o porquê. Ver §45.
       const desc = String(test.description || '');
       const corte = desc.indexOf('. ');
       const cabeca = corte > 0 ? desc.slice(0, corte + 1) : desc;
       const cauda = corte > 0 ? desc.slice(corte + 2) : '';
-      /* §63. O número vira NÓ DE UM TRILHO, não um selo dentro de um card
-       * solto. Quando a triagem indica dois testes, a ordem entre eles é
-       * clínica, no endométrio dMMR, pedir o germinativo antes da metilação
-       * de MLH1 encaminha ao geneticista uma paciente cuja perda é
-       * esporádica. Dois cards idênticos empilhados comunicam "menu, escolha
-       * um". Um trilho comunica "primeiro este, depois aquele". */
+      const { titulo, apoio } = partirNomeDoTeste(test.name);
+      const { prioridade, tipo } = lerOrdem(test.order);
+      /* §88. Proposta B: cada teste é uma linha que se abre. Fechada, diz o
+       * que pedir e com que amostra; aberta, diz o porquê e o texto que vai
+       * no pedido assinado (§63.2). O número continua sendo a ordem (§63). */
       return `
-      <div class="test-step${test.primary ? ' primary' : ''}">
-        <div class="trilho" aria-hidden="true"><span class="step-num">${i + 1}</span></div>
+      <details class="test-step${test.primary ? ' primary' : ''}">
+        <summary>
+          <span class="step-num" aria-hidden="true">${i + 1}</span>
+          <span class="step-cabeca">
+            <h4>${esc(titulo)}</h4>
+            ${apoio ? `<span class="step-apoio">${esc(apoio)}</span>` : ''}
+            <span class="step-meta">
+              ${prioridade ? '<span class="step-prio">Prioridade</span>' : ''}
+              ${provisorio && test.primary ? '<span class="pill warn">confirmar critério</span>' : ''}
+              ${tipo ? `<span>${esc(tipo)}</span>` : ''}
+              <span class="step-amostra">${ICONE_AMOSTRA}${esc(test.sample || '-')}</span>
+            </span>
+          </span>
+          <span class="chevron">${CHEVRON}</span>
+        </summary>
         <div class="step-body">
-          <div class="order">${esc(test.order || '')}</div>
-          <h4>${esc(test.name)}${provisorio && test.primary ? ' <span class="pill warn">confirmar critério</span>' : ''}</h4>
           <p>${esc(cabeca)}</p>
-          ${cauda || test.justify ? `<details class="detalhe-teste">
-            <summary>Por que este teste</summary>
-            ${cauda ? `<p>${esc(cauda)}</p>` : ''}
-            ${/* §63.2. test.justify é o texto que vai IMPRESSO no pedido, no
-                  campo "Justificativa clínica", acima da assinatura do médico,
-                  e não aparecia em lugar nenhum da tela. O médico assinava
-                  uma justificativa que nunca tinha lido. */''}
-            ${test.justify ? `<div class="justificativa-assinada">
-              <span class="rotulo">Vai assim no pedido, acima da sua assinatura</span>
-              <p>${esc(test.justify)}</p>
-            </div>` : ''}
-          </details>` : ''}
-          <div class="rodape-teste">
-            ${test.stat ? `<span class="stat-badge">${esc(test.stat)}</span>` : ''}
-            <span class="src">Amostra: ${esc(test.sample || '-')}</span>
-          </div>
+          ${test.stat ? `<p class="step-evid">${ICONE_EVIDENCIA}<span>${esc(test.stat)}</span></p>` : ''}
+          ${cauda ? `<p class="step-cauda">${esc(cauda)}</p>` : ''}
+          ${/* §63.2. test.justify vai IMPRESSO no pedido, acima da
+                assinatura. Quem assina lê antes. */''}
+          ${test.justify ? `<div class="justificativa-assinada">
+            <span class="rotulo">Vai assim no pedido, acima da sua assinatura</span>
+            <p>${esc(test.justify)}</p>
+          </div>` : ''}
         </div>
-      </div>`;
+      </details>`;
     }).join('');
-    // §76. Cabeçalho sem nada embaixo é pior que nenhum cabeçalho: anuncia uma
-    // seção que não existe. Some junto com a lista.
-    const secao = document.getElementById('secao-solicitar');
-    if (secao) secao.hidden = !tests.length;
+    // Sem teste, a lista some e o painel fica só com o veredito.
+    wrap.hidden = !tests.length;
   }
 
   function renderNotes(notes) {
@@ -2354,6 +2384,14 @@
   let saidaDeImpressao = null;
   function entrarNoModoImpressao() {
     document.body.classList.add('printing');
+    /* §88. A revelação ao rolar deixa blocos abaixo da dobra em opacidade
+     * zero até o médico chegar neles. O papel não rola: tudo o que estiver
+     * esperando é solto aqui, antes de imprimir, sem depender da regra de
+     * @media print (que o Safari aplica a seu modo). */
+    document.querySelectorAll('.revela, .revela-visivel').forEach((el) => {
+      el.classList.remove('revela');
+      el.classList.remove('revela-visivel');
+    });
     clearTimeout(saidaDeImpressao);
     saidaDeImpressao = setTimeout(sairDoModoImpressao, 1500);
   }

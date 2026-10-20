@@ -4990,3 +4990,61 @@ primeira linha; Amgen: painel fechado e voucher). O §53 e o §67.3 decidiram
 mantê-los visíveis, com trava em `regras.test.js`. Opções mostradas: manter só
 esse critério à vista (recomendada) ou recolhê-lo num toque. A decisão entra
 aqui quando o dono escolher.
+
+## 88. A tela de resultado virou um painel só (proposta B, 20/10/2026)
+
+O dono achou o bloco "O que solicitar" *"muito poluído e confuso"*. Três
+propostas foram montadas sobre o app real, com o caso de ovário seroso de alto
+grau IVC, e fotografadas no celular e no computador (`mockup/resultado-propostas/`).
+**Escolhida: B**, com um pedido a mais: *"um destaque na parte inicial para o
+médico ver que tem 2 testes indicados"*.
+
+### 88.1 O que mudou
+
+| Antes | Agora |
+| --- | --- |
+| cartão em degradê azul com luz atravessando | cabeçalho do painel em fundo claro da marca |
+| selo de contagem que só aparecia se o título não tivesse o número (§57.3) | **bloco da contagem** grande, sempre, com "teste"/"testes" embaixo |
+| faixa "O QUE SOLICITAR" | sai: o veredito é o cabeçalho do painel |
+| trilho vertical com seis degraus por teste | uma linha por teste, que abre no toque |
+| sobrelinha "TUMORAL · SOMÁTICO · PRIORIDADE" | selo "Prioridade" + tipo + amostra numa linha |
+| nome de 88 caracteres em quatro linhas | nome curto + linha de genes (o que estava entre parênteses) |
+| descrição, "Por que este teste", pílula de evidência e amostra, todos abertos | fechada: nome, prioridade, tipo, amostra; aberta: descrição, evidência, porquê e o texto que vai no pedido |
+
+**A contagem repete o número do título, de propósito.** O §57.3 tirou o selo
+quando o título já trazia o número. O dono pediu o destaque, e há uma razão a
+mais: os títulos do registro variam ("para 2 testes", "para teste germinativo",
+"provável para 2 testes"), então só um elemento próprio garante que o número
+apareça igual em todos os tumores.
+
+**Nada do registro some.** O primeiro termo da ordem ("Tumoral", "Sangue")
+repetia a amostra e sai; "prioridade" vira selo; o resto ("somático",
+"germinativo", "universal") aparece como está. Nome, descrição, evidência,
+amostra e justificativa continuam na tela, parte delas recolhida.
+
+**A nota que muda a ordem do pedido (§54)** mora dentro do painel, entre o
+veredito e os testes que ela governa, aberta.
+
+**Triagem que não concluiu** usa o mesmo painel em tom de cautela, com "!" no
+lugar do número.
+
+### 88.2 As travas
+
+- novo teste de navegador compara o que o motor devolve com o que a tela tem,
+  campo a campo (nome inteiro, as duas partes da descrição, evidência, amostra,
+  justificativa), e exige que a contagem seja o número de linhas da lista, com
+  rótulo para leitor de tela;
+- o teste de cabeçalho vazio (§76) passou a vigiar a lista de testes em si, que
+  some quando está vazia;
+- o teste de movimento reduzido vigia o bloco da contagem no lugar do trilho.
+
+### 88.3 Dois defeitos achados no caminho
+
+- **Revelação ao rolar e impressão.** No celular, o aviso do rodapé da tela de
+  programas ainda esperava a animação de aparecer quando o modo impressão
+  começava. A regra de `@media print` já forçava tudo visível no papel, mas o
+  Safari aplica impressão a seu modo: agora a revelação é solta no instante em
+  que o modo impressão começa.
+- **A bateria de instalação como aplicativo nunca rodou nesta máquina.**
+  `test/aplicativo.js` tinha o caminho `/home/user/...` escrito à mão e parava
+  na primeira linha. Passou a usar o caminho do próprio arquivo e roda inteira.
