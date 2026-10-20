@@ -4922,3 +4922,71 @@ e `--remove-secrets ANTHROPIC_API_KEY`), descrito no roteiro, seção 6.5.
 
 **Testes:** `test/ia.test.js` (produção sem chave derruba o boot; com chave,
 sobe) e `test/login-telas.js` (o Aviso de Privacidade mostra o caminho direto).
+
+## 87. O pedido impresso: interface vazando de novo, e meia folha A4 (20/10/2026)
+
+### 87.1 A regressão
+
+Na versão de teste, o dono imprimiu o pedido e recebeu, acima do formulário, a
+faixa do login (*"Seu CRM está em conferência no CFM… Detalhes"*) e o rótulo
+*"PROGRAMAS POR TESTE"*. Em duas folhas, com a assinatura sozinha na segunda.
+
+O §61 tinha trocado a lista de exceções por uma regra de raiz, mas a raiz era o
+**card**: o que ficava fora dele continuava dependendo de alguém lembrar. A
+faixa de CRM (§85) e o rótulo da seção (§76) nasceram depois e fora do card.
+
+**Por que o teste não pegou.** Duas razões, as duas do próprio teste:
+- ele só olhava elementos sem filhos. O rótulo é um `<p>` com um `<span>`
+  decorativo dentro: não era folha, e o texto dele passava sem ser visto;
+- no ambiente de teste a conta nunca está em conferência, então a faixa de CRM
+  nem aparecia.
+
+### 87.2 A correção
+
+Regra de raiz para a página inteira, no modo impressão: some todo elemento que
+não contém o documento alvo, não é o alvo e não está dentro dele. Dentro do
+alvo, só a folha (`.doc-preview`). Nenhum elemento novo precisa ser lembrado.
+
+A trava agora lê o **texto próprio** de cada elemento visível fora da folha, e
+põe a faixa de CRM de pé com texto real antes de medir. **Provada**: antes da
+correção, reprova nomeando exatamente a faixa, o "Detalhes" e "Programas por
+teste".
+
+### 87.3 Meia folha A4
+
+Pedido do dono: o pedido limpo, cabendo com folga em meia folha, com a
+assinatura sempre na mesma folha.
+
+- dados curtos em grade de duas colunas, rótulo pequeno **acima** do valor
+  (lê como formulário, não como tabela): Paciente e Data; Médico solicitante e
+  Diagnóstico na largura toda;
+- Teste solicitado e Amostra num bloco próprio, separado por um filete
+  contínuo; o teste um degrau maior, porque é o que o laboratório procura
+  primeiro;
+- justificativa sem a caixa colorida, só rótulo e texto;
+- assinatura à direita, com 44px de espaço acima da linha (assinatura e
+  carimbo), e o bloco inteiro marcado para não se partir entre folhas;
+- o recuo da tela (main, tela, card) zerado no papel: a margem é a da folha.
+
+A versão que abre fora do app no iPhone (§64.2) recebeu o mesmo desenho.
+
+**Medido no PDF gerado:** o caso comum ocupa 116mm de papel; a área útil de
+meia folha é 134mm. Com nome de 70 caracteres e justificativa cinco vezes mais
+longa: 177mm, uma folha só, assinatura nela.
+
+**A trava** (bateria de navegador) imprime de verdade com o Chromium e exige:
+caso comum até 120mm; caso longo em uma folha, com "Assinatura e carimbo" na
+mesma folha. **Provada**: com o espaçamento anterior reprovou acusando 122mm.
+
+### 87.4 Tela de programas: decisão do dono aguardando um ponto
+
+Pedido do dono: tirar de todos os programas o texto embaixo do nome e a linha
+"Via conferida em", e tirar "Laboratório parceiro" (selo e trecho do nome) do
+painel germinativo, para não sugerir ganho com o laboratório.
+
+Conflito encontrado e levado ao dono antes de implementar: em dois programas o
+texto embaixo do nome **é o critério que recusa o paciente** (GSK: alto grau e
+primeira linha; Amgen: painel fechado e voucher). O §53 e o §67.3 decidiram
+mantê-los visíveis, com trava em `regras.test.js`. Opções mostradas: manter só
+esse critério à vista (recomendada) ou recolhê-lo num toque. A decisão entra
+aqui quando o dono escolher.
