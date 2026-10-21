@@ -86,7 +86,8 @@ Esses serviços protegem os vídeos com uma trava digital (chamada DRM) e
 **não deixam nenhum outro app tocar o conteúdo deles**, nem mesmo um app
 caseiro. Isso vale para qualquer pessoa, não é limitação deste projeto.
 
-O que o Cantinho faz: mostra o desenho na prateleira "No Disney+ e no Prime"
+O que o Cantinho faz: se você colocar um desenho desses na lista (o jeito
+está explicado no começo do `videos.js`), ele aparece com a cor do serviço
 para as crianças saberem que ele existe e pedirem. Ao clicar, aparece
 "Chame o papai ou a mamãe para abrir no Disney+".
 
