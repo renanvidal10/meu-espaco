@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#16183d">
+  <!-- O YouTube exige saber de qual site vem o vídeo; sem isso ele recusa tocar. -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Cantinho Kids</title>
+  <link rel="icon" href="icone.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <div class="ceu" aria-hidden="true"></div>
+
+  <header class="topo">
+    <div class="marca">
+      <svg class="marca-sol" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="14" fill="#FFC93D"/>
+        <g stroke="#FFC93D" stroke-width="5" stroke-linecap="round">
+          <path d="M32 4v7M32 53v7M4 32h7M53 32h7M12.2 12.2l5 5M46.8 46.8l5 5M12.2 51.8l5-5M46.8 17.2l5-5"/>
+        </g>
+      </svg>
+      <span id="nome-app">Cantinho Kids</span>
+    </div>
+    <div class="relogio" id="relogio"></div>
+  </header>
+
+  <main id="inicio">
+    <section class="boas-vindas">
+      <h1 id="saudacao">Oi, turminha!</h1>
+      <p id="pergunta">O que vamos assistir hoje?</p>
+    </section>
+    <div id="prateleiras"></div>
+  </main>
+
+  <!-- Tela do vídeo do YouTube -->
+  <div class="tela-cheia" id="tela-player" hidden>
+    <div id="player"></div>
+    <div class="dica-voltar" id="dica-voltar">Aperte <b>Voltar</b> no controle para escolher outro vídeo</div>
+  </div>
+
+  <!-- Aviso: desenho que mora em outro aplicativo, ou vídeo que não toca -->
+  <div class="tela-cheia tela-aviso" id="tela-aviso" hidden>
+    <div class="aviso-cartao" id="aviso-cartao">
+      <div class="aviso-selo" id="aviso-selo"></div>
+      <h2 id="aviso-titulo"></h2>
+      <p id="aviso-texto"></p>
+      <button class="botao focavel" id="aviso-voltar" type="button">Voltar</button>
+    </div>
+  </div>
+
+  <!-- Aparece só se o arquivo videos.js tiver algum errinho de digitação -->
+  <div class="tela-cheia tela-erro" id="tela-erro" hidden>
+    <div class="aviso-cartao">
+      <h2>Tem um errinho na lista de vídeos</h2>
+      <p id="erro-texto"></p>
+    </div>
+  </div>
+
+  <script>
+    window.ERRO_NA_LISTA = null;
+    window.addEventListener("error", function (e) {
+      if (e.filename && e.filename.indexOf("videos.js") !== -1) {
+        window.ERRO_NA_LISTA = { linha: e.lineno, mensagem: e.message };
+      }
+    });
+  </script>
+  <script src="videos.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

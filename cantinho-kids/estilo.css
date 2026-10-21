@@ -1,0 +1,402 @@
+/* Cantinho Kids: feito para ver de longe, no sofá, com o controle da TV. */
+
+:root {
+  --fundo: #16183d;
+  --fundo-fundo: #0d0f2a;
+  --texto: #ffffff;
+  --texto-suave: #b9bde8;
+  --destaque: #ffc93d;
+
+  --laranja: #ff8a3d;
+  --rosa: #ff5c8a;
+  --verde: #3dd68c;
+  --azul: #4da3ff;
+  --roxo: #a77bff;
+  --amarelo: #ffc93d;
+
+  --margem: 4.5rem;
+  --cartao: 17rem;
+  --raio: 1.4rem;
+}
+
+/* A letra cresce com a tela: na TV fica grande, no celular continua legível. */
+html { font-size: clamp(11px, 1.25vw, 30px); }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: "Nunito", "Varela Round", "Trebuchet MS", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Céu de fundo: brilho suave e estrelinhas, sem imagem externa. */
+.ceu {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(60rem 30rem at 85% -10%, rgba(167, 123, 255, 0.35), transparent 70%),
+    radial-gradient(50rem 30rem at -10% 110%, rgba(77, 163, 255, 0.22), transparent 70%),
+    linear-gradient(180deg, var(--fundo) 0%, var(--fundo-fundo) 100%);
+}
+.ceu::before,
+.ceu::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(2px 2px at 12% 18%, #fff, transparent),
+    radial-gradient(2px 2px at 32% 8%, rgba(255,255,255,.8), transparent),
+    radial-gradient(1.5px 1.5px at 58% 22%, #fff, transparent),
+    radial-gradient(2px 2px at 76% 12%, rgba(255,255,255,.7), transparent),
+    radial-gradient(1.5px 1.5px at 90% 30%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 22% 40%, rgba(255,255,255,.6), transparent),
+    radial-gradient(2px 2px at 68% 46%, rgba(255,255,255,.5), transparent);
+  opacity: .55;
+}
+.ceu::after {
+  transform: translate(7%, 38%);
+  opacity: .3;
+}
+
+/* ---------- Topo ---------- */
+
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2.2rem var(--margem) 0;
+}
+.marca {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: .01em;
+}
+.marca-sol {
+  width: 2.6rem;
+  height: 2.6rem;
+  animation: girar 40s linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.relogio {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Boas-vindas ---------- */
+
+.boas-vindas {
+  padding: 2.4rem var(--margem) 1rem;
+}
+.boas-vindas h1 {
+  margin: 0;
+  font-size: 3.4rem;
+  font-weight: 900;
+  line-height: 1.05;
+}
+.boas-vindas p {
+  margin: .5rem 0 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--texto-suave);
+}
+
+/* ---------- Prateleiras ---------- */
+
+#prateleiras { padding-bottom: 6rem; }
+
+.prateleira { margin-top: 2.4rem; }
+
+.prateleira-titulo {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  margin: 0 0 .4rem;
+  padding: 0 var(--margem);
+  font-size: 1.75rem;
+  font-weight: 900;
+}
+.prateleira-icone {
+  display: grid;
+  place-items: center;
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: .9rem;
+  background: var(--cor);
+  color: var(--fundo-fundo);
+  box-shadow: 0 .4rem 1.2rem -.3rem var(--cor);
+}
+.prateleira-icone svg { width: 1.6rem; height: 1.6rem; }
+
+/* A fileira rola para o lado sozinha conforme o controle anda. */
+.fileira {
+  display: flex;
+  gap: 1.6rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1.4rem var(--margem) 1.8rem;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.fileira::-webkit-scrollbar { display: none; }
+
+/* ---------- Cartão de vídeo ---------- */
+
+.cartao {
+  flex: 0 0 var(--cartao);
+  width: var(--cartao);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  transition: transform .18s ease;
+}
+.cartao-capa {
+  display: block;
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--raio);
+  overflow: hidden;
+  background: #262a5c;
+  box-shadow: 0 .6rem 1.4rem -.6rem rgba(0, 0, 0, .6);
+  transition: box-shadow .18s ease;
+}
+/* Navegador antigo de TV sem aspect-ratio: segura a proporção do jeito clássico. */
+@supports not (aspect-ratio: 16 / 9) {
+  .cartao-capa { height: 0; padding-top: 56.25%; }
+}
+.cartao-capa img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cartao-play {
+  position: absolute;
+  right: .7rem;
+  bottom: .7rem;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: rgba(13, 15, 42, .72);
+  opacity: 0;
+  transform: scale(.7);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.cartao-play svg { width: 1.1rem; height: 1.1rem; margin-left: .15rem; }
+
+.cartao-nome {
+  margin-top: .8rem;
+  padding: 0 .2rem;
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--texto-suave);
+  /* No máximo duas linhas de título. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color .18s ease;
+}
+
+/* Cartão escolhido pelo controle: cresce, ganha moldura e brilho. */
+.cartao:focus,
+.cartao.focado { transform: scale(1.08); }
+.cartao:focus .cartao-capa,
+.cartao.focado .cartao-capa {
+  box-shadow:
+    0 0 0 .32rem var(--fundo),
+    0 0 0 .62rem var(--cor),
+    0 1rem 2.4rem -.4rem var(--cor);
+}
+.cartao:focus .cartao-play,
+.cartao.focado .cartao-play { opacity: 1; transform: scale(1); }
+.cartao:focus .cartao-nome,
+.cartao.focado .cartao-nome { color: var(--texto); }
+
+@media (hover: hover) {
+  .cartao:hover { transform: scale(1.05); }
+  .cartao:hover .cartao-nome { color: var(--texto); }
+}
+
+/* Cartão de Disney+ ou Prime Video: sem capa, com a cor do serviço. */
+.cartao-servico {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  text-align: center;
+  background: var(--fundo-servico);
+}
+.cartao-servico b {
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1.1;
+  text-shadow: 0 .15rem .6rem rgba(0,0,0,.35);
+}
+.selo {
+  display: inline-block;
+  padding: .3rem .8rem;
+  border-radius: 99rem;
+  font-size: .85rem;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  background: rgba(255,255,255,.18);
+  color: #fff;
+}
+.cartao-servico .selo { position: absolute; top: .8rem; left: .8rem; }
+
+.servico-disney { --fundo-servico: radial-gradient(circle at 30% 20%, #2f6bff 0%, #0b1d5a 75%); }
+.servico-prime  { --fundo-servico: radial-gradient(circle at 30% 20%, #19b4e8 0%, #0f2a3d 75%); }
+.servico-outro  { --fundo-servico: radial-gradient(circle at 30% 20%, #8a63ff 0%, #2a1a5c 75%); }
+
+/* Link do YouTube que não foi reconhecido: avisa o adulto. */
+.cartao-quebrado .cartao-capa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ffd4d4;
+  background: repeating-linear-gradient(135deg, #4a1f35 0 1rem, #3d1a2d 1rem 2rem);
+}
+
+/* ---------- Telas por cima de tudo ---------- */
+
+.tela-cheia {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+.tela-cheia[hidden] { display: none; }
+
+#tela-player { background: #000; }
+#tela-player iframe,
+#player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.dica-voltar {
+  position: absolute;
+  left: 50%;
+  bottom: 2.4rem;
+  transform: translateX(-50%);
+  padding: .9rem 1.6rem;
+  border-radius: 99rem;
+  background: rgba(13, 15, 42, .85);
+  font-size: 1.15rem;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity .6s ease;
+}
+.dica-voltar b { color: var(--destaque); }
+.dica-voltar.sumiu { opacity: 0; }
+
+.tela-aviso,
+.tela-erro {
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: rgba(13, 15, 42, .92);
+}
+.aviso-cartao {
+  width: min(44rem, 100%);
+  padding: 3rem 3.2rem;
+  border-radius: 2rem;
+  text-align: center;
+  background: linear-gradient(180deg, #262a5c, #1b1e48);
+  box-shadow: 0 2rem 5rem -1rem rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.aviso-selo { margin-bottom: 1.4rem; }
+.aviso-selo .selo { font-size: 1.1rem; padding: .5rem 1.2rem; }
+.aviso-cartao.servico-disney .selo { background: #1e5bd8; }
+.aviso-cartao.servico-prime .selo { background: #00a8e1; }
+.aviso-cartao h2 {
+  margin: 0;
+  font-size: 2.4rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.aviso-cartao p {
+  margin: 1rem 0 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--texto-suave);
+}
+.tela-erro p { font-size: 1.2rem; text-align: left; }
+.tela-erro code {
+  color: var(--destaque);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.botao {
+  margin-top: 2.2rem;
+  padding: 1rem 3.2rem;
+  border: 0;
+  border-radius: 99rem;
+  background: var(--destaque);
+  color: var(--fundo-fundo);
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 900;
+  cursor: pointer;
+  outline: none;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.botao:focus {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 .3rem #1b1e48, 0 0 0 .6rem #fff;
+}
+
+/* ---------- Celular (para testar e mostrar para a família) ---------- */
+
+@media (max-width: 700px) {
+  :root { --margem: 1rem; --cartao: 11.5rem; }
+  html { font-size: 13px; }
+  .boas-vindas h1 { font-size: 2.4rem; }
+  .boas-vindas p { font-size: 1.2rem; }
+  .prateleira-titulo { font-size: 1.4rem; }
+  .fileira { gap: 1rem; }
+  .cartao-nome { font-size: 1.05rem; }
+  .aviso-cartao { padding: 2rem 1.4rem; }
+  .aviso-cartao h2 { font-size: 1.8rem; }
+  .aviso-cartao p { font-size: 1.15rem; }
+  .dica-voltar { white-space: normal; text-align: center; width: calc(100% - 2rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marca-sol { animation: none; }
+  .fileira { scroll-behavior: auto; }
+}

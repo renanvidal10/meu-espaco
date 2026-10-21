@@ -1,0 +1,11 @@
+{
+  "name": "Cantinho Kids",
+  "short_name": "Cantinho",
+  "start_url": "./",
+  "display": "fullscreen",
+  "background_color": "#16183d",
+  "theme_color": "#16183d",
+  "icons": [
+    { "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
