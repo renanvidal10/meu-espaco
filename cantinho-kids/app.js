@@ -100,7 +100,13 @@
       fileiras.push(cartoes);
     });
 
-    if (fileiras.length) focar(fileiras[0][0]);
+    if (fileiras.length) {
+      focar(fileiras[0][0]);
+    } else {
+      caixa.innerHTML =
+        '<div class="vazio"><b>Ainda não tem vídeos aqui</b>' +
+        "<span>Adicione os vídeos no arquivo videos.js e recarregue a página.</span></div>";
+    }
   }
 
   function criarCartao(video) {
