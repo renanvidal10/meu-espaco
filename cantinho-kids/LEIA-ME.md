@@ -24,18 +24,40 @@ Endereço do app (depois de publicado):
 
 ## 2. Colocar na TV
 
-### Fire TV Stick
+### Fire TV Stick (aplicativo completo, abre Prime e Disney+ direto)
 
-1. Na tela inicial do Fire TV, vá na **lupa** (buscar) e digite **Silk**.
-2. Instale o **Silk Browser** (é o navegador da própria Amazon, grátis).
-3. Abra o Silk e, na barra de endereço, digite:
-   `renanvidal10.github.io/meu-espaco`
-4. Quando a página abrir, aperte o botão de **menu** do controle
-   (o de três risquinhos) e escolha **Adicionar aos favoritos**.
-5. Das próximas vezes: abra o Silk e escolha o Cantinho Kids nos favoritos.
+No Fire TV o Cantinho é um aplicativo de verdade. Instalação, uma vez só:
 
-Dica: no Silk, se a barra de endereço ficar aparecendo, aperte o menu e
-escolha **Tela cheia** (ou o app pede tela cheia sozinho quando o vídeo começa).
+**Parte A: liberar a instalação**
+1. No controle, vá em **Configurações** (engrenagem) > **Minha Fire TV**.
+2. Se não aparecer **Opções do desenvolvedor**: entre em **Sobre**, fique
+   em cima do nome do aparelho e aperte **OK 7 vezes**, até aparecer
+   "Você agora é um desenvolvedor". Volte uma tela.
+3. Entre em **Opções do desenvolvedor**.
+
+**Parte B: instalar o Downloader**
+4. Volte para a tela inicial, vá na **lupa** e procure **Downloader**
+   (ícone laranja). Instale.
+5. Volte em **Configurações** > **Minha Fire TV** > **Opções do
+   desenvolvedor** > **Instalar apps desconhecidos** e ative o **Downloader**.
+   (Em aparelhos mais antigos a opção se chama **Apps de fontes
+   desconhecidas**: é só ligar.)
+
+**Parte C: instalar o Cantinho**
+6. Abra o **Downloader**. Se pedir permissão, aperte **Permitir**.
+7. Na caixa de endereço, digite exatamente:
+
+   `https://raw.githubusercontent.com/renanvidal10/meu-espaco/cantinho-kids/cantinho-kids/cantinho.apk`
+
+8. Aperte **Go**. Quando terminar de baixar, aperte **Instalar** e depois
+   **Concluído** (o Downloader pergunta se quer apagar o arquivo: pode apagar).
+9. O Cantinho Kids aparece em **Seus apps e canais** (os quadradinhos da
+   tela inicial). Dica: fique em cima dele, aperte o botão de **menu**
+   (três risquinhos) e escolha **Mover** para deixar na primeira fileira.
+
+A lista de vídeos é baixada do GitHub toda vez que o app abre: mexeu no
+`videos.js`, é só fechar e abrir o Cantinho de novo. Não precisa reinstalar.
+
 
 ### TV Samsung
 
@@ -80,21 +102,24 @@ a linha do problema. Quase sempre é uma aspa ou uma vírgula que faltou na
 
 ---
 
-## 4. Sobre Disney+ e Prime Video (importante)
+## 4. Prime Video, Disney+ e Netflix
 
-Esses serviços protegem os vídeos com uma trava digital (chamada DRM) e
-**não deixam nenhum outro app tocar o conteúdo deles**, nem mesmo um app
-caseiro. Isso vale para qualquer pessoa, não é limitação deste projeto.
+No **Fire TV**, ao clicar no filme, o Cantinho abre ele direto dentro do
+app do streaming, que já está logado na TV (o Cantinho nunca vê senha).
+A capa oficial aparece sozinha.
 
-O que o Cantinho faz: se você colocar um desenho desses na lista (o jeito
-está explicado no começo do `videos.js`), ele aparece com a cor do serviço
-para as crianças saberem que ele existe e pedirem. Ao clicar, aparece
-"Chame o papai ou a mamãe para abrir no Disney+".
+Esses serviços não deixam o filme tocar *dentro* do Cantinho (é uma trava
+deles chamada DRM), por isso quem toca é o app oficial. Para voltar ao
+Cantinho depois, aperte **Voltar** algumas vezes ou abra o Cantinho de novo.
 
-Para esses serviços, o caminho seguro é usar o **perfil infantil** de cada um
-(Disney+ e Prime Video têm perfil Kids com controle de classificação).
+Na **TV Samsung** (pelo navegador) isso não funciona: um site não tem
+permissão para abrir outro aplicativo. Lá, o card avisa que o filme abre
+pelo Fire TV.
 
----
+**Modo teste:** no começo do `videos.js` existe a linha `modoTeste: true`.
+Com ela ligada, a TV mostra um aviso pequeno dizendo como abriu cada
+streaming ("Prime Video: jeito 1 de 13"). Depois que tudo estiver certo,
+troque para `modoTeste: false`.
 
 ## 5. Se um vídeo do YouTube não tocar
 
@@ -114,3 +139,5 @@ oficial).
 | `estilo.css` | Cores, tamanhos, visual | Não |
 | `app.js` | Funcionamento (controle, player) | Não |
 | `icone.svg`, `manifest.webmanifest` | Ícone do app | Não |
+| `cantinho.apk` | Aplicativo pronto para o Fire TV | Não |
+| `firetv/` | Código do aplicativo do Fire TV | Não |

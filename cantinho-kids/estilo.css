@@ -285,10 +285,25 @@ body {
   background: rgba(255,255,255,.18);
   color: #fff;
 }
-.cartao-servico .selo { position: absolute; top: .8rem; left: .8rem; }
+.cartao-capa > .selo {
+  position: absolute;
+  bottom: .7rem;
+  left: .7rem;
+  z-index: 2;
+  background: rgba(13, 15, 42, .72);
+}
+.servico-disney ~ .selo { background: #1e5bd8; }
+.servico-prime ~ .selo { background: #00a8e1; }
+.servico-netflix ~ .selo { background: #e50914; }
+.cartao-capa > .cartao-play { z-index: 2; }
+
+/* Quando a capa oficial carrega, ela cobre o fundo colorido com o nome. */
+.capa-streaming { z-index: 1; opacity: 0; transition: opacity .3s ease; }
+.cartao.com-capa .capa-streaming { opacity: 1; }
 
 .servico-disney { --fundo-servico: radial-gradient(circle at 30% 20%, #2f6bff 0%, #0b1d5a 75%); }
 .servico-prime  { --fundo-servico: radial-gradient(circle at 30% 20%, #19b4e8 0%, #0f2a3d 75%); }
+.servico-netflix { --fundo-servico: radial-gradient(circle at 30% 20%, #e50914 0%, #3a0306 75%); }
 .servico-outro  { --fundo-servico: radial-gradient(circle at 30% 20%, #8a63ff 0%, #2a1a5c 75%); }
 
 /* Link do YouTube que não foi reconhecido: avisa o adulto. */
@@ -359,6 +374,7 @@ body {
 .aviso-selo .selo { font-size: 1.1rem; padding: .5rem 1.2rem; }
 .aviso-cartao.servico-disney .selo { background: #1e5bd8; }
 .aviso-cartao.servico-prime .selo { background: #00a8e1; }
+.aviso-cartao.servico-netflix .selo { background: #e50914; }
 .aviso-cartao h2 {
   margin: 0;
   font-size: 2.4rem;

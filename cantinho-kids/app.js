@@ -41,12 +41,21 @@
     return null;
   }
 
-  function classeDoServico(servico) {
-    var s = String(servico || "").toLowerCase();
-    if (s.indexOf("disney") !== -1) return "servico-disney";
-    if (s.indexOf("prime") !== -1 || s.indexOf("amazon") !== -1) return "servico-prime";
-    return "servico-outro";
+  // Descobre de qual streaming é o vídeo, pelo link ou pelo campo "servico".
+  // Vídeo do YouTube devolve null (ele toca aqui dentro mesmo).
+  function streamingDo(video) {
+    var s = (String(video.servico || "") + " " + String(video.link || "")).toLowerCase();
+    if (s.indexOf("disney") !== -1) return { nome: "Disney+", classe: "servico-disney" };
+    if (s.indexOf("prime") !== -1 || s.indexOf("amazon") !== -1) return { nome: "Prime Video", classe: "servico-prime" };
+    if (s.indexOf("netflix") !== -1) return { nome: "Netflix", classe: "servico-netflix" };
+    if (s.indexOf("globoplay") !== -1) return { nome: "Globoplay", classe: "servico-outro" };
+    if (video.servico) return { nome: String(video.servico), classe: "servico-outro" };
+    if (video.link && !idDoYoutube(video.link)) return { nome: "Streaming", classe: "servico-outro" };
+    return null;
   }
+
+  // Ponte com o aplicativo do Fire TV (só existe quando o Cantinho roda lá).
+  var nativo = window.CantinhoNativo || null;
 
   function escapar(texto) {
     return String(texto == null ? "" : texto)
@@ -115,15 +124,19 @@
     botao.className = "cartao focavel";
     var titulo = escapar(video.titulo);
 
-    if (video.servico) {
-      var classe = classeDoServico(video.servico);
+    var streaming = streamingDo(video);
+    if (streaming) {
       botao.innerHTML =
-        '<span class="cartao-capa"><span class="cartao-servico ' + classe + '">' +
-          '<span class="selo">' + escapar(video.servico) + "</span>" +
+        '<span class="cartao-capa"><span class="cartao-servico ' + streaming.classe + '">' +
           "<b>" + titulo + "</b>" +
-        "</span></span>" +
+        "</span>" +
+        '<span class="selo">' + escapar(streaming.nome) + "</span>" +
+        '<span class="cartao-play">' + PLAY + "</span>" +
+        "</span>" +
         '<span class="cartao-nome">' + titulo + "</span>";
-      botao.addEventListener("click", function () { mostrarServico(video, classe); });
+      if (video.capa) colocarCapa(botao, video.capa);
+      else if (video.link) pedirCapa(botao, video.link);
+      botao.addEventListener("click", function () { abrirStreaming(video, streaming); });
       return botao;
     }
 
@@ -269,13 +282,57 @@
     focar(cartaoDeOrigem);
   });
 
-  function mostrarServico(video, classe) {
+  // ---------- Filmes de streaming (Prime, Disney+, Netflix...) ----------
+
+  // Capa: ou vem escrita no videos.js (campo "capa"), ou o app do Fire TV
+  // busca sozinho a imagem oficial na página do filme.
+  var esperandoCapa = {};
+
+  function colocarCapa(cartao, url) {
+    if (!url) return;
+    var capa = cartao.querySelector(".cartao-capa");
+    var img = new Image();
+    img.alt = "";
+    img.className = "capa-streaming";
+    img.onload = function () { cartao.classList.add("com-capa"); };
+    img.src = url;
+    capa.insertBefore(img, capa.firstChild);
+  }
+
+  function pedirCapa(cartao, link) {
+    if (!nativo || !nativo.buscarCapa) return;
+    var pronta = nativo.buscarCapa(link);
+    if (pronta) return colocarCapa(cartao, pronta);
+    (esperandoCapa[link] = esperandoCapa[link] || []).push(cartao);
+  }
+
+  window.cantinhoCapa = function (link, url) {
+    var cartoes = esperandoCapa[link] || [];
+    delete esperandoCapa[link];
+    cartoes.forEach(function (c) { colocarCapa(c, url); });
+  };
+
+  function abrirStreaming(video, streaming) {
     cartaoDeOrigem = focoAtual;
-    $("aviso-cartao").className = "aviso-cartao " + classe;
-    $("aviso-selo").innerHTML = '<span class="selo">' + escapar(video.servico) + "</span>";
-    $("aviso-titulo").textContent = video.titulo + " está no " + video.servico;
-    $("aviso-texto").textContent =
-      "Chame o papai ou a mamãe para abrir o aplicativo do " + video.servico + " na TV.";
+    var resultado = "";
+    if (nativo && video.link) {
+      resultado = String(nativo.abrir(video.link, streaming.nome, video.titulo || ""));
+      if (resultado.indexOf("ok") === 0) return; // o app do streaming já abriu
+    }
+    $("aviso-cartao").className = "aviso-cartao " + streaming.classe;
+    $("aviso-selo").innerHTML = '<span class="selo">' + escapar(streaming.nome) + "</span>";
+    if (!nativo) {
+      $("aviso-titulo").textContent = video.titulo + " abre pelo Fire TV";
+      $("aviso-texto").textContent =
+        "Filmes do " + streaming.nome + " abrem direto quando o Cantinho está instalado no Fire TV Stick.";
+    } else if (!video.link) {
+      $("aviso-titulo").textContent = "Falta o link de " + video.titulo;
+      $("aviso-texto").textContent = "Coloque o link do filme no arquivo videos.js.";
+    } else {
+      $("aviso-titulo").textContent = "Não consegui abrir o " + streaming.nome;
+      $("aviso-texto").textContent =
+        "O aplicativo do " + streaming.nome + " está instalado nesta TV? (" + resultado + ")";
+    }
     abrirTela("tela-aviso");
     $("aviso-voltar").focus();
   }
@@ -410,10 +467,20 @@
     return;
   }
 
+  // Modo teste: o Fire TV mostra qual jeito de abrir o streaming funcionou.
+  if (nativo && nativo.ligarModoTeste) nativo.ligarModoTeste(!!CANTINHO.modoTeste);
+
   montar(CANTINHO);
   carregarApi();
   atualizarRelogio();
   setInterval(atualizarRelogio, 15000);
+
+  // O botão Voltar do Fire TV pergunta aqui se tinha alguma tela para fechar.
+  window.cantinhoVoltar = function () {
+    if (!telaAberta) return false;
+    fecharTela();
+    return true;
+  };
 
   // Para os testes automáticos conseguirem conferir a leitura dos links.
   window.CantinhoTeste = { idDoYoutube: idDoYoutube };

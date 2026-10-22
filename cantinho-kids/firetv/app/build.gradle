@@ -1,0 +1,55 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "br.com.cantinhokids"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "br.com.cantinhokids"
+        minSdk 22          // Fire TV Stick mais antigo (Fire OS 5)
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    // Assinatura fixa: assim cada versão nova instala por cima da anterior.
+    // App caseiro, instalado só na TV da família; a senha não protege nada sensível.
+    signingConfigs {
+        casa {
+            storeFile file("cantinho.keystore")
+            storePassword "cantinho"
+            keyAlias "cantinho"
+            keyPassword "cantinho"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.casa
+        }
+        debug {
+            signingConfig signingConfigs.casa
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    sourceSets {
+        main.assets.srcDirs += "$buildDir/site"
+    }
+}
+
+// O app leva dentro dele a mesma vitrine da pasta cantinho-kids.
+tasks.register("copiarSite", Copy) {
+    from(rootProject.file("..")) {
+        include "*.html", "*.css", "*.js", "*.svg", "*.webmanifest"
+    }
+    into "$buildDir/site/site"
+}
+preBuild.dependsOn "copiarSite"
