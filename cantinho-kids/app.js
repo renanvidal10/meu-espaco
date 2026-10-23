@@ -163,7 +163,9 @@
 
   var focoAtual = null;
 
-  function focar(el) {
+  // "rapido": o controle está com a seta segurada. Aí a rolagem é
+  // instantânea, senão a tela fica correndo atrás do foco.
+  function focar(el, rapido) {
     if (!el) return;
     focoAtual = el;
     el.focus({ preventScroll: true });
@@ -175,7 +177,7 @@
     var alvo = el.offsetLeft - fileira.offsetLeft - margem;
     if (el.offsetLeft - fileira.offsetLeft + el.offsetWidth > fileira.scrollLeft + fileira.clientWidth - margem ||
         el.offsetLeft - fileira.offsetLeft < fileira.scrollLeft + margem) {
-      fileira.scrollLeft = Math.max(0, alvo);
+      rolarFileira(fileira, Math.max(0, alvo), rapido);
     }
 
     // Rola a página para cima ou para baixo até a prateleira.
@@ -183,18 +185,23 @@
     var caixa = secao.getBoundingClientRect();
     var linha = Number(el.getAttribute("data-fileira"));
     if (linha === 0) {
-      rolarPara(0);
+      rolarPara(0, rapido);
     } else if (caixa.top < 0 || caixa.bottom > window.innerHeight) {
-      rolarPara(window.pageYOffset + caixa.top - window.innerHeight * 0.18);
+      rolarPara(window.pageYOffset + caixa.top - window.innerHeight * 0.18, rapido);
     }
   }
 
-  function rolarPara(y) {
-    try { window.scrollTo({ top: y, behavior: "smooth" }); }
+  function rolarPara(y, rapido) {
+    try { window.scrollTo({ top: y, behavior: rapido ? "auto" : "smooth" }); }
     catch (e) { window.scrollTo(0, y); }
   }
 
-  function andar(direcao) {
+  function rolarFileira(fileira, x, rapido) {
+    try { fileira.scrollTo({ left: x, behavior: rapido ? "auto" : "smooth" }); }
+    catch (e) { fileira.scrollLeft = x; }
+  }
+
+  function andar(direcao, rapido) {
     if (!focoAtual || !focoAtual.hasAttribute("data-fileira")) {
       if (fileiras.length) focar(fileiras[0][0]);
       return;
@@ -202,8 +209,8 @@
     var linha = Number(focoAtual.getAttribute("data-fileira"));
     var coluna = Number(focoAtual.getAttribute("data-coluna"));
 
-    if (direcao === "esquerda") return focar(fileiras[linha][coluna - 1]);
-    if (direcao === "direita") return focar(fileiras[linha][coluna + 1]);
+    if (direcao === "esquerda") return focar(fileiras[linha][coluna - 1], rapido);
+    if (direcao === "direita") return focar(fileiras[linha][coluna + 1], rapido);
 
     var nova = direcao === "cima" ? linha - 1 : linha + 1;
     if (nova < 0 || nova >= fileiras.length) return;
@@ -218,7 +225,7 @@
       var d = Math.abs(r.left + r.width / 2 - meio);
       if (d < menor) { menor = d; melhor = c; }
     });
-    focar(melhor);
+    focar(melhor, rapido);
   }
 
   // Códigos de tecla das setas, do OK e do Voltar em navegadores de TV.
@@ -241,12 +248,20 @@
       return;
     }
     if (acao === "ok") {
-      if (focoAtual) { e.preventDefault(); focoAtual.click(); }
+      if (focoAtual) {
+        e.preventDefault();
+        if (!e.repeat) {
+          var apertado = focoAtual;
+          apertado.classList.add("apertado");
+          setTimeout(function () { apertado.classList.remove("apertado"); }, 140);
+          apertado.click();
+        }
+      }
       return;
     }
     if (acao === "voltar") return;
     e.preventDefault();
-    andar(acao);
+    andar(acao, e.repeat);
   });
 
   // Se alguém usar mouse ou o dedo, o foco acompanha.
@@ -313,11 +328,20 @@
   };
 
   function abrirStreaming(video, streaming) {
-    cartaoDeOrigem = focoAtual;
+    var cartao = focoAtual;
+    cartaoDeOrigem = cartao;
+    if (cartao && cartao.classList.contains("abrindo")) return; // já está abrindo; ignora o clique repetido
     var resultado = "";
     if (nativo && video.link) {
       resultado = String(nativo.abrir(video.link, streaming.nome, video.titulo || ""));
-      if (resultado.indexOf("ok") === 0) return; // o app do streaming já abriu
+      if (resultado.indexOf("ok") === 0) {
+        // O app do streaming leva uns segundos para aparecer: mostra que está abrindo.
+        if (cartao) {
+          cartao.classList.add("abrindo");
+          setTimeout(function () { cartao.classList.remove("abrindo"); }, 5000);
+        }
+        return;
+      }
     }
     $("aviso-cartao").className = "aviso-cartao " + streaming.classe;
     $("aviso-selo").innerHTML = '<span class="selo">' + escapar(streaming.nome) + "</span>";
