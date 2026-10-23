@@ -355,7 +355,8 @@
     } else {
       $("aviso-titulo").textContent = "Não consegui abrir o " + streaming.nome;
       $("aviso-texto").textContent =
-        "O aplicativo do " + streaming.nome + " está instalado nesta TV? (" + resultado + ")";
+        "O aplicativo do " + streaming.nome + " está instalado nesta TV?" +
+        (CANTINHO.modoTeste ? " (" + resultado + ")" : "");
     }
     abrirTela("tela-aviso");
     $("aviso-voltar").focus();
